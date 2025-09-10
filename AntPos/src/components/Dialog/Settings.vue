@@ -30,6 +30,8 @@
                         theme="orange"
                         />
                     </h2>
+                        {{ settings }}
+
                     <div v-if="settings.doc" class="flex-1 flex flex-col gap-8 overflow-y-auto">
                         <div class="flex w-full">
                         <FormControl

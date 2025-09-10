@@ -8,9 +8,16 @@ const setting = createDocumentResource({
   doctype: 'AntPOS Settings',
   name: 'AntPOS Settings',
   onSuccess: (data) => {
+    console.log("jjjfjfj");
+    
     settings.value = data
     getSettings().setupBrand()
     return data
+  },
+   transform(doc) {
+    console.log("wkfiewijfeij");
+    
+    return doc
   },
 })
 

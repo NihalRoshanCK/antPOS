@@ -210,7 +210,7 @@ const invoices = createListResource({
 });
 
 const filteredInvoices = computed(() => {
-    if (!invoices.data || !paymentStore.paymentCustomer.name) {
+    if (!invoices.data || !paymentStore.paymentCustomer?.name) {
         return [];
     }
     if (!searchQuery.value) {
@@ -224,7 +224,7 @@ const filteredInvoices = computed(() => {
 
 const hasSelectedInvoice = computed(() => {
     if (currentTab.value === 'credit') return invoices.data?.some(inv => inv.selected);
-    else if (currentTab.value === 'advanced') return paymentStore.paymentCustomer.name && modes.value.some(mode => mode.amount > 0);
+    else if (currentTab.value === 'advanced') return paymentStore.paymentCustomer?.name && modes.value.some(mode => mode.amount > 0);
     else return false;
 });
 
@@ -405,7 +405,7 @@ let save = createResource({
 watch(
     () => paymentStore.paymentCustomer,
     (newValue, oldValue) => {
-        if (oldValue != null && newValue.name !== oldValue.name) {
+        if (oldValue != null && newValue?.name !== oldValue?.name && newValue?.name) {
             paymentStore.paymentCustomer.name = newValue.name;
             invoices.filters.customer = newValue.name;
             invoices.fetch();
