@@ -1,32 +1,43 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { reactive } from 'vue';
 import { generateTempName, createDoctypeResource } from '@/utils';
 
 export const useInvoiceStore = defineStore('salesInvoice', () => {
-  const invoice = ref({});
-  const items = ref([]);
-  const invoiceCustomer = ref({});
+  const invoice = reactive({});
+  const items = reactive([]);
+  const invoiceCustomer = reactive({});
 
   const invoiceResource = createDoctypeResource('Sales Invoice', (data) => {
-    invoice.value = {
+    Object.assign(invoice, {
       ...data,
       name: generateTempName(data.doctype),
-    };
+    });
   });
 
   function unmount() {
-    invoice.value = {};
-    items.value = [];
-    invoiceCustomer.value = {};
+    Object.keys(invoice).forEach(key => delete invoice[key]);
+    items.length = 0;
+    Object.keys(invoiceCustomer).forEach(key => delete invoiceCustomer[key]);
+    console.log(invoice,"lllll");
+    
   }
 
-  async function unmountAndRefresh(includeCustomer) {    
-    invoice.value = {};
-    items.value = [];
+  async function unmountAndRefresh(includeCustomer) {
+    unmount();
     await invoiceResource.fetch();
-
     if (includeCustomer) {
-      invoiceCustomer.value = {};
+      Object.keys(invoiceCustomer).forEach(key => delete invoiceCustomer[key]);
+    }
+  }
+
+  async function updateInvoice(incomingInvoice) {
+    for (const key in incomingInvoice) {
+      const existingValue = invoice[key];
+      const newValue = incomingInvoice[key];
+
+      if (JSON.stringify(existingValue) !== JSON.stringify(newValue)) {
+        invoice[key] = newValue;
+      }
     }
   }
 
@@ -37,5 +48,6 @@ export const useInvoiceStore = defineStore('salesInvoice', () => {
     invoiceResource,
     unmount,
     unmountAndRefresh,
+    updateInvoice,
   };
 });

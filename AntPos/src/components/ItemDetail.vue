@@ -241,7 +241,8 @@ let sales_invoice = createResource({
     },
     async onSuccess (data) {
         if ( status == 'pay'){
-            invoiceStore.invoice = { ...data.docs[0] ,docstatus:1 }
+            data.docs[0].docstatus=1
+            invoiceStore.updateInvoice(data.docs[0])
             return
 
         }else if (status == 'print'){
@@ -255,7 +256,7 @@ let sales_invoice = createResource({
             );
         }
         showToast('success', 'Sales Invoice Drafted Successfully')
-        emitter.emit('remove_invoice', true);
+        invoiceStore.unmountAndRefresh(true);
     },
     onError(error) {
         createToast({
@@ -301,16 +302,23 @@ const calculateDiscount = () => {
 const debouncedDiscount = debounce(calculateDiscount, 300);
 
 watch(
-    () => invoiceStore.invoice._discount_amount,
-    (newVal,oldVal) => {
-        if (!store.posProfileData?.custom_use_percentage_discount && newVal !== oldVal) {
+    [
+        () => invoiceStore.invoice._discount_amount,
+        () => invoiceStore.invoice._additional_discount_percentage
+    ],
+    ([newAmt, newPct], [oldAmt, oldPct]) => {
+        const usePct = store.posProfileData?.custom_use_percentage_discount;
+
+        if (
+            (!usePct && newAmt !== oldAmt) ||
+            (usePct && newPct !== oldPct)
+        ) {
             calculateDiscount();
             emitter.emit('calctotal');
         }
     },
     { flush: 'post' }
 );
-
 watch(
   [() => invoiceStore.invoice.grand_total, () => invoiceStore.invoice.net_total],
   (newValues, oldValues) => {

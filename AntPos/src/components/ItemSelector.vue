@@ -49,10 +49,6 @@ const debounceSearch = ref('');
 const items = ref([]);
 const invoiceStore = useInvoiceStore()
 
-const remove_invoice = ( include_customer = false ) => {
-    invoiceStore.unmountAndRefresh(include_customer)
-};
-
 const searchResource = createResource({
     url: 'ant_pos.ant_pos.api.item.scan_barcode',
     method: 'GET',
@@ -278,7 +274,7 @@ const runDocMethod = createResource({
 
 const calculateAmountTotal = async () => {
     if (invoiceStore.items.length === 0 ) {
-        remove_invoice(false);
+        invoiceStore.unmountAndRefresh(false);
         return;
     }
     await runDocMethod.fetch({doc: JSON.stringify({
@@ -310,9 +306,6 @@ onMounted(() => {
         calculateAmountTotal();
     });
     
-    emitter.on('remove_invoice', (include_customer) => {
-        remove_invoice(include_customer);
-    });
 })
 
 </script> 

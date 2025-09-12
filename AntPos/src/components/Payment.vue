@@ -170,7 +170,7 @@
 import { createListResource, TextInput, FormControl, FeatherIcon, createResource, TabButtons } from 'frappe-ui';
 import { ref, computed, watch, onBeforeMount, onMounted } from 'vue';
 import Customer from '@/components/Customer.vue';
-import { createToast } from '@/utils';
+import { createToast,now } from '@/utils';
 import { usePosProfileStore } from '@/stores/posProfile';
 import { usePaymentStore } from '@/stores/payment'
 import emitter from '@/utils/emitter'; 
@@ -292,13 +292,7 @@ const changemode = (index) => {
     paymentStore.payment.paid_amount = paymentStore.payment.paymentAmount;
 };
 
-const now = () => {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-};
+
 
 const createpayment = async () => {
     if (currentTab.value === 'credit'){
@@ -372,6 +366,7 @@ let save = createResource({
                 doctype:"Payment Entry",
                     payment_type: "Receive",
                     posting_date:now(),
+                    due_date:now(),
                     party_type:'Customer',
                     mode_of_payment:params.mode,
                     party: paymentStore.paymentCustomer.name,
@@ -389,6 +384,22 @@ let save = createResource({
             ),
             action: params.action
         }
+    },
+    onSuccess(data) {
+        if (!data.docs) return
+        data.docs.map(
+            entry=>{
+                createToast({
+                    title: 'success',
+                    message: `Payment Entry ${entry.name} created against ${entry.references.map(r => r.reference_name).join(', ')}.`,
+                    icon: 'x-circle',
+                    iconClasses: 'bg-surface-red-5 text-ink-white rounded-md p-px',
+                    position: 'top-center',
+                    timeout: 5,
+                });
+            }
+        )
+
     },
     onError(error) {
         createToast({

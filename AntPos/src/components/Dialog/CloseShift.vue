@@ -169,7 +169,6 @@ const handleSubmit = createResource({
         }
     },
     onSuccess(data) {
-        emitter.emit('remove_invoice',true);
         dialogVisible.value = false;
         store.fetchPosProfile();
     },

@@ -212,7 +212,7 @@ def items(pos_profile, search_value, customer):
         "cost_center": pos_profile_doc.cost_center,
         "tax_category": pos_profile_doc.tax_category,
         "batch_no": selected_batch_no,
-        "serial_no":"\n".join(selected_serial_no),
+        "serial_no": "\n".join(selected_serial_no) if isinstance(selected_serial_no, (list, tuple)) else selected_serial_no or "",
         "warehouse": pos_profile_doc.warehouse,
         "is_pos": 1,
     }

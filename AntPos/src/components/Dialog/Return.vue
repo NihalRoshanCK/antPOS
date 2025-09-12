@@ -211,7 +211,7 @@ async function splitSerialNumbers(serialString = "") {
 }
 
 const  addvalues = async ()=>{
-    invoiceStore.invoice =  { ...runDoCMethod.data.docs[0], status: null ,name:"new-sales-invoice-jpodtuhocv" }
+    invoiceStore.updateInvoice(runDoCMethod.data.docs[0])
     invoiceStore.items = runDoCMethod.data.docs[0].items || [];
     invoiceStore.invoice._discount_amount =  runDoCMethod.data.docs[0].discount_amount;
     invoiceStore.invoice._additional_discount_percentage =  runDoCMethod.data.docs[0].additional_discount_percentage;

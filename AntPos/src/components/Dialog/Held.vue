@@ -151,7 +151,7 @@ let salesInvoice = createResource({
 const submitInvoice = () => {salesInvoice.fetch({ name: selectedInvoice.value });};
 
 const addvalues = async ()=>{
-    invoiceStore.invoice =  { ...salesInvoice.data.docs[0], status: null  }
+    invoiceStore.updateInvoice(salesInvoice.data.docs[0])
     invoiceStore.items = salesInvoice.data.docs[0].items;
     invoiceStore.invoice._discount_amount =  salesInvoice.data.docs[0].discount_amount;
     invoiceStore.invoice._additional_discount_percentage =  salesInvoice.data.docs[0].additional_discount_percentage;

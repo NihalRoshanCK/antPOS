@@ -218,7 +218,7 @@
                     label="Cancel"
                     :loading="false"
                     :disabled="false"
-                    @click="emitter.emit('remove_invoice', true)"
+                    @click="invoiceStore.unmountAndRefresh(true)"
                     theme="red"
                 >
                     Cancel
@@ -231,8 +231,7 @@
 <script setup>
 import { Button, FormControl, createResource, DatePicker, dayjsLocal  } from 'frappe-ui'
 import { ref, onMounted , watch, computed } from 'vue'
-import { createToast } from '@/utils';
-import { showToast } from '@/utils'
+import { showToast, createToast, now } from '@/utils';
 import emitter from '@/utils/emitter';
 import { usePosProfileStore } from '@/stores/posProfile';
 import { useInvoiceStore } from '@/stores/pos';
@@ -264,7 +263,7 @@ const changemode = (index) => {
             element.amount = 0
         }
     })
-    invoiceStore.invoice.paid_amount = invoiceStore.invoice.base_rounded_total
+    changePaymentAmount()
 }
 
 const deliveryDate = computed({
@@ -284,12 +283,12 @@ const createSaveResource = createResource({
     url: 'frappe.desk.form.save.savedocs',
     makeParams(params) {
         return {
-            doc: JSON.stringify(params.doc),
+            doc: JSON.stringify({...params.doc,due_date:now()}),
             action: params.action
         };
     },
-    onSuccess(data) {
-        doc.value.doc = data.docs[0];
+    async onSuccess(data)  {
+        await invoiceStore.updateInvoice(data.docs[0]);
     },
     onError(error) {
         createToast({
@@ -319,22 +318,41 @@ const changePaymentAmount = () => {
         });
     }
 };
+const createInvoice = async() => {
+    await createSaveResource.fetch({ action: 'Save', doc:invoiceStore.invoice });
+    await createSaveResource.fetch({ action: 'Submit', doc:invoiceStore.invoice });
+}
 
-const saveAndSubmit = async (doc) => {
-    await createSaveResource.fetch({ action: 'Save', doc:doc.value.doc });
-    await createSaveResource.fetch({ action: 'Submit', doc:doc.value.doc });
+const saveAndSubmit = async () => {
+    if (invoiceStore.invoice.advance &&invoiceStore.invoice.advances.some(r => r.allocated_amount > 0)){
+        invoiceStore.invoice.is_pos = 0
+        let invoice = {...invoiceStore.invoice}
+        await createInvoice()
+        await createPayments(invoice)
+    }else await createInvoice()
+    return
+
 }
 
 const submitInvoice = async (action = null) => {
+    console.log("start submitInvoice");
+    
     if(!store.posProfileData.custom_allow_credit){
-        if (invoiceStore.invoice.paid_amount< invoiceStore.invoice.rounded_total) return showToast('warning', 'Credit Not Allowed', 'alert-circle', '#ffcc00','#ffffff');
+        console.log("in store.posProfileData.custom_allow_credit");
+        
+        if (invoiceStore.invoice.paid_amount < invoiceStore.invoice.rounded_total){
+            console.log(invoiceStore.invoice.paid_amount,invoiceStore.invoice.rounded_total,"88888888888888");
+            
+            showToast('warning', 'Credit Not Allowed', 'alert-circle', '#ffcc00','#ffffff');
+            return 
+        }
     }
-    if(!store.posProfileData.custom_allow_partial_payments){
-        if ((invoiceStore.invoice.paid_amount - invoiceStore.invoice.rounded_total) > 0 ) return showToast('warning', 'Partial payment  Not Allowed', 'alert-circle', '#ffcc00','#ffffff');
-    }
+    console.log("not returneddddddddddddd")
     let invoice = { ...invoiceStore.invoice };
     if (await validatePaymentBeforeSave()) {
         if (store.posProfileData.custom_set_sales_order) {
+            console.log("custom_set_sales_order");
+            
             const salesOrder = {
                 ...invoiceStore.invoice,
                 doctype: 'Sales Order',
@@ -343,19 +361,17 @@ const submitInvoice = async (action = null) => {
             };
 
             doc.value = { doc: salesOrder };
-            await saveAndSubmit(doc);
+            await saveAndSubmit();
             const orderName = doc.value.doc.name;
             invoiceStore.invoice.items.forEach((item, index) => {
                 item.so_detail = doc.value.doc.items?.[index]?.name || "";
                 item.sales_order = orderName;
             });
         }
-        doc.value = {
-            doc: invoiceStore.invoice
-        }
-        await saveAndSubmit(doc);
-        emitter.emit('remove_invoice',true);
-        createPayments(invoice);
+        console.log("before saveAndSubmit");
+        
+        await saveAndSubmit();
+        await invoiceStore.unmountAndRefresh(true)
         showToast('success','Invoice submitted successfully', 'check-circle', 'green');
         if (action !== null) {
             createPrint(invoice.name);
@@ -396,16 +412,8 @@ createResource({
         }
     },
     onSuccess(data) {
-        for (const key in data.docs[0]) {
-           
-            const existingValue = invoiceStore.invoice[key];
-            const newValue = data.docs[0][key];
-
-            // Check for changes or new keys
-            if (key !== 'is_pos' && key !== 'docstatus' && JSON.stringify(existingValue) !== JSON.stringify(newValue)) {
-                invoiceStore.invoice[key] = newValue;
-            }
-        }
+        invoiceStore.updateInvoice({...data.docs[0],is_pos:1})
+        changePaymentAmount()
         addPayments()
     },
     onError(error) {
@@ -423,6 +431,8 @@ createResource({
 const makepayment = createResource({
     url: 'frappe.desk.form.save.savedocs',
     makeParams(params) {
+        console.log("in make params");
+        
         return {
             doc: JSON.stringify({
                 ...params.payments,
@@ -462,6 +472,8 @@ const makepayment = createResource({
 });
 
 const validatePaymentBeforeSave = async () => {
+    console.log("in validatePaymentBeforeSave");
+    
     let advance = 0
     let payment = 0
     
