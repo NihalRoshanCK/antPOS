@@ -10,6 +10,8 @@
   "dt",
   "column_break_post",
   "type",
+  "builder_section",
+  "layout_builder",
   "section_break_ttpm",
   "layout"
  ],
@@ -35,10 +37,23 @@
    "options": "Quick Entry\nSide Panel\nData Fields\nGrid Row\nRequired Fields"
   },
   {
-   "fieldname": "section_break_ttpm",
-   "fieldtype": "Section Break"
+   "fieldname": "builder_section",
+   "fieldtype": "Section Break",
+   "label": "Layout"
   },
   {
+   "fieldname": "layout_builder",
+   "fieldtype": "HTML",
+   "label": "Layout Builder"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_break_ttpm",
+   "fieldtype": "Section Break",
+   "label": "Layout JSON (advanced)"
+  },
+  {
+   "description": "Written by the builder above. Edit by hand only if you know the format.",
    "fieldname": "layout",
    "fieldtype": "Code",
    "label": "Layout",
@@ -47,7 +62,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-08-23 11:51:45.655352",
+ "modified": "2026-09-16 23:00:00.000000",
  "modified_by": "Administrator",
  "module": "Ant-Pos",
  "name": "Antpos Fields Layout",

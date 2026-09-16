@@ -150,11 +150,23 @@ def get_layout_for_editing(doctype: str, type: str, default: int = 0) -> dict:
 
 	meta = frappe.get_meta(doctype)
 	fields = [
-		{"fieldname": df.fieldname, "label": _(df.label) if df.label else df.fieldname, "fieldtype": df.fieldtype}
+		{
+			"fieldname": df.fieldname,
+			"label": _(df.label) if df.label else df.fieldname,
+			# Contact fields are inputs in quick entry (see QUICK_ENTRY_INPUTS).
+			"fieldtype": "Data" if _is_quick_entry_input(doctype, type, df.fieldname) else df.fieldtype,
+			"reqd": cint(df.reqd),
+			"read_only": 0 if _is_quick_entry_input(doctype, type, df.fieldname) else cint(df.read_only),
+			"default": df.default,
+		}
 		for df in meta.fields
 		if df.fieldtype in SUPPORTED_FIELDTYPES
 	]
 	return {"sections": sections, "fields": fields, "has_default": (doctype, type) in DEFAULT_LAYOUTS}
+
+
+def _is_quick_entry_input(doctype, type, fieldname):
+	return type == QUICK_ENTRY and (doctype, fieldname) in QUICK_ENTRY_INPUTS
 
 
 def get_default_layout(doctype: str, type: str) -> list:
