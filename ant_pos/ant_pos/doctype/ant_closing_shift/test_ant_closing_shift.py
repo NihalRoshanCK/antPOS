@@ -40,3 +40,18 @@ class TestAntClosingShift(FrappeTestCase):
 
 		self.assertIn("cashier", opening_fields)
 		self.assertNotIn("user", opening_fields)
+
+	def test_return_rows_link_to_sales_invoice(self):
+		"""antPOS returns are Sales Invoices. return_against linked to POS
+		Invoice, so any shift containing a return failed to close with
+		"Could not find Return Against"."""
+		field = frappe.get_meta("Ant Sales invoice Reference").get_field("return_against")
+		self.assertEqual(field.options, "Sales Invoice")
+
+		original = frappe.get_all("Sales Invoice", filters={"docstatus": 1}, pluck="name", limit=1)
+		if not original:
+			self.skipTest("needs a submitted Sales Invoice")
+		shift = frappe.new_doc("Ant Closing Shift")
+		row = shift.append("pos_transactions", {"return_against": original[0]})
+		invalid, _cancelled = row.get_invalid_links()
+		self.assertEqual(invalid, [])
