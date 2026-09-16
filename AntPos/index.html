@@ -35,12 +35,12 @@
     <link rel="manifest" href="/manifest.webmanifest" />
 
     <!-- PWA -->
-    <link
-      rel="icon"
-      type="image/png"
-      sizes="196x196"
-      href="/assets/ant_pos/manifest/apple-icon-180.png"
-    />
+    <!-- The brand favicon from antPOS Settings, so the tab never shows the
+         default icon first. -->
+    <link rel="icon" href="{{ ((brand and (brand.favicon or brand.default_icon)) or '/assets/ant_pos/antPOS.png') | e }}" />
+    <!-- Brand for the app's first render (stores/settings.js). tojson escapes
+         <, > and &, so the data cannot close this tag. -->
+    <script type="application/json" id="antpos-brand">{{ (brand or {}) | tojson }}</script>
     <link
       rel="apple-touch-icon"
       href="/assets/ant_pos/manifest/apple-icon-180.png"

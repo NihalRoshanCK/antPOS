@@ -16,16 +16,28 @@ def get_context():
 	# Rendered onto <html> so the page paints in the right theme before any JS
 	# runs, the same way the desk does.
 	context.theme_mode = context.boot.desk_theme.lower()
-	# The tab title shows the brand before the app loads.
-	context.brand_name = get_brand_name()
+	# The brand is rendered into the page (tab title, favicon) and handed to
+	# the app, so nothing flips from the antPOS defaults once it loads.
+	context.brand = get_brand()
+	context.brand_name = context.brand["name"]
 	return context
 
 
-def get_brand_name():
-	# Frappe stores Data fields HTML-escaped ("Tom &amp; Jerry"); the template
-	# escapes once itself, so hand it the plain text.
-	value = frappe.db.get_single_value("AntPOS Settings", "brand_name", cache=True) or ""
-	return html.unescape(value).strip()
+DEFAULT_ICON = "/assets/ant_pos/antPOS.png"
+
+
+def get_brand():
+	def value(field):
+		return frappe.db.get_single_value("AntPOS Settings", field, cache=True) or ""
+
+	return {
+		# Frappe stores Data fields HTML-escaped ("Tom &amp; Jerry"); the
+		# template escapes once itself, so hand it the plain text.
+		"name": html.unescape(value("brand_name")).strip(),
+		"logo": value("brand_logo"),
+		"favicon": value("favicon"),
+		"default_icon": DEFAULT_ICON,
+	}
 
 
 def get_desk_theme():

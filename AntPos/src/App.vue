@@ -101,7 +101,7 @@ usePageMeta(() => {
   const page = PAGE_TITLES[route.name];
   return {
     title: page ? `${page} · ${brandName}` : brandName,
-    icon: brand.favicon ? brand.favicon : '/assets/ant_pos/antPOS.png',
+    icon: brand.favicon || '/assets/ant_pos/antPOS.png',
   }
 })
 

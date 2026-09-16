@@ -5,7 +5,21 @@ import { reactive, ref } from 'vue'
 export const settingsPage = ref('preferences')
 
 const settings = ref({})
-const brand = reactive({})
+
+// The server renders the brand into the page (www/antPOS.py). Starting from
+// it avoids a flash of the antPOS logo and favicon before Settings load.
+// Outside Frappe (vite dev) the Jinja placeholder is not JSON.
+function initialBrand() {
+  let b = null
+  try {
+    b = JSON.parse(document.getElementById('antpos-brand')?.textContent || 'null')
+  } catch {
+    b = null
+  }
+  if (!b || typeof b !== 'object') return {}
+  return { name: b.name || undefined, logo: b.logo || undefined, favicon: b.favicon || undefined }
+}
+const brand = reactive(initialBrand())
 
 // Created lazily. This module is imported (via App.vue) before main.js calls
 // setConfig('resourceFetcher', frappeRequest), so a resource created at import
