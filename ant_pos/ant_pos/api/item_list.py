@@ -45,13 +45,25 @@ def get_list_settings(profile) -> frappe._dict:
 	return settings
 
 
+# Cached lists are keyed by a version number. Clearing bumps the version, a
+# single Redis call, instead of scanning for keys on every Item or Item Price
+# saved (an import saves thousands). Old entries expire on their own.
+VERSION_KEY = f"{CACHE_PREFIX}version"
+
+
+def _cache_version() -> int:
+	cache = frappe.cache()
+	return cint(cache.get(cache.make_key(VERSION_KEY)))
+
+
 def cache_key(pos_profile: str) -> str:
-	return f"{CACHE_PREFIX}{pos_profile}"
+	return f"{CACHE_PREFIX}{_cache_version()}:{pos_profile}"
 
 
 def clear_item_list_cache(doc=None, method=None):
 	"""Drop every cached item list. Wired to Item, Item Price and POS Profile."""
-	frappe.cache().delete_keys(CACHE_PREFIX)
+	cache = frappe.cache()
+	cache.incr(cache.make_key(VERSION_KEY))
 
 
 @frappe.whitelist()

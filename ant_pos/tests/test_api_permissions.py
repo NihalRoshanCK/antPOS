@@ -8,36 +8,23 @@ from frappe.tests.utils import FrappeTestCase
 
 from ant_pos.ant_pos.api import get_doc_field
 from ant_pos.ant_pos.api.session import get_users
-from ant_pos.ant_pos.doctype.antpos_fields_layout.antpos_fields_layout import (
-	get_fields_layout,
-	get_sidepanel_sections,
-	save_fields_layout,
-)
 
 
 class TestWhitelistedEndpointsAreGated(FrappeTestCase):
-	"""These four were whitelisted with no permission check at all, and
-	save_fields_layout additionally saved with ignore_permissions=True."""
-
-	def test_save_fields_layout_is_admin_only(self):
-		source = inspect.getsource(save_fields_layout)
-
-		self.assertIn("only_for", source)
-		self.assertNotIn("ignore_permissions", source)
-
-	def test_layout_readers_check_permission(self):
-		for fn in (get_fields_layout, get_sidepanel_sections):
-			self.assertIn("has_permission", inspect.getsource(fn), fn.__name__)
-
 	def test_get_doc_field_checks_create_permission(self):
 		source = inspect.getsource(get_doc_field)
 
 		self.assertIn("has_permission", source)
 		self.assertIn("create", source)
 
-	def test_sidepanel_reads_the_right_doctype(self):
-		"""It referenced "CAntpos Fields Layout" and so always raised."""
-		self.assertNotIn("CAntpos", inspect.getsource(get_sidepanel_sections))
+	def test_retired_endpoints_are_gone(self):
+		"""Unused whitelisted methods, one of them open to guests."""
+		from ant_pos.ant_pos import utils
+		from ant_pos.ant_pos.doctype.antpos_fields_layout import antpos_fields_layout
+
+		self.assertFalse(hasattr(utils, "get_domain_url"))
+		for name in ("get_fields_layout", "get_sidepanel_sections", "save_fields_layout"):
+			self.assertFalse(hasattr(antpos_fields_layout, name), name)
 
 
 class TestGetUsersScoping(FrappeTestCase):

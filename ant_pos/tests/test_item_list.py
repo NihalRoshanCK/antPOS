@@ -49,6 +49,16 @@ class TestItemListCache(FrappeTestCase):
 		for name in ("A", "B"):
 			self.assertIsNone(cache.get_value(item_list.cache_key(name), expires=True))
 
+	def test_clear_does_not_scan_keys(self):
+		"""delete_keys scans Redis, once per Item saved during an import."""
+		from unittest.mock import patch
+
+		before = item_list.cache_key("A")
+		with patch.object(type(frappe.cache()), "delete_keys") as delete_keys:
+			item_list.clear_item_list_cache()
+		delete_keys.assert_not_called()
+		self.assertNotEqual(item_list.cache_key("A"), before)
+
 	def test_hooks_clear_the_cache_on_changes(self):
 		events = frappe.get_hooks("doc_events")
 		target = "ant_pos.ant_pos.api.item_list.clear_item_list_cache"
