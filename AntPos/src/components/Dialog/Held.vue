@@ -4,13 +4,13 @@
             <p class="text-3xl">Select Invoice</p>
         </template>
         <template #body-content>
-            <div class="w-full h-[60vh] bg-white-overlay-100 rounded-2xl p-3 shadow-2xl flex flex-col gap-4">
+            <div class="w-full h-[60vh] bg-surface-white rounded-2xl p-3 shadow-2xl flex flex-col gap-4">
                 <TextInput type="text" v-model="searchQuery" placeholder="Search">
                     <template #prefix>
                         <FeatherIcon class="w-4" name="search" />
                     </template>
                 </TextInput>
-                <div class="flex justify-evenly bg-black-overlay-800 text-white rounded-md p-3 h-[8%]">
+                <div class="flex justify-evenly bg-surface-gray-7 text-ink-white rounded-md p-3 h-[8%]">
                     <div class="w-[10%]"></div>
                     <p class="w-[30%]">Name</p>
                     <p class="w-[30%]">Customer</p>
@@ -18,10 +18,10 @@
                 </div>
                 <div class="h-[82%] overflow-y-scroll scrollbar-hide">
                     <div v-for="invoice in filteredInvoices" :key="invoice.name" class="flex flex-col">
-                        <div class="flex justify-evenly rounded bg-blue-200 p-2.5 my-2">
+                        <div class="flex justify-evenly rounded bg-surface-blue-1 text-ink-gray-8 p-2.5 my-2">
                             <div class="w-[10%]">
                                 <input type="radio" name="selectedInvoice" :value="invoice.name"
-                                    class="text-black hover:text-black" v-model="selectedInvoice" />
+                                    class="text-ink-gray-9 hover:text-ink-gray-9" v-model="selectedInvoice" />
                             </div>
                             <p class="w-[30%]">{{ invoice.name }}</p>
                             <p class="w-[30%]">{{ invoice.customer }}</p>

@@ -28,6 +28,8 @@ declare module 'vue' {
     Settings: typeof import('./src/components/Dialog/Settings.vue')['default']
     Sidebar: typeof import('./src/components/Sidebar.vue')['default']
     SidebarLink: typeof import('./src/components/SidebarLink.vue')['default']
+    ThemePreview: typeof import('./src/components/Dialog/ThemePreview.vue')['default']
+    ThemeSwitcher: typeof import('./src/components/Dialog/ThemeSwitcher.vue')['default']
     TotalsReadout: typeof import('./src/components/pos/TotalsReadout.vue')['default']
   }
 }

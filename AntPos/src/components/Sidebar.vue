@@ -101,6 +101,7 @@ import LucideCreditCard from '~icons/lucide/credit-card'
 import LucideFileMinus from '~icons/lucide/file-minus'
 import LucideLayoutGrid from '~icons/lucide/layout-grid'
 import LucideSettings from '~icons/lucide/settings'
+import LucideSunMoon from '~icons/lucide/sun-moon'
 import LucideLogOut from '~icons/lucide/log-out'
 
 const sidebarStore = useSidebar()
@@ -138,6 +139,7 @@ const links = computed(() => {
 const menuItems = [
   { label: 'Close shift', icon: markRaw(LucideFileMinus), onClick: () => loadComponent('CloseShift') },
   { label: 'Go to desk', icon: markRaw(LucideLayoutGrid), onClick: () => { window.location.href = '/app' } },
+  { label: 'Toggle theme', icon: markRaw(LucideSunMoon), onClick: () => loadComponent('ThemeSwitcher') },
   { label: 'Settings', icon: markRaw(LucideSettings), onClick: () => loadComponent('Settings') },
   { label: 'Log out', icon: markRaw(LucideLogOut), onClick: () => sessionStore.logout.fetch() },
 ]

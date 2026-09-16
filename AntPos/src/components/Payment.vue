@@ -13,10 +13,10 @@
                                     <FeatherIcon class="w-4" name="search" />
                                 </template>
                             </TextInput>
-                            <div class="flex justify-evenly text-center bg-black-overlay-800 text-white rounded-md p-3 h-[6%] items-center">
+                            <div class="flex justify-evenly text-center bg-surface-gray-7 text-ink-white rounded-md p-3 h-[6%] items-center">
                                 <div class="w-[4%]">
                                     <input name="name" id="id" type="checkbox" :checked="selectAll"
-                                    class="text-black rounded-sm focus:outline-none focus:ring-0 focus:border-transparent" @change="toggleAllSelection" />
+                                    class="text-ink-gray-9 rounded-sm focus:outline-none focus:ring-0 focus:border-transparent" @change="toggleAllSelection" />
                                 </div>
                                 <p class="w-[19%]">Name</p>
                                 <p class="w-[19%]">Customer</p>
@@ -25,13 +25,13 @@
                             </div>
                             <div class="h-[92%] overflow-y-scroll rounded scrollbar-hide flex flex-col  gap-3 text-center">
                                 <div v-if="filteredInvoices.length === 0" class="flex justify-center items-center h-full">
-                                    <p class="text-gray-500">No invoices found</p>
+                                    <p class="text-ink-gray-5">No invoices found</p>
                                 </div>
                                 <div v-for="invoice in filteredInvoices" :key="invoice.name" class=" w-full ">
-                                    <div class="flex justify-evenly items-center rounded text-center bg-blue-200 p-2.5 ">
+                                    <div class="flex justify-evenly items-center rounded text-center bg-surface-blue-1 text-ink-gray-8 p-2.5 ">
                                         <div class="w-[4%] ">
                                             <input name="name" id="id" type="checkbox" :checked="invoice.selected" 
-                                            class="text-black rounded-sm focus:outline-none focus:ring-0 focus:border-transparent" @change="toggleSelection(invoice)" />
+                                            class="text-ink-gray-9 rounded-sm focus:outline-none focus:ring-0 focus:border-transparent" @change="toggleSelection(invoice)" />
                                         </div>
                                         <p class="w-[19%]">{{ invoice.name }}</p>
                                         <p class="w-[19%]">{{ invoice.customer }}</p>
@@ -74,7 +74,7 @@
     
                         <div class="flex flex-col gap-4">
                             <div class="flex flex-col gap-6 h-fit">
-                                <div class="flex justify-evenly bg-black-overlay-800 text-white rounded-md p-3">
+                                <div class="flex justify-evenly bg-surface-gray-7 text-ink-white rounded-md p-3">
                                     <p>Payment Total</p>
                                 </div>
                                     <TabButtons

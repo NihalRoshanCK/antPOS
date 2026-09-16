@@ -2,7 +2,7 @@
     <article
         :class="[
             'lg:border-b lg:border-outline-gray-1 lg:rounded-none',
-            'border rounded-xl lg:bg-transparent bg-white',
+            'border rounded-xl lg:bg-transparent bg-surface-white',
             items.custom_open ? 'border-outline-gray-3 lg:bg-surface-gray-1' : 'border-outline-gray-1',
         ]"
     >
@@ -52,7 +52,7 @@
                 <span class="text-[16px] font-semibold num shrink-0">{{ Number(items.amount || 0).toFixed(2) }}</span>
             </div>
             <div class="flex items-center gap-2 mt-3">
-                <div class="flex items-center border border-outline-gray-1 rounded-lg overflow-hidden bg-white">
+                <div class="flex items-center border border-outline-gray-1 rounded-lg overflow-hidden bg-surface-white">
                     <button type="button" class="w-11 h-11 grid place-items-center text-ink-gray-6 active:bg-surface-gray-2"
                             aria-label="Decrease quantity" @click="step(-1)">
                         <FeatherIcon name="minus" class="w-4 h-4" />

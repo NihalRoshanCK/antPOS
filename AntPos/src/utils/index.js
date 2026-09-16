@@ -21,10 +21,6 @@ export function showToast(title, text, icon, bgColor = null, textColor = null, i
         icon: icon,
         iconClasses: iconClasses,
         timeout: 5,
-        style: {
-            backgroundColor: bgColor || 'white',
-            color: textColor || 'black' 
-        },
     });
 }
 function htmlToText(html) {

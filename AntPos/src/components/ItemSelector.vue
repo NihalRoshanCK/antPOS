@@ -1,7 +1,7 @@
 <template>
     <section
         :class="[
-            'flex flex-col min-h-0 bg-white',
+            'flex flex-col min-h-0 bg-surface-white',
             compact
                 ? 'shrink-0 border-b border-outline-gray-1'
                 : 'w-[30%] min-w-[280px] max-w-[380px] shrink-0 rounded-xl border border-outline-gray-1 shadow-sm overflow-hidden',

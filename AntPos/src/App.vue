@@ -21,7 +21,8 @@
 
 <script setup>
 import { FrappeUIProvider } from 'frappe-ui'
-import { inject, watch } from 'vue';
+import { inject, watch, onMounted, onUnmounted } from 'vue';
+import { useTheme } from '@/composables/useTheme';
 import { usePosProfileStore } from '@/stores/posProfile';
 import { usePageMeta } from 'frappe-ui';
 import { getSettings } from '@/stores/settings';
@@ -33,6 +34,17 @@ const { brand } = getSettings()
 const { currentComponent, loadComponent } = inject('dynamicComponent');
 const posProfileStore = usePosProfileStore();
 const sessionStore = useSessionStore();
+const { toggleTheme } = useTheme();
+
+// Ctrl/Cmd+Shift+G switches between light and dark, as in the desk.
+function onKeydown(e) {
+  if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'g') {
+    e.preventDefault();
+    toggleTheme();
+  }
+}
+onMounted(() => window.addEventListener('keydown', onKeydown));
+onUnmounted(() => window.removeEventListener('keydown', onKeydown));
 
 usePageMeta(() => {
   return {

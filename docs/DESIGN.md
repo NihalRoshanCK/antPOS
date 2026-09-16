@@ -20,6 +20,30 @@ An earlier pass invented a separate palette with a dark "readout" panel. On the
 live app it clashed with the frappe shell and turned an idle screen into a black
 slab reading 0.00. It was removed; do not reintroduce a private palette.
 
+## Themes
+
+Light, dark and automatic, working the same way as the Frappe desk
+(`frappe/public/js/frappe/ui/theme_switcher.js`):
+
+- The choice is the user's **`desk_theme`** (Light / Dark / Automatic), saved
+  through `frappe.core.doctype.user.user.switch_theme`. The desk and the POS
+  share one setting.
+- `<html data-theme-mode>` holds the choice and `<html data-theme>` the resolved
+  scheme. frappe-ui's tokens and `dark:` variants key off `data-theme`.
+- `www/antPOS.py` writes the choice onto `<html>` and an inline script in
+  `index.html` resolves Automatic before first paint, so there is no white
+  flash. Automatic then follows the OS setting live.
+- **Switch Theme** is in the sidebar header menu (*Toggle theme*): three preview
+  cards, *Frappe Light*, *Timeless Night* and *Automatic*, with arrow-key
+  navigation. **Ctrl/Cmd+Shift+G** switches light/dark, as in the desk.
+
+Dark mode only works if components use frappe-ui's semantic tokens. Raw colours
+(`bg-white`, `text-gray-*`, `bg-black-overlay-*`, hex values) do not change with
+the theme, so do not add them. The previous ones were replaced, and `showToast`
+no longer forces a white background.
+
+Reference: `images/pos-desktop-dark.png`, `images/theme-switcher.png`.
+
 ## Layout (issue #19)
 
 `useBreakpoint()` splits at **1024px**; `pages/Pos.vue` picks a layout.

@@ -11,7 +11,18 @@ no_cache = 1
 def get_context():
 	context = frappe._dict()
 	context.boot = get_boot()
+	# Rendered onto <html> so the page paints in the right theme before any JS
+	# runs, the same way the desk does.
+	context.theme_mode = context.boot.desk_theme.lower()
 	return context
+
+
+def get_desk_theme():
+	"""The user's desk theme, shared with the desk: Light, Dark or Automatic."""
+	if frappe.session.user == "Guest":
+		return "Light"
+	theme = frappe.db.get_value("User", frappe.session.user, "desk_theme")
+	return theme if theme in ("Light", "Dark", "Automatic") else "Light"
 
 
 
@@ -21,6 +32,7 @@ def get_boot():
 		{
 			"frappe_version": frappe.__version__,
 			"default_route": get_default_route(),
+			"desk_theme": get_desk_theme(),
 			"site_name": frappe.local.site,
 			"read_only_mode": frappe.flags.read_only,
 			"csrf_token": frappe.sessions.get_csrf_token(),
