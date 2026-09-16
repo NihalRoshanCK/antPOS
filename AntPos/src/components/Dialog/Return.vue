@@ -1,38 +1,24 @@
 <template>
-    <Dialog :options="{ title: 'Return an invoice', size: 'xl' }" v-model="dialogVisible">
-        <template #body-content>
-            <InvoicePicker
-                v-model="selectedInvoice"
-                v-model:search="searchQuery"
-                :invoices="invoices.data || []"
-                :loading="invoices.loading"
-                :has-more="invoices.hasNextPage"
-                empty-text="No submitted invoices to return."
-                aria-label="Invoices to return"
-                @confirm="(name) => { selectedInvoice = name; submitInvoice() }"
-                @load-more="invoices.next()"
-            />
-        </template>
-        <template #actions>
-            <div class="flex flex-row-reverse gap-2">
-                <Button
-                    variant="solid"
-                    size="md"
-                    class="flex-1 sm:flex-none"
-                    :disabled="!selectedInvoice"
-                    :loading="loadingSelection"
-                    @click="submitInvoice"
-                >
-                    Start return
-                </Button>
-                <Button size="md" class="flex-1 sm:flex-none" @click="handleDialogClose">Cancel</Button>
-            </div>
-        </template>
-    </Dialog>
+    <InvoicePicker
+        v-model="dialogVisible"
+        v-model:search="searchQuery"
+        title="Return an invoice"
+        description="Pick the sale the customer is bringing back."
+        action-label="Return"
+        empty-title="No invoices to return"
+        empty-text="Submitted sales from this POS profile appear here."
+        :invoices="invoices.data || []"
+        :loading="invoices.loading"
+        :has-more="invoices.hasNextPage"
+        :opening="loadingSelection ? selectedInvoice : null"
+        :show-status="true"
+        @select="(name) => { selectedInvoice = name; submitInvoice() }"
+        @load-more="invoices.next()"
+    />
 </template>
 
 <script setup>
-import { Dialog, Button, createListResource, createResource, debounce } from 'frappe-ui';
+import { createListResource, createResource, debounce } from 'frappe-ui';
 import InvoicePicker from '@/components/pos/InvoicePicker.vue';
 import { ref, computed, watch } from 'vue';
 import { createToast } from '@/utils';
@@ -40,6 +26,7 @@ import { usePosProfileStore } from '@/stores/posProfile';
 import { usePermissionStore } from '@/stores/permission';
 import { usersStore } from '@/stores/users';
 import { useInvoiceStore } from '@/stores/pos';
+import { useMobileView } from '@/stores/mobile';
 import { generateTempName } from '@/utils';
 
 const store = usePosProfileStore();
@@ -50,6 +37,7 @@ const selectedPageLength = ref(20);
 const handleDialogClose = () => { dialogVisible.value = false; };
 const permissionStore = usePermissionStore();
 const invoiceStore = useInvoiceStore()
+const mobile = useMobileView()
 const user = usersStore().getUser();
 
 const setPageLength = (size) => {
@@ -119,8 +107,9 @@ let salesInvoice = createResource({
         return {
             method: "erpnext.accounts.doctype.sales_invoice.sales_invoice.make_sales_return",
             source_name: params.name,
-            selected_children:{},
-            args:""
+            // selected_children and args are typed `str | None` in Frappe, which
+            // now validates argument types: sending `{}` failed every return
+            // with FrappeTypeError. Both are optional, so leave them out.
         };
     },
     onSuccess: async (data) => {
@@ -153,8 +142,8 @@ const loadingSelection = computed(() => Boolean(salesInvoice.loading || runDoCMe
 
 const invoices = createListResource({
     doctype: 'Sales Invoice',
-    fields: ['name', 'customer', 'grand_total', 'posting_date'],
-    orderBy: 'creation desc',
+    fields: ['name', 'customer', 'customer_name', 'grand_total', 'posting_date', 'posting_time', 'total_qty', 'status'],
+    orderBy: 'posting_date desc, creation desc',
     filters: returnFilters(),
     orFilters: [],
     pageLength: 20,
@@ -196,6 +185,8 @@ const  addvalues = async ()=>{
     });
     invoiceStore.invoiceCustomer = get_value.data || {};
     searchQuery.value='';
+    // On phones, go straight to the cart so the loaded sale is visible.
+    mobile.showCart()
     handleDialogClose()
 }
 
@@ -236,7 +227,8 @@ const updateInvoices = debounce((newQuery) => {
     orFilters: newQuery
       ? [
           ['name', 'like', `%${newQuery}%`],
-          ['customer', 'like', `%${newQuery}%`]
+          ['customer', 'like', `%${newQuery}%`],
+          ['customer_name', 'like', `%${newQuery}%`]
         ]
       : []
   });

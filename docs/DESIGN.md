@@ -103,9 +103,15 @@ On the Sell tab, `stores/mobile.js` picks the screen:
 Emptying the cart returns to Items. Opening a held sale or a return goes
 straight to Cart.
 
-The Held and Return dialogs share `pos/InvoicePicker.vue`: search, one card
-per invoice (number, customer, date, amount), load more, and double-click to
-open. The Payments page stacks on mobile, and Record payment is pinned to the
+Held and Return share `pos/InvoicePicker.vue` (`images/return-picker.png`,
+`images/mobile-held.png`). On desktop it is a panel near the top of the screen;
+on phones it is a full-height bottom sheet. Invoices are grouped by day (Today,
+Yesterday, a date), and each row shows the customer, the invoice number and
+time, the amount and the item count. Returns also show the payment status. One
+tap opens a sale; that row shows a spinner and the others are disabled until it
+loads. There is no Enter-to-open shortcut, because a debounced search could
+open the wrong invoice. On phones, the loaded sale opens in the cart.
+The Payments page stacks on mobile, and Record payment is pinned to the
 bottom.
 
 ### Shell

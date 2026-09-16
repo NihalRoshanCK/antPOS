@@ -43,14 +43,4 @@ watch(
     if (!count && !paying.value) mobile.showItems()
   }
 )
-
-// A held or returned invoice loaded from a dialog should be reviewed first.
-watch(
-  () => invoiceStore.invoice?.name,
-  (name, previous) => {
-    if (name && previous && name !== previous && !String(name).startsWith('new-') && invoiceStore.items.length) {
-      mobile.showCart()
-    }
-  }
-)
 </script>

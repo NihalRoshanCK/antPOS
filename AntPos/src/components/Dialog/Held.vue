@@ -1,38 +1,23 @@
 <template>
-    <Dialog :options="{ title: 'Held sales', size: 'xl' }" v-model="dialogVisible">
-        <template #body-content>
-            <InvoicePicker
-                v-model="selectedInvoice"
-                v-model:search="searchQuery"
-                :invoices="invoices.data || []"
-                :loading="invoices.loading"
-                :has-more="invoices.hasNextPage"
-                empty-text="No held sales. Use “Hold sale” in the cart to park one here."
-                aria-label="Held sales"
-                @confirm="(name) => { selectedInvoice = name; submitInvoice() }"
-                @load-more="invoices.next()"
-            />
-        </template>
-        <template #actions>
-            <div class="flex flex-row-reverse gap-2">
-                <Button
-                    variant="solid"
-                    size="md"
-                    class="flex-1 sm:flex-none"
-                    :disabled="!selectedInvoice"
-                    :loading="loadingSelection"
-                    @click="submitInvoice"
-                >
-                    Open sale
-                </Button>
-                <Button size="md" class="flex-1 sm:flex-none" @click="handleDialogClose">Cancel</Button>
-            </div>
-        </template>
-    </Dialog>
+    <InvoicePicker
+        v-model="dialogVisible"
+        v-model:search="searchQuery"
+        title="Held sales"
+        description="Sales parked with “Hold sale”. Pick one to carry on."
+        action-label="Open"
+        empty-title="No held sales"
+        empty-text="Use “Hold sale” in the cart to park a sale and serve the next customer."
+        :invoices="invoices.data || []"
+        :loading="invoices.loading"
+        :has-more="invoices.hasNextPage"
+        :opening="loadingSelection ? selectedInvoice : null"
+        @select="(name) => { selectedInvoice = name; submitInvoice() }"
+        @load-more="invoices.next()"
+    />
 </template>
 
 <script setup>
-import { Dialog, Button, createListResource, createResource } from 'frappe-ui';
+import { createListResource, createResource, debounce } from 'frappe-ui';
 import InvoicePicker from '@/components/pos/InvoicePicker.vue';
 import { ref, computed, watch } from 'vue';
 import { createToast } from '@/utils';
@@ -40,10 +25,12 @@ import { usePosProfileStore } from '@/stores/posProfile';
 import { usePermissionStore } from '@/stores/permission';
 import { usersStore } from '@/stores/users';
 import { useInvoiceStore } from '@/stores/pos';
+import { useMobileView } from '@/stores/mobile';
 
 
 const store = usePosProfileStore();
 const invoiceStore = useInvoiceStore()
+const mobile = useMobileView()
 const dialogVisible = ref(true);
 const selectedInvoice = ref(null);
 const searchQuery = ref("");
@@ -129,6 +116,8 @@ const addvalues = async ()=>{
     });
     invoiceStore.invoiceCustomer = get_value.data || {};
     searchQuery.value=''
+    // On phones, go straight to the cart so the loaded sale is visible.
+    mobile.showCart()
     handleDialogClose()
 }
 
@@ -170,8 +159,8 @@ const loadingSelection = computed(() => Boolean(salesInvoice.loading || get_valu
 
 const invoices = createListResource({
     doctype: 'Sales Invoice',
-    fields: ['name', 'customer', 'grand_total', 'posting_date'],
-    orderBy: 'creation desc',
+    fields: ['name', 'customer', 'customer_name', 'grand_total', 'posting_date', 'posting_time', 'total_qty'],
+    orderBy: 'posting_date desc, creation desc',
     filters: heldFilters(),
     orFilters: [],
     pageLength: 20,
@@ -189,7 +178,7 @@ const filteredInvoices = computed(() => {
 });
 
 
-watch(searchQuery, (newQuery) => {
+const updateInvoices = debounce((newQuery) => {
   invoices.update({
     // Must keep every base filter: this used to rebuild them without `owner`,
     // so a cashier limited to their own drafts saw everyone's once they searched.
@@ -197,11 +186,14 @@ watch(searchQuery, (newQuery) => {
     orFilters: newQuery
       ? [
           ['name', 'like', `%${newQuery}%`],
-          ['customer', 'like', `%${newQuery}%`]
+          ['customer', 'like', `%${newQuery}%`],
+          ['customer_name', 'like', `%${newQuery}%`]
         ]
       : []
   });
   invoices.reload();
-});
+}, 300);
+
+watch(searchQuery, updateInvoices);
 
 </script>

@@ -1,76 +1,73 @@
 <template>
-  <div class="flex h-[min(65vh,36rem)] flex-col">
-    <TextInput
-      :model-value="search"
-      type="text"
-      size="md"
-      variant="subtle"
-      placeholder="Search by invoice or customer"
-      @update:model-value="$emit('update:search', $event)"
-    >
-      <template #prefix><FeatherIcon class="w-4 text-ink-gray-5" name="search" /></template>
-    </TextInput>
-
-    <div
-      class="-mx-1 mt-3 min-h-0 flex-1 overflow-y-auto pos-scroll px-1"
-      role="radiogroup"
-      :aria-label="ariaLabel"
-    >
-      <div v-if="loading && !invoices.length" class="space-y-2" aria-busy="true">
-        <div v-for="n in 4" :key="n" class="h-16 animate-pulse rounded-lg bg-surface-gray-2" />
+  <!-- Desktop: a panel near the top of the screen, like a command palette.
+       Phones: a full-height sheet from the bottom. -->
+  <Dialog
+    v-if="isDesktop"
+    v-model="isOpen"
+    :options="{ title, size: '2xl', position: 'top' }"
+  >
+    <template #body>
+      <div class="flex h-[min(70vh,40rem)] flex-col">
+        <InvoicePickerBody v-bind="$attrs" :title="title" autofocus @close="isOpen = false" />
       </div>
+    </template>
+  </Dialog>
 
-      <div v-else-if="!invoices.length" class="grid h-full place-items-center px-6 text-center">
-        <p class="text-sm text-ink-gray-5">{{ emptyText }}</p>
+  <Teleport v-else to="body">
+    <Transition
+      enter-active-class="transition-opacity duration-200"
+      leave-active-class="transition-opacity duration-150"
+      enter-from-class="opacity-0"
+      leave-to-class="opacity-0"
+    >
+      <div v-if="isOpen" class="fixed inset-0 z-50 bg-black/40" aria-hidden="true" @click="isOpen = false" />
+    </Transition>
+    <Transition
+      enter-active-class="transition-transform duration-200 ease-out"
+      leave-active-class="transition-transform duration-150 ease-in"
+      enter-from-class="translate-y-full"
+      leave-to-class="translate-y-full"
+    >
+      <div
+        v-if="isOpen"
+        role="dialog"
+        aria-modal="true"
+        :aria-label="title"
+        class="fixed inset-x-0 bottom-0 z-50 flex h-[92dvh] flex-col rounded-t-2xl bg-surface-modal text-ink-gray-9 shadow-2xl"
+        style="padding-bottom: env(safe-area-inset-bottom)"
+        @keydown.esc="isOpen = false"
+      >
+        <div class="flex justify-center pt-2" aria-hidden="true">
+          <span class="h-1 w-10 rounded-full bg-surface-gray-4" />
+        </div>
+        <InvoicePickerBody v-bind="$attrs" :title="title" @close="isOpen = false" />
       </div>
-
-      <ul v-else class="space-y-2">
-        <li v-for="invoice in invoices" :key="invoice.name">
-          <label
-            class="flex min-h-[3.75rem] cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors"
-            :class="modelValue === invoice.name
-              ? 'border-outline-gray-4 bg-surface-gray-1'
-              : 'border-outline-gray-1 hover:border-outline-gray-3'"
-            @dblclick="$emit('confirm', invoice.name)"
-          >
-            <input
-              type="radio"
-              class="h-4 w-4 shrink-0 accent-[currentColor] text-ink-gray-9"
-              :value="invoice.name"
-              :checked="modelValue === invoice.name"
-              @change="$emit('update:modelValue', invoice.name)"
-            />
-            <span class="min-w-0 flex-1">
-              <span class="num block truncate text-sm font-medium text-ink-gray-9">{{ invoice.name }}</span>
-              <span class="block truncate text-sm text-ink-gray-5">
-                {{ invoice.customer }}<template v-if="invoice.posting_date"> · {{ invoice.posting_date }}</template>
-              </span>
-            </span>
-            <span class="num shrink-0 text-base font-semibold text-ink-gray-9">
-              {{ Number(invoice.grand_total || 0).toFixed(2) }}
-            </span>
-          </label>
-        </li>
-      </ul>
-    </div>
-
-    <div v-if="invoices.length && hasMore" class="pt-2 text-center">
-      <Button variant="ghost" :loading="loading" @click="$emit('load-more')">Load more</Button>
-    </div>
-  </div>
+    </Transition>
+  </Teleport>
 </template>
 
 <script setup>
-import { Button, FeatherIcon, TextInput } from 'frappe-ui'
+import { computed } from 'vue'
+import { Dialog } from 'frappe-ui'
+import InvoicePickerBody from '@/components/pos/InvoicePickerBody.vue'
+import { useBreakpoint } from '@/composables/useBreakpoint'
 
-defineProps({
-  invoices: { type: Array, default: () => [] },
-  modelValue: { type: String, default: null },
-  search: { type: String, default: '' },
-  loading: { type: Boolean, default: false },
-  hasMore: { type: Boolean, default: false },
-  emptyText: { type: String, default: 'No invoices found.' },
-  ariaLabel: { type: String, default: 'Invoices' },
+// Everything except the open state and title is passed through to the body:
+// invoices, search, loading, hasMore, opening, actionLabel, showStatus,
+// description, emptyTitle, emptyText and the select / load-more /
+// update:search events.
+defineOptions({ inheritAttrs: false })
+
+const props = defineProps({
+  modelValue: { type: Boolean, default: true },
+  title: { type: String, required: true },
 })
-defineEmits(['update:modelValue', 'update:search', 'confirm', 'load-more'])
+const emit = defineEmits(['update:modelValue'])
+
+const { isDesktop } = useBreakpoint()
+
+const isOpen = computed({
+  get: () => props.modelValue,
+  set: (value) => emit('update:modelValue', value),
+})
 </script>
