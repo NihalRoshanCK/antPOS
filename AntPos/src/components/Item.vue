@@ -362,6 +362,9 @@ watch(
     () => props.items.qty,
     (newValue, oldValue)=>  {
         if (newValue !== oldValue)  {
+            // Keep the line amount right locally; it previously only updated on
+            // a rate change and otherwise waited for the server recalculation.
+            calculateAmountTotal();
             const option= get_serial_no_options()
             if (option.length > 0){
                 adjustSerialNumbers(newValue);
