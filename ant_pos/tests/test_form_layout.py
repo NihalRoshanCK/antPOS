@@ -1,0 +1,98 @@
+# Copyright (c) 2026, Anther Technologies Pvt. Ltd. and Contributors
+# See license.txt
+
+import json
+
+import frappe
+from frappe.tests.utils import FrappeTestCase
+
+from ant_pos.ant_pos.api.form_layout import (
+	create_from_quick_entry,
+	get_form_layout,
+	normalize_layout,
+	validate_layout,
+)
+
+
+def fields_of(layout):
+	return {f["fieldname"]: f for s in layout["sections"] for c in s["columns"] for f in c}
+
+
+class TestFormLayout(FrappeTestCase):
+	"""Server-driven POS forms (Antpos Fields Layout)."""
+
+	def setUp(self):
+		frappe.set_user("Administrator")
+		frappe.db.delete("Antpos Fields Layout", {"dt": ["in", ["Customer", "Sales Invoice Item"]]})
+
+	def save_layout(self, dt, type, layout):
+		doc = frappe.new_doc("Antpos Fields Layout")
+		doc.update({"dt": dt, "type": type, "layout": json.dumps(layout)})
+		return doc.insert()
+
+	def test_default_customer_layout_matches_the_old_form(self):
+		fields = fields_of(get_form_layout("Customer", "Quick Entry"))
+		for name in ("customer_name", "mobile_no", "email_id", "customer_group", "territory", "gender"):
+			self.assertIn(name, fields)
+		self.assertEqual(fields["customer_type"]["default"], "Individual")
+		# Contact fields are read-only on Customer but are inputs in quick entry.
+		self.assertEqual(fields["mobile_no"]["read_only"], 0)
+		self.assertEqual(fields["mobile_no"]["fieldtype"], "Data")
+
+	def test_saved_layout_overrides_and_required_fields(self):
+		self.save_layout(
+			"Customer",
+			"Quick Entry",
+			[{"label": "Main", "columns": [[{"fieldname": "tax_id", "label": "GSTIN", "reqd": 1}]]}],
+		)
+		layout = get_form_layout("Customer", "Quick Entry")
+		fields = fields_of(layout)
+		self.assertEqual(fields["tax_id"]["label"], "GSTIN")
+		self.assertEqual(fields["tax_id"]["reqd"], 1)
+		# The DocType's own mandatory field is added so the form can be submitted.
+		self.assertIn("customer_name", fields)
+		self.assertEqual(layout["sections"][0]["label"], "Main")
+
+	def test_required_field_without_default_cannot_be_hidden(self):
+		self.save_layout("Customer", "Quick Entry", [{"columns": [[{"fieldname": "customer_name", "hidden": 1}]]}])
+		self.assertEqual(fields_of(get_form_layout("Customer", "Quick Entry"))["customer_name"]["hidden"], 0)
+
+	def test_read_only_override_never_unlocks(self):
+		self.save_layout(
+			"Sales Invoice Item", "Grid Row", [{"columns": [[{"fieldname": "amount", "read_only": 0}]]}]
+		)
+		fields = fields_of(get_form_layout("Sales Invoice Item", "Grid Row", "Sales Invoice"))
+		self.assertEqual(fields["amount"]["read_only"], 1)
+
+	def test_grid_row_does_not_mark_server_filled_fields_required(self):
+		fields = fields_of(get_form_layout("Sales Invoice Item", "Grid Row", "Sales Invoice"))
+		self.assertEqual(fields["rate"]["reqd"], 0)
+
+	def test_child_table_needs_its_parent(self):
+		with self.assertRaises(frappe.PermissionError):
+			get_form_layout("Sales Invoice Item", "Grid Row")
+		with self.assertRaises(frappe.PermissionError):
+			get_form_layout("Sales Invoice Item", "Grid Row", "Customer")
+
+	def test_unknown_fields_are_rejected_on_save(self):
+		with self.assertRaises(frappe.ValidationError):
+			validate_layout("Customer", [{"columns": [["not_a_field"]]}])
+
+	def test_normalize_accepts_tabs_and_column_dicts(self):
+		sections = normalize_layout(
+			[{"sections": [{"label": "A", "columns": [{"fields": ["customer_name"]}]}]}]
+		)
+		self.assertEqual(sections, [{"label": "A", "columns": [["customer_name"]]}])
+
+	def test_quick_entry_only_takes_layout_fields(self):
+		doc = create_from_quick_entry(
+			"Customer",
+			json.dumps({"customer_name": "_Test Layout Customer", "is_frozen": 1, "disabled": 1}),
+		)
+		self.assertEqual(doc["customer_type"], "Individual")
+		self.assertFalse(doc.get("is_frozen"))
+		self.assertFalse(doc.get("disabled"))
+
+	def test_quick_entry_is_limited_to_known_doctypes(self):
+		with self.assertRaises(frappe.PermissionError):
+			create_from_quick_entry("Item", "{}")

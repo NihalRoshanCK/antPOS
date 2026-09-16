@@ -39,6 +39,7 @@ import { useBreakpoint } from '@/composables/useBreakpoint';
 import { useInvoiceStore } from '@/stores/pos';
 import { useMobileView } from '@/stores/mobile';
 import { useRoute } from 'vue-router';
+import { refreshFormLayouts } from '@/utils/formLayout';
 
 const { brand } = getSettings()
 const { currentComponent, loadComponent } = inject('dynamicComponent');
@@ -75,6 +76,8 @@ function refreshProfile() {
   if (Date.now() - lastProfileRefresh < PROFILE_REFRESH_MS) return;
   lastProfileRefresh = Date.now();
   posProfileStore.refresh();
+  // Form layouts are admin settings too (Antpos Fields Layout).
+  refreshFormLayouts();
 }
 
 onMounted(() => {

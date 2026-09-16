@@ -71,30 +71,16 @@
             </div>
         </div>
         <div v-if="items.custom_open" class="space-y-3 border-t border-outline-gray-1 px-3 py-3 lg:px-4">
-            <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
-                <FormControl type="number" size="md" variant="subtle" label="Quantity"
-                    v-model="items.qty" />
-                <FormControl type="number" size="md" variant="subtle" label="Rate"
-                    :disabled="!store.posProfileData?.allow_rate_change"
-                    v-model="items.rate" />
-                <!-- The profile picks how a discount is entered; the other
-                     figure is shown, worked out from it. -->
-                <FormControl v-if="canEditDiscount && discountByPercent" type="number" size="md" variant="subtle"
-                    label="Discount (%)" min="0" max="100"
-                    v-model="items.discount_percentage" />
-                <div v-else>
-                    <p class="mb-1.5 text-base text-ink-gray-5">Discount (%)</p>
-                    <p class="num flex h-8 items-center text-base text-ink-gray-8">{{ formatPercent(items.discount_percentage) }}</p>
-                </div>
-                <FormControl v-if="canEditDiscount && !discountByPercent" type="number" size="md" variant="subtle"
-                    label="Discount amount" min="0" :max="items.price_list_rate"
-                    :model-value="items.discount_amount"
-                    @update:model-value="(value) => applyLineDiscountAmount(items, value)" />
-                <div v-else>
-                    <p class="mb-1.5 text-base text-ink-gray-5">Discount amount</p>
-                    <p class="num flex h-8 items-center text-base text-ink-gray-8">{{ Number(items.discount_amount || 0).toFixed(2) }}</p>
-                </div>
-            </div>
+            <!-- Fields come from the "Sales Invoice Item / Grid Row" layout
+                 (Antpos Fields Layout). The line's own rules (rate editing,
+                 discount mode, locked fields) are applied on top. -->
+            <LayoutForm
+                :layout="lineLayout"
+                :doc="items"
+                :overrides="lineOverrides"
+                :id-prefix="`line-${items.custom_id}`"
+                :columns-hint="4"
+            />
 
             <!-- Only for batch-tracked lines. These used to render on every item,
                  plain ones included, and the two info fields were editable. -->
@@ -140,7 +126,9 @@
     </article>
 </template>
 <script setup>
-import { FeatherIcon, FormControl, Autocomplete, createResource, createListResource,debounce } from 'frappe-ui';
+import { FeatherIcon, Autocomplete, createResource, createListResource,debounce } from 'frappe-ui';
+import LayoutForm from '@/components/form/LayoutForm.vue';
+import { useFormLayout } from '@/utils/formLayout';
 import { watch, defineProps, onMounted, onUnmounted, computed } from 'vue';
 import { showToast } from '@/utils'
 import emitter from '@/utils/emitter';
@@ -152,6 +140,30 @@ import { useDiscountMode, applyLineDiscountAmount } from '@/composables/useDisco
 const store = usePosProfileStore();
 const invoiceStore = useInvoiceStore()
 const { canEdit: canEditDiscount, byPercent: discountByPercent } = useDiscountMode()
+const lineLayout = useFormLayout('Sales Invoice Item', 'Grid Row', 'Sales Invoice')
+
+// Changing these on a cart line would detach it from its price, stock or
+// UOM conversion; the POS sets them.
+const LOCKED_LINE_FIELDS = ['item_code', 'uom', 'stock_uom', 'conversion_factor', 'warehouse', 'price_list_rate', 'is_free_item']
+// Edited with their own pickers below the form.
+const PICKER_FIELDS = ['batch_no', 'serial_no', 'serial_and_batch_bundle']
+
+const lineOverrides = computed(() => {
+    const byPercent = discountByPercent.value
+    const rules = {
+        rate: { readOnly: !store.posProfileData?.allow_rate_change },
+        // The profile picks how a discount is entered; the other figure is
+        // shown, worked out from it.
+        discount_percentage: { readOnly: !(canEditDiscount.value && byPercent), format: formatPercent },
+        discount_amount: {
+            readOnly: !(canEditDiscount.value && !byPercent),
+            set: (value) => applyLineDiscountAmount(props.items, value),
+        },
+    }
+    for (const f of LOCKED_LINE_FIELDS) rules[f] = { readOnly: true }
+    for (const f of PICKER_FIELDS) rules[f] = { hidden: true }
+    return rules
+})
 
     
 const props = defineProps({

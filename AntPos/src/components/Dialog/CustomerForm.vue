@@ -1,153 +1,82 @@
 <template>
-  <Dialog :options="{ size: '2xl' }" v-model="dialogVisible" @close="handleDialogClose" @after-leave="handleDialogClose">
-    <template #body-title>
-      <h3>Create Customer</h3>
-    </template>
-
+  <Dialog :options="{ title: 'New customer', size: '2xl' }" v-model="dialogVisible" @after-leave="handleDialogClose">
     <template #body-content>
-      <div class="grid grid-cols-2 gap-5 w-full place-items-stretch">
-        <FormControl
-          type="text"
-          label="Customer Name"
-          v-model="customer.customer_name"
-          placeholder="Enter Customer Name"
-          size="sm"
+      <!-- Fields come from the "Customer / Quick Entry" layout
+           (Antpos Fields Layout), so an admin decides what is asked here. -->
+      <form id="pos-customer-form" novalidate @submit.prevent="submit">
+        <LayoutForm
+          :layout="layout"
+          :doc="customer"
+          :show-errors="showErrors"
+          id-prefix="customer"
         />
-        <FormControl
-          type="text"
-          label="Mobile Number"
-          v-model="customer.mobile_no"
-          placeholder="Enter Mobile Number"
-          size="sm"
-        />
-        <FormControl
-          type="email"
-          label="Email ID"
-          v-model="customer.email_id"
-          placeholder="Enter Email ID"
-          size="sm"
-        />
-        <FormControl
-          type="autocomplete"
-          label="Gender"
-          v-model="customer.gender"
-          :options="genderOptions"
-          placeholder="Select Gender"
-          size="sm"
-        />
-        <FormControl
-          type="autocomplete"
-          label="Customer Group"
-          v-model="customer.customer_group"
-          :options="customerGroupsOptions"
-          placeholder="Select Customer Group"
-          size="sm"
-        />
-        <FormControl
-          type="autocomplete"
-          label="Territory"
-          v-model="customer.territory"
-          :options="territoryOptions"
-          placeholder="Select Territory"
-          size="sm"
-        />
-      </div>
+        <p v-if="showErrors && missing.length" class="mt-4 text-sm text-ink-red-4" role="alert">
+          Fill in {{ missing.join(', ') }}.
+        </p>
+      </form>
     </template>
 
     <template #actions>
-      <Button variant="solid" @click="createCustomer.fetch({})">Submit</Button>
-      <Button class="ml-2" @click="handleDialogClose">Close</Button>
+      <div class="flex flex-row-reverse gap-2">
+        <Button
+          variant="solid"
+          type="submit"
+          form="pos-customer-form"
+          class="flex-1 sm:flex-none"
+          :loading="createCustomer.loading"
+          :disabled="layout.loading || Boolean(layout.error)"
+        >
+          Create customer
+        </Button>
+        <Button class="flex-1 sm:flex-none" @click="handleDialogClose">Cancel</Button>
+      </div>
     </template>
   </Dialog>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
-import { Dialog, createListResource, Button, FormControl, createResource } from 'frappe-ui';
+import { computed, reactive, ref, watch } from 'vue';
+import { Dialog, Button, createResource } from 'frappe-ui';
 import emitter from '@/utils/emitter';
 import { showToast } from '@/utils';
+import LayoutForm from '@/components/form/LayoutForm.vue';
+import { applyDefaults, missingRequired, useFormLayout } from '@/utils/formLayout';
 
-import { usePosProfileStore } from '@/stores/posProfile';
-
-const store = usePosProfileStore();
 const dialogVisible = ref(true);
+const layout = useFormLayout('Customer', 'Quick Entry');
+const customer = reactive({});
+const showErrors = ref(false);
 
-const customer = ref({
-  customer_name: '',
-  mobile_no: '',
-  email_id: '',
-  gender: '',
-  customer_type: 'Individual',
-  customer_group: "",
-  territory: '',
-  posa_referral_company: store.posProfileData.company,
-  gst_category: "Unregistered",
-});
+// Defaults (e.g. customer type "Individual") fill in once the layout is known.
+watch(() => layout.sections, (sections) => applyDefaults(sections, customer), { immediate: true });
 
-const genderOptionsResource = createListResource({
-  doctype: 'Gender',
-  fields: ['name'],
-  pageLength: 10,
-  auto: true,
-  transform: (data) => data.map((item) => item.name),
-});
-
-const territoryOptionsResource = createListResource({
-  doctype: 'Territory',
-  fields: ['name'],
-  filters: { is_group: 0 },
-  pageLength: 5000,
-  orderBy: 'name',
-  auto: true,
-  transform: (data) => data.map((item) => item.name),
-});
-
-const customerGroups = createListResource({
-  doctype: 'Customer Group',
-  fields: ['name'],
-  filters: { is_group: 0 },
-  pageLength: 1000,
-  orderBy: 'name',
-  auto: true,
-  transform: (data) => data.map((item) => item.name),
-});
-
-const genderOptions = computed(() => genderOptionsResource.data || []);
-const customerGroupsOptions = computed(() => customerGroups.data || []);
-const territoryOptions = computed(() => territoryOptionsResource.data || []);
+const missing = computed(() => missingRequired(layout.sections, customer));
 
 const handleDialogClose = () => {
   dialogVisible.value = false;
 };
 
-const createCustomer = createResource ({
-    method: 'POST',
-    url: 'frappe.client.insert',
-    makeParams() {
-      return {
-        doc: {
-          doctype: 'Customer',
-          ...customer.value,
-          gender: customer.value.gender?.value ?? null,
-          customer_group: customer.value.customer_group?.value ?? null,
-          territory: customer.value.territory?.value ?? null,
-        },
-      };
-    },
-    onSuccess(data) {
-      emitter.emit("customerCreated",data);
-      showToast('success', 'New Customer Created')
-      handleDialogClose();
-    },
-    onError(err) {
-      // This used to only console.error, so a failed customer creation looked
-      // like nothing had happened.
-      showToast(
-        'error',
-        Array.isArray(err?.messages) ? err.messages[0] : err?.messages || 'Could not create customer',
-        'x-circle'
-      );
-    },
-  });
-  
+const createCustomer = createResource({
+  url: 'ant_pos.ant_pos.api.form_layout.create_from_quick_entry',
+  method: 'POST',
+  makeParams: () => ({ doctype: 'Customer', doc: JSON.stringify(customer) }),
+  onSuccess(data) {
+    emitter.emit('customerCreated', data);
+    showToast('success', 'New Customer Created');
+    handleDialogClose();
+  },
+  onError(err) {
+    showToast(
+      'error',
+      Array.isArray(err?.messages) ? err.messages[0] : err?.messages || 'Could not create customer',
+      'x-circle'
+    );
+  },
+});
+
+function submit() {
+  showErrors.value = true;
+  if (missing.value.length || createCustomer.loading) return;
+  createCustomer.fetch();
+}
 </script>

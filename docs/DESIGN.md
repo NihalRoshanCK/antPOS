@@ -110,6 +110,47 @@ starts from the profile's "Default Sales Order". The switch used to live in the
 header and wrote into the profile itself, so one sales order turned every later
 sale into one too. Returns never create an order.
 
+### Server-driven forms
+
+The **New customer** dialog and a cart line's **details** are built from a
+layout the server sends (`ant_pos/api/form_layout.py`), not hard-coded fields.
+
+| Form | Antpos Fields Layout |
+|---|---|
+| New customer | `Customer` / `Quick Entry` |
+| Cart line details | `Sales Invoice Item` / `Grid Row` |
+
+An admin opens the matching **Antpos Fields Layout** in the desk (or creates
+one) and uses **Edit fields**. Each row is a field with a section, a column and
+optional overrides: label, default, required, read only, hidden. **Start from
+default** loads the built-in layout. Without a saved layout the POS uses the
+built-in one, which matches the forms it had before.
+
+Rules the server enforces:
+
+- Unknown fields are rejected on save. Unsupported field types (tables,
+  attachments, HTML) are skipped.
+- Overrides can make a field required or read-only, never the reverse. A
+  required field can be hidden only when it has a default.
+- Quick entry adds any field the DocType requires that the layout left out,
+  and `create_from_quick_entry` only accepts the layout's fields. Customer
+  Mobile and Email are inputs there, since ERPNext creates the primary
+  contact from them.
+- Permission levels apply: fields without write access are read-only, and
+  fields without read access are hidden.
+
+In the POS (`components/form/`), `LayoutForm` renders sections and columns,
+`FieldControl` renders each field type and handles `depends_on` and
+`mandatory_depends_on`, and `LinkControl` searches the linked DocType as you
+type. A cart line applies its own rules on top of the layout:
+
+- the rate follows "Allow User to Edit Rate";
+- the discount fields follow the discount mode;
+- item code, UOM, warehouse and price are always locked;
+- batch and serial keep their own pickers.
+
+Open POS tabs re-read layouts when the cashier returns to the tab.
+
 ### Mobile structure
 
 There is no sidebar below 1024px. The app shell is a phone app:

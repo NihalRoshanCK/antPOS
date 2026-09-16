@@ -9,7 +9,17 @@ from frappe.model.document import Document
 from frappe.utils import random_string
 
 class AntposFieldsLayout(Document):
-	pass
+	def validate(self):
+		if not (self.layout or "").strip():
+			return
+		from ant_pos.ant_pos.api.form_layout import validate_layout
+
+		try:
+			sections = validate_layout(self.dt, self.layout)
+		except json.JSONDecodeError as e:
+			frappe.throw(_("Layout is not valid JSON: {0}").format(e), title=_("Invalid layout"))
+		# Store it in one normalised shape, so the desk editor can read it back.
+		self.layout = json.dumps(sections, indent=2)
 
 @frappe.whitelist()
 def get_fields_layout(doctype: str, type: str, parent_doctype: str | None = None):
