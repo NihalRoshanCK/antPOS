@@ -4,17 +4,31 @@ from frappe.translate import get_all_translations
 
 
 def user_has_posprofile(user=None):
+    """Whether antPOS appears for this user on /apps (add_to_apps_screen).
+
+    Cashiers see it when they are listed on an enabled POS Profile. System
+    Managers always see it, since they are the ones who set the profiles up.
+    """
     user = user or frappe.session.user
+    if user == "Guest":
+        return False
+    if "System Manager" in frappe.get_roles(user):
+        return True
 
-    child_records = frappe.get_all(
-        'POS Profile User',  
-        filters={'user': user},
-        fields=['parent']
+    profile_user = frappe.qb.DocType("POS Profile User")
+    profile = frappe.qb.DocType("POS Profile")
+    match = (
+        frappe.qb.from_(profile_user)
+        .join(profile)
+        .on(profile.name == profile_user.parent)
+        .select(profile_user.name)
+        .where(profile_user.user == user)
+        .where(profile_user.parenttype == "POS Profile")
+        .where(profile.disabled == 0)
+        .limit(1)
+        .run()
     )
-
-    pos_profiles = [record['parent'] for record in child_records]
-
-    return len(pos_profiles) > 0
+    return bool(match)
 
 
 
