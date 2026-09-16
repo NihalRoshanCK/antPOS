@@ -57,53 +57,35 @@ def posprofile_user_query_conditions(user=None):
 
 @frappe.whitelist()
 def get_user_permissions():
+	"""What the POS may offer this user on the documents it creates.
+
+	A right counts if any of the user's rules grants it, including rules
+	limited to the user's own documents ("if owner"): the POS only submits and
+	prints invoices the cashier created. Checking without a document treated
+	those rules as no permission, so a new POS Cash user never saw Pay.
+	"""
+	from frappe.permissions import get_valid_perms
+
 	user = frappe.session.user
-	permissions = {}
 	user_roles = frappe.get_roles(user)
+	permissions = {}
 
-	def check_perm(doctype, permtype):
-		"""Is `permtype` owner-restricted for this user?
+	for doctype in ("Sales Invoice", "Payment Entry", "Sales Order"):
+		# Standard or custom rules, whichever applies to this doctype.
+		rules = [p for p in get_valid_perms(doctype, user) if not p.permlevel]
 
-		Only if EVERY role that grants it is owner-restricted. Taking the first
-		row meant a user holding both an unrestricted and a restricted role got
-		an answer that depended on row ordering.
-		"""
-		# Custom DocPerm overrides the shipped DocPerm set entirely.
-		perms = frappe.get_all(
-			"Custom DocPerm",
-			filters={"parent": doctype, "role": ["in", user_roles], permtype: 1},
-			fields=["if_owner"],
-		) or frappe.get_all(
-			"DocPerm",
-			filters={"parent": doctype, "role": ["in", user_roles], permtype: 1},
-			fields=["if_owner"],
-		)
+		def allowed(ptype):
+			return bool(frappe.has_permission(doctype, ptype=ptype, user=user)) or any(
+				p.get(ptype) for p in rules
+			)
 
-		if not perms:
-			return False
-
-		return all(p["if_owner"] == 1 for p in perms)
-
-	for doctype in ["Sales Invoice", "Payment Entry", "Sales Order"]:
-		submit_owner_restricted = check_perm(doctype, "submit")
-
-		can_submit_global = frappe.has_permission(doctype, doc=None, ptype="submit", user=user)
-		can_create_global = frappe.has_permission(doctype, doc=None, ptype="create", user=user)
-		can_print_global = frappe.has_permission(doctype, doc=None, ptype="print", user=user)
-
-		# If submit is owner restricted, check if user owns any docs
-		has_own_docs = False
-		if submit_owner_restricted:
-			has_own_docs = frappe.db.exists({"doctype": doctype, "owner": user, "docstatus": 0}) is not None
-
-		can_submit = can_submit_global or (submit_owner_restricted and has_own_docs)
-
+		readers = [p for p in rules if p.get("read")]
 		permissions[doctype.lower().replace(" ", "_")] = {
-			"can_submit": can_submit,
-			"can_submit_owner_restricted": submit_owner_restricted,
-			"has_own_docs": has_own_docs,
-			"can_create": can_create_global,
-			"can_print": can_print_global,
+			"can_submit": allowed("submit"),
+			"can_create": allowed("create"),
+			"can_print": allowed("print"),
+			# Lists (Held, Return) show only the user's own documents.
+			"only_own": bool(readers) and all(p.if_owner for p in readers),
 		}
 
 	# Form layouts decide what every cashier sees (api/form_layout.py).

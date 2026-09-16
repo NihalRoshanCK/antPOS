@@ -50,3 +50,25 @@ class TestGetUsersScoping(FrappeTestCase):
 			self.assertTrue(result[0]["session_user"])
 		finally:
 			frappe.set_user("Administrator")
+
+
+class TestPosUserPermissions(FrappeTestCase):
+	def test_owner_only_rules_still_allow_selling(self):
+		"""POS Cash's Sales Invoice rule is "if owner". Checked without a
+		document it read as no permission, so a new cashier never saw Pay."""
+		from unittest.mock import patch
+
+		from ant_pos.ant_pos.api import get_user_permissions
+
+		rule = frappe._dict(
+			parent="Sales Invoice", permlevel=0, if_owner=1, read=1, create=1, submit=1, print=1
+		)
+		with (
+			patch("frappe.permissions.get_valid_perms", return_value=[rule]),
+			patch("frappe.has_permission", return_value=False),
+		):
+			result = get_user_permissions()["sales_invoice"]
+
+		self.assertEqual(
+			result, {"can_submit": True, "can_create": True, "can_print": True, "only_own": True}
+		)

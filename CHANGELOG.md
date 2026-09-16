@@ -57,6 +57,10 @@ Run `bench --site <site> migrate` after upgrading; see
 - Double taps on Pay, Hold sale, Save & print, Submit or Record payment could
   create duplicate documents.
 - A missing serial number showed a message but did not stop the save.
+- A new POS Cash user never saw Pay or Save & print: their "own documents
+  only" permission was read as no permission until they owned a draft.
+- Close Shift expected the cash tendered, not the cash kept: change handed
+  back is now taken off.
 - Opening `/antPOS/payments` directly bounced the user away.
 - Failures opening a shift or loading permissions were silent.
 - Stale totals after edits, amount discounts, and quick-entry required fields.
@@ -66,7 +70,7 @@ Run `bench --site <site> migrate` after upgrading; see
 - Ruff (Frappe's settings), prettier and eslint, with pre-commit hooks and a
   CI lint job; the code base is formatted.
 - Clearing the item list cache no longer scans Redis keys.
-- Tests: 93, covering the fixes above.
+- Tests: 95, covering the fixes above.
 
 ## 0.1.0
 

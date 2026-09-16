@@ -34,17 +34,17 @@ export const usePermissionStore = defineStore('permissionStore', () => {
         salesInvoiceCanSubmit.value = data.sales_invoice.can_submit
         salesInvoiceCanCreate.value = data.sales_invoice.can_create
         salesInvoiceCanPrint.value = data.sales_invoice.can_print
-        salesInvoiceCanOnlyOwn.value = data.sales_invoice.has_own_docs
+        salesInvoiceCanOnlyOwn.value = data.sales_invoice.only_own
 
         paymentEntryCanSubmit.value = data.payment_entry.can_submit
         paymentEntryCanCreate.value = data.payment_entry.can_create
         paymentEntryCanPrint.value = data.payment_entry.can_print
-        paymentEntryCanOnlyOwn.value = data.payment_entry.has_own_docs
+        paymentEntryCanOnlyOwn.value = data.payment_entry.only_own
 
         salesOrderCanSubmit.value = data.sales_order.can_submit
         salesOrderCanCreate.value = data.sales_order.can_create
         salesOrderCanPrint.value = data.sales_order.can_print
-        salesOrderCanOnlyOwn.value = data.sales_order.has_own_docs
+        salesOrderCanOnlyOwn.value = data.sales_order.only_own
 
         canManageLayouts.value = Boolean(data.can_manage_layouts)
         isSystemManager.value = Boolean(data.is_system_manager)

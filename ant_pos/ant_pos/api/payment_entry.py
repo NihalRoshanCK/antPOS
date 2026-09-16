@@ -95,8 +95,49 @@ def get_payments(shift):
 		mop = payment["mode_of_payment"]
 		result_map[mop] = result_map.get(mop, 0) + float(payment["total"] or 0)
 
+	# The invoice payment rows hold what was tendered; change handed back is
+	# stored separately and paid from the change account's payment method.
+	for mop, change in _change_given(shift, list(result_map)).items():
+		result_map[mop] = result_map.get(mop, 0) - change
+
 	result_list = [{"mode_of_payment": mop, "total": total} for mop, total in result_map.items()]
 
 	result_list.append({"mode_of_payment": "Total", "total": sum(result_map.values())})
 
 	return result_list
+
+
+def _change_given(shift, modes):
+	"""Change handed back during the shift, per mode of payment."""
+	company = frappe.db.get_value("Ant Opening Shift", shift, "company")
+	rows = frappe.db.sql(
+		"""
+		SELECT account_for_change_amount AS account, SUM(change_amount) AS total
+		FROM `tabSales Invoice`
+		WHERE custom_ant_opening = %s AND docstatus = 1 AND change_amount != 0
+		GROUP BY account_for_change_amount
+		""",
+		(shift,),
+		as_dict=True,
+	)
+	change = {}
+	for row in rows:
+		mode = _mode_for_account(row.account, company, modes)
+		if mode:
+			change[mode] = change.get(mode, 0) + float(row.total or 0)
+	return change
+
+
+def _mode_for_account(account, company, modes):
+	"""The shift's payment method that pays from `account`, else its cash one."""
+	candidates = frappe.get_all(
+		"Mode of Payment Account",
+		filters={"company": company, "default_account": account, "parent": ["in", modes or [""]]},
+		pluck="parent",
+	)
+	if candidates:
+		return candidates[0]
+	cash = frappe.get_all(
+		"Mode of Payment", filters={"name": ["in", modes or [""]], "type": "Cash"}, pluck="name"
+	)
+	return cash[0] if cash else None

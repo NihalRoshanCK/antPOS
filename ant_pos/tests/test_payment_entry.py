@@ -59,3 +59,24 @@ class TestPosPaymentEntry(FrappeTestCase):
 		hooks = frappe.get_hooks("doc_events")["Payment Entry"]
 		self.assertIn("ant_pos.ant_pos.api.payment_entry.validate", hooks.get("before_validate", []))
 		self.assertNotIn("ant_pos.ant_pos.api.payment_entry.validate", hooks.get("validate", []))
+
+
+class TestShiftPaymentTotals(FrappeTestCase):
+	def test_change_is_taken_off_the_cash_total(self):
+		"""Payment rows hold what was tendered: 120 for a 100 sale with 20 change."""
+		from unittest.mock import patch
+
+		from ant_pos.ant_pos.api import payment_entry
+
+		tendered = [frappe._dict(mode_of_payment="Cash", total=120)]
+		with (
+			patch("frappe.has_permission", return_value=True),
+			patch("frappe.db.sql", side_effect=[[], tendered]),
+			patch.object(payment_entry, "_change_given", return_value={"Cash": 20.0}),
+		):
+			totals = payment_entry.get_payments("SHIFT-1")
+
+		self.assertEqual(
+			totals,
+			[{"mode_of_payment": "Cash", "total": 100.0}, {"mode_of_payment": "Total", "total": 100.0}],
+		)
