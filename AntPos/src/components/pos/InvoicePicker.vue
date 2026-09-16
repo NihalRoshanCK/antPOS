@@ -8,7 +8,12 @@
   >
     <template #body>
       <div class="flex h-[min(70vh,40rem)] flex-col">
-        <InvoicePickerBody v-bind="$attrs" :title="title" autofocus @close="isOpen = false" />
+        <InvoicePickerBody
+          v-bind="$attrs"
+          :title="title"
+          autofocus
+          @close="isOpen = false"
+        />
       </div>
     </template>
   </Dialog>
@@ -20,7 +25,12 @@
       enter-from-class="opacity-0"
       leave-to-class="opacity-0"
     >
-      <div v-if="isOpen" class="fixed inset-0 z-50 bg-black/40" aria-hidden="true" @click="isOpen = false" />
+      <div
+        v-if="isOpen"
+        class="fixed inset-0 z-50 bg-black/40"
+        aria-hidden="true"
+        @click="isOpen = false"
+      />
     </Transition>
     <Transition
       enter-active-class="transition-transform duration-200 ease-out"
@@ -40,7 +50,11 @@
         <div class="flex justify-center pt-2" aria-hidden="true">
           <span class="h-1 w-10 rounded-full bg-surface-gray-4" />
         </div>
-        <InvoicePickerBody v-bind="$attrs" :title="title" @close="isOpen = false" />
+        <InvoicePickerBody
+          v-bind="$attrs"
+          :title="title"
+          @close="isOpen = false"
+        />
       </div>
     </Transition>
   </Teleport>

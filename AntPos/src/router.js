@@ -15,7 +15,10 @@ const routes = [
     name: 'Payments',
     component: () => import('@/pages/Payments.vue'),
     meta: {
-      allowed: (p) => p.paymentEntryCanSubmit || p.paymentEntryCanCreate || p.paymentEntryCanPrint,
+      allowed: (p) =>
+        p.paymentEntryCanSubmit ||
+        p.paymentEntryCanCreate ||
+        p.paymentEntryCanPrint,
     },
   },
 ]
@@ -25,12 +28,12 @@ let router = createRouter({
   routes,
 })
 
-router.beforeEach(async (to) => {
+router.beforeEach(async (to, from) => {
   const session = useSessionStore()
   let isLoggedIn = session.isLoggedIn
   try {
     await userResource.promise
-  } catch (error) {
+  } catch {
     isLoggedIn = false
   }
 

@@ -12,7 +12,13 @@
           <button
             type="button"
             class="flex h-12 items-center rounded-md py-2 duration-300 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-outline-gray-3"
-            :class="collapsed ? 'w-auto px-0' : open ? 'w-full bg-surface-white px-2 shadow-sm' : 'w-full px-2 hover:bg-surface-gray-3'"
+            :class="
+              collapsed
+                ? 'w-auto px-0'
+                : open
+                  ? 'w-full bg-surface-white px-2 shadow-sm'
+                  : 'w-full px-2 hover:bg-surface-gray-3'
+            "
           >
             <img
               :src="brand.logo || '/assets/ant_pos/antPOS.png'"
@@ -21,9 +27,15 @@
             />
             <div
               class="flex flex-1 flex-col truncate text-left duration-300 ease-in-out"
-              :class="collapsed ? 'ml-0 w-0 overflow-hidden opacity-0' : 'ml-2 w-auto opacity-100'"
+              :class="
+                collapsed
+                  ? 'ml-0 w-0 overflow-hidden opacity-0'
+                  : 'ml-2 w-auto opacity-100'
+              "
             >
-              <div class="truncate text-base font-medium leading-none text-ink-gray-9">
+              <div
+                class="truncate text-base font-medium leading-none text-ink-gray-9"
+              >
                 {{ brand.name || 'antPOS' }}
               </div>
               <div class="mt-1 truncate text-sm leading-none text-ink-gray-7">
@@ -32,9 +44,16 @@
             </div>
             <div
               class="duration-300 ease-in-out"
-              :class="collapsed ? 'ml-0 w-0 overflow-hidden opacity-0' : 'ml-2 w-auto opacity-100'"
+              :class="
+                collapsed
+                  ? 'ml-0 w-0 overflow-hidden opacity-0'
+                  : 'ml-2 w-auto opacity-100'
+              "
             >
-              <LucideChevronDown class="size-4 text-ink-gray-5" aria-hidden="true" />
+              <LucideChevronDown
+                class="size-4 text-ink-gray-5"
+                aria-hidden="true"
+              />
             </div>
           </button>
         </template>
@@ -115,11 +134,27 @@ const currentUser = computed(() => {
 
 const links = computed(() => {
   const list = []
-  if (permissionStore.salesInvoiceCanSubmit || permissionStore.salesInvoiceCanCreate || permissionStore.salesInvoiceCanPrint) {
-    list.push({ route: 'Pos', label: 'Point of sale', icon: markRaw(LucideMonitor) })
+  if (
+    permissionStore.salesInvoiceCanSubmit ||
+    permissionStore.salesInvoiceCanCreate ||
+    permissionStore.salesInvoiceCanPrint
+  ) {
+    list.push({
+      route: 'Pos',
+      label: 'Point of sale',
+      icon: markRaw(LucideMonitor),
+    })
   }
-  if (permissionStore.paymentEntryCanSubmit || permissionStore.paymentEntryCanCreate || permissionStore.paymentEntryCanPrint) {
-    list.push({ route: 'Payments', label: 'Payments', icon: markRaw(LucideCreditCard) })
+  if (
+    permissionStore.paymentEntryCanSubmit ||
+    permissionStore.paymentEntryCanCreate ||
+    permissionStore.paymentEntryCanPrint
+  ) {
+    list.push({
+      route: 'Payments',
+      label: 'Payments',
+      icon: markRaw(LucideCreditCard),
+    })
   }
   return list
 })
@@ -131,12 +166,21 @@ const apps = createResource({
   cache: 'antpos-apps',
   auto: true,
   transform: (data) => [
-    { name: 'frappe', title: 'Desk', logo: '/assets/frappe/images/framework.png', route: '/app' },
+    {
+      name: 'frappe',
+      title: 'Desk',
+      logo: '/assets/frappe/images/framework.png',
+      route: '/app',
+    },
     ...(data || []).filter((app) => app.name !== 'ant_pos'),
   ],
 })
 
-const appIcon = (src) => markRaw({ render: () => h('img', { src, alt: '', class: 'size-4 rounded-sm object-contain' }) })
+const appIcon = (src) =>
+  markRaw({
+    render: () =>
+      h('img', { src, alt: '', class: 'size-4 rounded-sm object-contain' }),
+  })
 
 function openSettings(page) {
   settingsPage.value = page
@@ -159,7 +203,11 @@ const menuItems = computed(() => [
           },
         })),
       },
-      { label: 'Settings', icon: markRaw(LucideSettings), onClick: () => openSettings('profile') },
+      {
+        label: 'Settings',
+        icon: markRaw(LucideSettings),
+        onClick: () => openSettings('profile'),
+      },
     ],
   },
   {
@@ -177,7 +225,13 @@ const menuItems = computed(() => [
   {
     group: 'Account',
     hideLabel: true,
-    items: [{ label: 'Log out', icon: markRaw(LucideLogOut), onClick: () => sessionStore.logout.fetch() }],
+    items: [
+      {
+        label: 'Log out',
+        icon: markRaw(LucideLogOut),
+        onClick: () => sessionStore.logout.fetch(),
+      },
+    ],
   },
 ])
 </script>

@@ -10,14 +10,20 @@ const settings = ref({})
 // it avoids a flash of the antPOS logo and favicon before Settings load.
 // Outside Frappe (vite dev) the Jinja placeholder is not JSON.
 function initialBrand() {
-  let b = null
+  let b
   try {
-    b = JSON.parse(document.getElementById('antpos-brand')?.textContent || 'null')
+    b = JSON.parse(
+      document.getElementById('antpos-brand')?.textContent || 'null',
+    )
   } catch {
     b = null
   }
   if (!b || typeof b !== 'object') return {}
-  return { name: b.name || undefined, logo: b.logo || undefined, favicon: b.favicon || undefined }
+  return {
+    name: b.name || undefined,
+    logo: b.logo || undefined,
+    favicon: b.favicon || undefined,
+  }
 }
 const brand = reactive(initialBrand())
 

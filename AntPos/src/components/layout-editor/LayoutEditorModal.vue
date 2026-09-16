@@ -2,10 +2,17 @@
   <!-- Frappe CRM's "Edit Quick Entry Layout" / "Edit Grid Row Fields Layout". -->
   <Dialog v-model="show" :options="{ size: '4xl' }">
     <template #body-title>
-      <h3 class="flex flex-wrap items-center gap-2 text-2xl font-semibold leading-6 text-ink-gray-9">
+      <h3
+        class="flex flex-wrap items-center gap-2 text-2xl font-semibold leading-6 text-ink-gray-9"
+      >
         <span>{{ title }}</span>
         <Badge v-if="dirty" label="Not saved" variant="subtle" theme="orange" />
-        <Badge v-else-if="editor.data" :label="editor.data.customised ? 'Customised' : 'Built-in'" variant="subtle" :theme="editor.data.customised ? 'blue' : 'gray'" />
+        <Badge
+          v-else-if="editor.data"
+          :label="editor.data.customised ? 'Customised' : 'Built-in'"
+          variant="subtle"
+          :theme="editor.data.customised ? 'blue' : 'gray'"
+        />
       </h3>
     </template>
 
@@ -16,25 +23,53 @@
             {{ preview ? 'Hide preview' : 'Show preview' }}
           </Button>
           <div class="flex flex-row-reverse flex-wrap gap-2">
-            <Button variant="solid" :disabled="!dirty" :loading="save.loading" @click="save.submit()">Save</Button>
+            <Button
+              variant="solid"
+              :disabled="!dirty"
+              :loading="save.loading"
+              @click="save.submit()"
+              >Save</Button
+            >
             <Button :disabled="!dirty" @click="discard">Reset</Button>
-            <Button v-if="editor.data?.customised && editor.data?.has_default" :loading="restore.loading" @click="confirmRestore">
+            <Button
+              v-if="editor.data?.customised && editor.data?.has_default"
+              :loading="restore.loading"
+              @click="confirmRestore"
+            >
               Restore default
             </Button>
           </div>
         </div>
 
         <p v-if="type === 'Quick Entry'" class="text-sm text-ink-gray-5">
-          Fields the document requires are added automatically if you leave them out.
+          Fields the document requires are added automatically if you leave them
+          out.
         </p>
 
-        <div v-if="editor.loading && !editor.data" class="grid min-h-60 place-items-center text-sm text-ink-gray-5">Loading…</div>
-        <p v-else-if="editor.error" class="text-sm text-ink-red-4">{{ errorText(editor.error) }}</p>
+        <div
+          v-if="editor.loading && !editor.data"
+          class="grid min-h-60 place-items-center text-sm text-ink-gray-5"
+        >
+          Loading…
+        </div>
+        <p v-else-if="editor.error" class="text-sm text-ink-red-4">
+          {{ errorText(editor.error) }}
+        </p>
 
         <template v-else-if="editor.data">
-          <FieldLayoutEditor v-if="!preview" v-model="draft" :fields="editor.data.fields" />
-          <div v-else class="min-h-60 rounded-lg border border-outline-gray-1 p-4 sm:p-6" aria-label="Preview">
-            <p v-if="previewError" class="text-sm text-ink-red-4">{{ previewError }}</p>
+          <FieldLayoutEditor
+            v-if="!preview"
+            v-model="draft"
+            :fields="editor.data.fields"
+          />
+          <div
+            v-else
+            class="min-h-60 rounded-lg border border-outline-gray-1 p-4 sm:p-6"
+            aria-label="Preview"
+          >
+            <p v-if="previewError" class="text-sm text-ink-red-4">
+              {{ previewError }}
+            </p>
             <LayoutForm
               v-else
               :layout="previewLayout"
@@ -90,11 +125,15 @@ const editor = createResource({
   onSuccess: (data) => setLayout(data.tabs),
 })
 
-watch(show, (open) => {
-  if (!open) return
-  preview.value = false
-  editor.fetch()
-}, { immediate: true })
+watch(
+  show,
+  (open) => {
+    if (!open) return
+    preview.value = false
+    editor.fetch()
+  },
+  { immediate: true },
+)
 
 function discard() {
   draft.value = JSON.parse(saved.value)
@@ -115,7 +154,12 @@ const save = createResource({
     done('Layout saved')
     show.value = false
   },
-  onError: (error) => createToast({ title: 'Could not save', message: errorText(error), type: 'error' }),
+  onError: (error) =>
+    createToast({
+      title: 'Could not save',
+      message: errorText(error),
+      type: 'error',
+    }),
 })
 
 const restore = createResource({
@@ -126,7 +170,12 @@ const restore = createResource({
     editor.data.customised = false
     done('Back to the default layout')
   },
-  onError: (error) => createToast({ title: 'Could not restore', message: errorText(error), type: 'error' }),
+  onError: (error) =>
+    createToast({
+      title: 'Could not restore',
+      message: errorText(error),
+      type: 'error',
+    }),
 })
 
 function confirmRestore() {
@@ -143,12 +192,21 @@ function confirmRestore() {
 // ---- preview: the unsaved layout, resolved by the server as the POS gets it
 
 const previewError = ref('')
-const previewLayout = reactive({ tabs: [], loading: false, error: null, load: () => runPreview() })
+const previewLayout = reactive({
+  tabs: [],
+  loading: false,
+  error: null,
+  load: () => runPreview(),
+})
 const sampleDoc = reactive({})
 
 const previewResource = createResource({
   url: `${API}.preview_form_layout`,
-  makeParams: () => ({ ...params(), parent_doctype: props.parentDoctype, layout: JSON.stringify(draft.value) }),
+  makeParams: () => ({
+    ...params(),
+    parent_doctype: props.parentDoctype,
+    layout: JSON.stringify(draft.value),
+  }),
   onSuccess(data) {
     previewError.value = ''
     previewLayout.tabs = data.tabs
@@ -171,6 +229,8 @@ function togglePreview() {
 
 function errorText(error) {
   const m = error?.messages
-  return (Array.isArray(m) ? m[0] : m) || error?.message || 'Something went wrong.'
+  return (
+    (Array.isArray(m) ? m[0] : m) || error?.message || 'Something went wrong.'
+  )
 }
 </script>

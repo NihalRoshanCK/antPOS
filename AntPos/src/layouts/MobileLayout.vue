@@ -41,6 +41,6 @@ watch(
   () => invoiceStore.items.length,
   (count) => {
     if (!count && !paying.value) mobile.showItems()
-  }
+  },
 )
 </script>

@@ -19,14 +19,22 @@
   >
     <span
       class="absolute inset-y-3 left-1/2 w-0.5 -translate-x-1/2 rounded-full transition-colors"
-      :class="dragging ? 'bg-outline-gray-5' : 'bg-transparent group-hover:bg-outline-gray-3 group-focus-visible:bg-outline-gray-4'"
+      :class="
+        dragging
+          ? 'bg-outline-gray-5'
+          : 'bg-transparent group-hover:bg-outline-gray-3 group-focus-visible:bg-outline-gray-4'
+      "
     />
     <span
       class="absolute left-1/2 top-1/2 flex h-8 w-1.5 -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center gap-0.5 rounded-full opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
       :class="dragging ? 'opacity-100' : ''"
       aria-hidden="true"
     >
-      <span v-for="n in 3" :key="n" class="h-0.5 w-0.5 rounded-full bg-ink-gray-5" />
+      <span
+        v-for="n in 3"
+        :key="n"
+        class="h-0.5 w-0.5 rounded-full bg-ink-gray-5"
+      />
     </span>
   </div>
 </template>
@@ -39,7 +47,11 @@ const props = defineProps({
   // Remembers the width under this name (localStorage, per device).
   storageKey: { type: String, required: true },
   // The pane being resized is on this side of the handle.
-  side: { type: String, default: 'left', validator: (v) => ['left', 'right'].includes(v) },
+  side: {
+    type: String,
+    default: 'left',
+    validator: (v) => ['left', 'right'].includes(v),
+  },
   // Width to start with and to restore; a function gets the container width.
   default: { type: [Number, Function], required: true },
   min: { type: Number, default: 260 },
@@ -55,10 +67,18 @@ const SNAP = 10
 const handle = ref(null)
 const dragging = ref(false)
 
-const containerWidth = () => handle.value?.parentElement?.clientWidth || window.innerWidth
-const defaultWidth = () => (typeof props.default === 'function' ? props.default(containerWidth()) : props.default)
+const containerWidth = () =>
+  handle.value?.parentElement?.clientWidth || window.innerWidth
+const defaultWidth = () =>
+  typeof props.default === 'function'
+    ? props.default(containerWidth())
+    : props.default
 // Container padding (24px) and this handle (12px) are not pane space.
-const currentMax = () => Math.max(props.min, Math.min(props.max, containerWidth() - props.minOther - 36))
+const currentMax = () =>
+  Math.max(
+    props.min,
+    Math.min(props.max, containerWidth() - props.minOther - 36),
+  )
 const clamp = (w) => Math.round(Math.min(Math.max(w, props.min), currentMax()))
 
 function save() {
@@ -71,9 +91,10 @@ function save() {
 }
 
 onMounted(() => {
-  let stored = null
+  let stored
   try {
-    stored = Number(localStorage.getItem(STORAGE_PREFIX + props.storageKey)) || null
+    stored =
+      Number(localStorage.getItem(STORAGE_PREFIX + props.storageKey)) || null
   } catch {
     stored = null
   }

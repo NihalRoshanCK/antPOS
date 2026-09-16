@@ -1,20 +1,33 @@
 <template>
   <div>
-    <div v-if="layout.loading && !tabs.length" class="grid gap-3" :class="gridClass(columnsHint)" aria-busy="true">
+    <div
+      v-if="layout.loading && !tabs.length"
+      class="grid gap-3"
+      :class="gridClass(columnsHint)"
+      aria-busy="true"
+    >
       <div v-for="n in columnsHint" :key="n" class="space-y-2">
         <div class="h-3 w-1/3 animate-pulse rounded bg-surface-gray-2" />
         <div class="h-8 animate-pulse rounded bg-surface-gray-2" />
       </div>
     </div>
 
-    <div v-else-if="layout.error && !tabs.length" class="flex items-center justify-between gap-2 text-sm text-ink-red-4">
+    <div
+      v-else-if="layout.error && !tabs.length"
+      class="flex items-center justify-between gap-2 text-sm text-ink-red-4"
+    >
       <span>The form could not be loaded.</span>
-      <Button size="sm" variant="subtle" @click="layout.load()">Try again</Button>
+      <Button size="sm" variant="subtle" @click="layout.load()"
+        >Try again</Button
+      >
     </div>
 
     <!-- Like Frappe CRM's FieldLayout: a tab bar only when the layout has
          labelled tabs; sections separated by a rule unless hidden. -->
-    <div v-else :class="hasTabs ? 'rounded-lg border border-outline-gray-1' : ''">
+    <div
+      v-else
+      :class="hasTabs ? 'rounded-lg border border-outline-gray-1' : ''"
+    >
       <div
         v-if="hasTabs"
         class="flex gap-1 overflow-x-auto border-b border-outline-gray-1 px-2 [&::-webkit-scrollbar]:h-0"
@@ -27,7 +40,11 @@
           role="tab"
           :aria-selected="activeTab === t"
           class="-mb-px shrink-0 border-b-2 px-2.5 py-2 text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-outline-gray-3"
-          :class="activeTab === t ? 'border-outline-gray-9 font-medium text-ink-gray-9' : 'border-transparent text-ink-gray-5 hover:text-ink-gray-8'"
+          :class="
+            activeTab === t
+              ? 'border-outline-gray-9 font-medium text-ink-gray-9'
+              : 'border-transparent text-ink-gray-5 hover:text-ink-gray-8'
+          "
           @click="activeTab = t"
         >
           {{ tab.label || 'Details' }}
@@ -45,7 +62,13 @@
           v-for="(section, s) in visibleSections(tab)"
           :key="section.name"
           :aria-label="section.label || undefined"
-          :class="s === 0 ? '' : section.hideBorder ? 'pt-3' : 'mt-4 border-t border-outline-gray-1 pt-4'"
+          :class="
+            s === 0
+              ? ''
+              : section.hideBorder
+                ? 'pt-3'
+                : 'mt-4 border-t border-outline-gray-1 pt-4'
+          "
         >
           <button
             v-if="section.label && !section.hideLabel && section.collapsible"
@@ -55,16 +78,30 @@
             @click="toggle(section)"
           >
             {{ section.label }}
-            <LucideChevronDown class="h-4 w-4 text-ink-gray-5 transition-transform" :class="isOpen(section) ? '' : '-rotate-90'" />
+            <LucideChevronDown
+              class="h-4 w-4 text-ink-gray-5 transition-transform"
+              :class="isOpen(section) ? '' : '-rotate-90'"
+            />
           </button>
-          <h4 v-else-if="section.label && !section.hideLabel" class="mb-3 text-base font-medium text-ink-gray-8">
+          <h4
+            v-else-if="section.label && !section.hideLabel"
+            class="mb-3 text-base font-medium text-ink-gray-8"
+          >
             {{ section.label }}
           </h4>
 
           <!-- Each layout column is a stack of fields; columns sit side by
                side and stack on narrow screens. -->
-          <div v-show="isOpen(section)" class="grid gap-x-4 gap-y-3" :class="gridClass(section.columns.length)">
-            <div v-for="column in section.columns" :key="column.name" class="min-w-0 space-y-3">
+          <div
+            v-show="isOpen(section)"
+            class="grid gap-x-4 gap-y-3"
+            :class="gridClass(section.columns.length)"
+          >
+            <div
+              v-for="column in section.columns"
+              :key="column.name"
+              class="min-w-0 space-y-3"
+            >
               <FieldControl
                 v-for="field in column.fields"
                 :key="field.fieldname"
@@ -102,7 +139,9 @@ const props = defineProps({
 })
 
 const tabs = computed(() => props.layout.tabs || [])
-const hasTabs = computed(() => tabs.value.length > 1 || Boolean(tabs.value[0]?.label))
+const hasTabs = computed(
+  () => tabs.value.length > 1 || Boolean(tabs.value[0]?.label),
+)
 const activeTab = ref(0)
 watch(tabs, (list) => {
   if (activeTab.value >= list.length) activeTab.value = 0
@@ -112,8 +151,10 @@ watch(tabs, (list) => {
 function visibleSections(tab) {
   return (tab.sections || []).filter((section) =>
     section.columns.some((column) =>
-      column.fields.some((f) => !props.overrides[f.fieldname]?.hidden && isVisible(f, props.doc))
-    )
+      column.fields.some(
+        (f) => !props.overrides[f.fieldname]?.hidden && isVisible(f, props.doc),
+      ),
+    ),
   )
 }
 
@@ -130,7 +171,12 @@ function toggle(section) {
 }
 function hasMissing(section) {
   return section.columns.some((column) =>
-    column.fields.some((f) => isVisible(f, props.doc) && isRequired(f, props.doc) && isEmpty(props.doc[f.fieldname]))
+    column.fields.some(
+      (f) =>
+        isVisible(f, props.doc) &&
+        isRequired(f, props.doc) &&
+        isEmpty(props.doc[f.fieldname]),
+    ),
   )
 }
 

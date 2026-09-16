@@ -66,7 +66,8 @@ export default defineConfig({
             urlPattern: ({ request, url }) =>
               request.mode === 'navigate' &&
               url.origin === self.location.origin &&
-              (url.pathname === '/antPOS' || url.pathname.startsWith('/antPOS/')),
+              (url.pathname === '/antPOS' ||
+                url.pathname.startsWith('/antPOS/')),
             handler: 'NetworkFirst',
             options: {
               cacheName: 'antpos-pages',
@@ -101,7 +102,10 @@ export default defineConfig({
           // vendor-vue avoids a vendor <-> vendor-vue cycle, which broke
           // start-up with "Cannot access ... before initialization".
           const generated = id.startsWith('\0') || id.includes('?commonjs')
-          if (!generated && /[\\/]node_modules[\\/](vue|vue-router|pinia|@vue)[\\/]/.test(id)) {
+          if (
+            !generated &&
+            /[\\/]node_modules[\\/](vue|vue-router|pinia|@vue)[\\/]/.test(id)
+          ) {
             return 'vendor-vue'
           }
           return 'vendor'
@@ -118,7 +122,7 @@ export default defineConfig({
       'prosemirror-state',
       'prosemirror-view',
       'lowlight',
-      'interactjs'
+      'interactjs',
     ],
   },
 })

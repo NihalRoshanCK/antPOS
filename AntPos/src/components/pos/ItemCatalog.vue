@@ -2,8 +2,17 @@
   <div class="flex min-h-0 flex-1 flex-col">
     <div class="min-h-0 flex-1 overflow-y-auto pos-scroll px-3 pb-3">
       <!-- Loading: only on the first load; refreshes keep the current list. -->
-      <div v-if="list.loading && !list.data" class="grid gap-2 pt-3" :class="gridClass" aria-busy="true">
-        <div v-for="n in 8" :key="n" class="flex h-[6.5rem] flex-col rounded-lg border border-outline-gray-1 p-2">
+      <div
+        v-if="list.loading && !list.data"
+        class="grid gap-2 pt-3"
+        :class="gridClass"
+        aria-busy="true"
+      >
+        <div
+          v-for="n in 8"
+          :key="n"
+          class="flex h-[6.5rem] flex-col rounded-lg border border-outline-gray-1 p-2"
+        >
           <div class="flex gap-2">
             <div class="h-10 w-10 animate-pulse rounded-md bg-surface-gray-2" />
             <div class="flex-1 space-y-1.5">
@@ -11,22 +20,32 @@
               <div class="h-3 w-1/2 animate-pulse rounded bg-surface-gray-2" />
             </div>
           </div>
-          <div class="mt-auto h-3.5 w-1/3 animate-pulse rounded bg-surface-gray-2" />
+          <div
+            class="mt-auto h-3.5 w-1/3 animate-pulse rounded bg-surface-gray-2"
+          />
         </div>
       </div>
 
       <div v-else-if="list.error && !list.data" class="px-4 py-10 text-center">
-        <p class="text-base font-medium text-ink-gray-8">Items could not be loaded</p>
+        <p class="text-base font-medium text-ink-gray-8">
+          Items could not be loaded
+        </p>
         <p class="mt-1 text-sm text-ink-gray-5">{{ errorMessage }}</p>
-        <Button class="mt-3" variant="subtle" @click="load(true)">Try again</Button>
+        <Button class="mt-3" variant="subtle" @click="load(true)"
+          >Try again</Button
+        >
       </div>
 
       <template v-else-if="list.data">
         <section v-if="mostMoving.length" class="pt-3">
-          <h3 class="mb-2 flex items-center gap-1.5 text-sm font-medium text-ink-gray-7">
+          <h3
+            class="mb-2 flex items-center gap-1.5 text-sm font-medium text-ink-gray-7"
+          >
             <LucideTrendingUp class="h-4 w-4 text-ink-amber-3" />
             Most moving
-            <span class="font-normal text-ink-gray-5">· last {{ settings.most_moving_days }} days</span>
+            <span class="font-normal text-ink-gray-5"
+              >· last {{ settings.most_moving_days }} days</span
+            >
           </h3>
           <div class="grid gap-2" :class="gridClass">
             <ItemCard
@@ -43,9 +62,15 @@
         </section>
 
         <section class="pt-3">
-          <h3 class="mb-2 flex items-center justify-between gap-2 text-sm font-medium text-ink-gray-7">
-            <span class="truncate">{{ searching ? `Results for “${query.trim()}”` : 'All items' }}</span>
-            <span class="num shrink-0 font-normal text-ink-gray-5">{{ items.length }}</span>
+          <h3
+            class="mb-2 flex items-center justify-between gap-2 text-sm font-medium text-ink-gray-7"
+          >
+            <span class="truncate">{{
+              searching ? `Results for “${query.trim()}”` : 'All items'
+            }}</span>
+            <span class="num shrink-0 font-normal text-ink-gray-5">{{
+              items.length
+            }}</span>
           </h3>
 
           <div v-if="items.length" class="grid gap-2" :class="gridClass">
@@ -60,13 +85,23 @@
             />
           </div>
 
-          <div v-else class="rounded-lg border border-dashed border-outline-gray-2 px-4 py-8 text-center">
+          <div
+            v-else
+            class="rounded-lg border border-dashed border-outline-gray-2 px-4 py-8 text-center"
+          >
             <p class="text-sm text-ink-gray-6">
-              {{ searching ? 'No items match. Press Enter to look it up as a barcode, serial or batch number.' : 'No items to show. Check the item groups on this POS Profile.' }}
+              {{
+                searching
+                  ? 'No items match. Press Enter to look it up as a barcode, serial or batch number.'
+                  : 'No items to show. Check the item groups on this POS Profile.'
+              }}
             </p>
           </div>
 
-          <p v-if="!searching && items.length >= settings.limit" class="mt-2 text-center text-xs text-ink-gray-5">
+          <p
+            v-if="!searching && items.length >= settings.limit"
+            class="mt-2 text-center text-xs text-ink-gray-5"
+          >
             Showing the first {{ settings.limit }} items. Search to find others.
           </p>
         </section>
@@ -128,15 +163,21 @@ const list = createResource({
 })
 
 const searching = computed(() => Boolean(props.query.trim()))
-const settings = computed(() => list.data?.settings || { limit: 50, most_moving_days: 30, cache: 1 })
+const settings = computed(
+  () => list.data?.settings || { limit: 50, most_moving_days: 30, cache: 1 },
+)
 const items = computed(() => list.data?.items || [])
-const mostMoving = computed(() => (searching.value ? [] : list.data?.most_moving || []))
+const mostMoving = computed(() =>
+  searching.value ? [] : list.data?.most_moving || [],
+)
 const hideImages = computed(() => Boolean(settings.value.hide_images))
-const allowNegativeStock = computed(() => Boolean(settings.value.allow_negative_stock))
+const allowNegativeStock = computed(() =>
+  Boolean(settings.value.allow_negative_stock),
+)
 const gridClass = computed(() =>
   props.dense
     ? '[grid-template-columns:repeat(auto-fill,minmax(9.5rem,1fr))]'
-    : '[grid-template-columns:repeat(auto-fill,minmax(10.5rem,1fr))]'
+    : '[grid-template-columns:repeat(auto-fill,minmax(10.5rem,1fr))]',
 )
 
 const errorMessage = computed(() => {
@@ -166,12 +207,15 @@ watch(
   (data) => {
     now.value = Date.now()
     generatedAt.value = data ? now.value - (data.age_seconds || 0) * 1000 : null
-  }
+  },
 )
 
 const freshness = computed(() => {
   if (!generatedAt.value) return ''
-  const minutes = Math.max(0, Math.floor((now.value - generatedAt.value) / 60000))
+  const minutes = Math.max(
+    0,
+    Math.floor((now.value - generatedAt.value) / 60000),
+  )
   const age = minutes < 1 ? 'just now' : `${minutes} min ago`
   return `Updated ${age} · cached for ${settings.value.cache_minutes} min`
 })

@@ -1,25 +1,19 @@
 import './index.css'
-import { createApp, reactive } from 'vue'
+import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import router from './router'
 import App from './App.vue'
 import translationPlugin from './translation'
-import { useDynamicComponent } from './utils/Dialog';
-import { handleStaleBuild, isStaleBuildError } from './utils/staleBuild';
-import mitt from 'mitt';
-import { withLoginRedirect } from './utils/login';
+import { useDynamicComponent } from './utils/Dialog'
+import { handleStaleBuild, isStaleBuildError } from './utils/staleBuild'
+import mitt from 'mitt'
+import { withLoginRedirect } from './utils/login'
 
-import {
-  Button,
-  setConfig,
-  frappeRequest,
-  resourcesPlugin,
-} from 'frappe-ui'
-
+import { Button, setConfig, frappeRequest, resourcesPlugin } from 'frappe-ui'
 
 const app = createApp(App)
 
-const emitter = mitt();
+const emitter = mitt()
 
 const pinia = createPinia()
 
@@ -33,10 +27,10 @@ app.component('Button', Button)
 
 app.use(pinia)
 
-app.provide('dynamicComponent', useDynamicComponent());
+app.provide('dynamicComponent', useDynamicComponent())
 
 // Provide emitter it globally
-app.provide('emitter', emitter);
+app.provide('emitter', emitter)
 
 app.mount('#app')
 
@@ -60,7 +54,8 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
     // one, and it served the unrendered page, so drop it.
     navigator.serviceWorker.getRegistrations().then((registrations) => {
       for (const registration of registrations) {
-        const worker = registration.active || registration.waiting || registration.installing
+        const worker =
+          registration.active || registration.waiting || registration.installing
         if (worker && new URL(worker.scriptURL).pathname !== '/antPOS/sw.js') {
           registration.unregister()
         }

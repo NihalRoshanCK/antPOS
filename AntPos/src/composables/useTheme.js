@@ -8,7 +8,9 @@ import { call } from 'frappe-ui'
 const MODES = ['light', 'dark', 'automatic']
 const STORAGE_KEY = 'antpos-theme-mode'
 const darkQuery =
-  typeof window !== 'undefined' ? window.matchMedia('(prefers-color-scheme: dark)') : null
+  typeof window !== 'undefined'
+    ? window.matchMedia('(prefers-color-scheme: dark)')
+    : null
 
 function initialMode() {
   const fromPage = document.documentElement.getAttribute('data-theme-mode')
@@ -20,7 +22,9 @@ function initialMode() {
 const mode = ref(initialMode())
 const systemDark = ref(Boolean(darkQuery?.matches))
 const resolved = computed(() =>
-  mode.value === 'dark' || (mode.value === 'automatic' && systemDark.value) ? 'dark' : 'light'
+  mode.value === 'dark' || (mode.value === 'automatic' && systemDark.value)
+    ? 'dark'
+    : 'light',
 )
 
 function apply() {

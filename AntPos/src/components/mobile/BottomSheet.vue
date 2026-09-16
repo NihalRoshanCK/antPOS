@@ -6,7 +6,12 @@
       enter-from-class="opacity-0"
       leave-to-class="opacity-0"
     >
-      <div v-if="modelValue" class="fixed inset-0 z-50 bg-black/40" aria-hidden="true" @click="close" />
+      <div
+        v-if="modelValue"
+        class="fixed inset-0 z-50 bg-black/40"
+        aria-hidden="true"
+        @click="close"
+      />
     </Transition>
     <Transition
       enter-active-class="transition-transform duration-200 ease-out"
@@ -28,7 +33,10 @@
         <div class="flex justify-center pt-2" aria-hidden="true">
           <span class="h-1 w-10 rounded-full bg-surface-gray-4" />
         </div>
-        <div v-if="title" class="flex items-center justify-between px-4 pb-2 pt-1">
+        <div
+          v-if="title"
+          class="flex items-center justify-between px-4 pb-2 pt-1"
+        >
           <h2 class="text-lg font-semibold">{{ title }}</h2>
           <button
             type="button"
@@ -66,6 +74,6 @@ watch(
     if (!open) return
     await nextTick()
     panel.value?.focus()
-  }
+  },
 )
 </script>

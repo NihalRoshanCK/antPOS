@@ -13,18 +13,22 @@
     <span v-else class="text-sm font-medium text-ink-gray-7">Sales order</span>
 
     <div v-if="asSalesOrder" class="ml-auto flex min-w-0 items-center gap-2">
-      <label :for="dateId" class="shrink-0 text-sm text-ink-gray-5">Deliver by</label>
+      <label :for="dateId" class="shrink-0 text-sm text-ink-gray-5"
+        >Deliver by</label
+      >
       <div class="w-36">
         <DatePicker
           :id="dateId"
           v-model="deliveryDate"
           variant="subtle"
           placeholder="Delivery date"
-              :clearable="false"
+          :clearable="false"
         />
       </div>
     </div>
-    <p v-else class="ml-auto hidden text-sm text-ink-gray-5 sm:block">Invoice now, no order</p>
+    <p v-else class="ml-auto hidden text-sm text-ink-gray-5 sm:block">
+      Invoice now, no order
+    </p>
   </div>
 </template>
 

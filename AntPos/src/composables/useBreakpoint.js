@@ -5,7 +5,9 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 // squeezed two-pane one.
 const DESKTOP_MIN_WIDTH = 1024
 
-const width = ref(typeof window !== 'undefined' ? window.innerWidth : DESKTOP_MIN_WIDTH)
+const width = ref(
+  typeof window !== 'undefined' ? window.innerWidth : DESKTOP_MIN_WIDTH,
+)
 
 let listeners = 0
 let onResize = null
@@ -13,7 +15,9 @@ let onResize = null
 export function useBreakpoint() {
   onMounted(() => {
     if (listeners === 0) {
-      onResize = () => { width.value = window.innerWidth }
+      onResize = () => {
+        width.value = window.innerWidth
+      }
       window.addEventListener('resize', onResize, { passive: true })
       onResize()
     }

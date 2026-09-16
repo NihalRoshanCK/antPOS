@@ -7,77 +7,86 @@ import { toast, createResource } from 'frappe-ui'
 const TOAST_TYPES = ['success', 'error', 'warning', 'info']
 
 function toastType({ type, title, icon } = {}) {
-    for (const hint of [type, title, icon]) {
-        const h = String(hint || '').toLowerCase()
-        if (TOAST_TYPES.includes(h)) return h
-        if (h === 'x-circle' || h === 'x') return 'error'
-        if (h === 'check' || h === 'check-circle') return 'success'
-        if (h === 'alert-circle' || h === 'alert-triangle') return 'warning'
-    }
-    return 'info'
+  for (const hint of [type, title, icon]) {
+    const h = String(hint || '').toLowerCase()
+    if (TOAST_TYPES.includes(h)) return h
+    if (h === 'x-circle' || h === 'x') return 'error'
+    if (h === 'check' || h === 'check-circle') return 'success'
+    if (h === 'alert-circle' || h === 'alert-triangle') return 'warning'
+  }
+  return 'info'
 }
 
 // The first readable message of a failed request.
 export function errorMessage(error, fallback = 'Something went wrong.') {
-    const messages = error?.messages
-    return (Array.isArray(messages) ? messages[0] : messages) || error?.message || fallback
+  const messages = error?.messages
+  return (
+    (Array.isArray(messages) ? messages[0] : messages) ||
+    error?.message ||
+    fallback
+  )
 }
 
 export function createToast(options = {}) {
-    const type = toastType(options)
-    // A title that only names the status ("error", "success") adds nothing.
-    const title = TOAST_TYPES.includes(String(options.title || '').toLowerCase()) ? '' : options.title
-    const body = options.message ? htmlToText(options.message) : ''
-    const message = title && body ? `<strong>${escapeHtml(title)}</strong> ${escapeHtml(body)}` : escapeHtml(title || body)
+  const type = toastType(options)
+  // A title that only names the status ("error", "success") adds nothing.
+  const title = TOAST_TYPES.includes(String(options.title || '').toLowerCase())
+    ? ''
+    : options.title
+  const body = options.message ? htmlToText(options.message) : ''
+  const message =
+    title && body
+      ? `<strong>${escapeHtml(title)}</strong> ${escapeHtml(body)}`
+      : escapeHtml(title || body)
 
-    return toast.create({
-        message,
-        type,
-        duration: options.timeout ?? options.duration,
-        closable: options.closable,
-        action: options.action,
-    })
+  return toast.create({
+    message,
+    type,
+    duration: options.timeout ?? options.duration,
+    closable: options.closable,
+    action: options.action,
+  })
 }
 
 // Kept for its existing call sites: showToast(status, text, icon, ...). The old
 // colour arguments are ignored; toast colours follow the theme.
 export function showToast(title, text, icon) {
-    return createToast({ title, message: text, icon, timeout: 5 })
+  return createToast({ title, message: text, icon, timeout: 5 })
 }
 
 function htmlToText(html) {
-    const div = document.createElement('div')
-    div.innerHTML = String(html)
-    return div.textContent || div.innerText || ''
+  const div = document.createElement('div')
+  div.innerHTML = String(html)
+  return div.textContent || div.innerText || ''
 }
 
 function escapeHtml(text) {
-    const div = document.createElement('div')
-    div.textContent = String(text ?? '')
-    return div.innerHTML
+  const div = document.createElement('div')
+  div.textContent = String(text ?? '')
+  return div.innerHTML
 }
 
 export function generateTempName(doctype) {
-    const suffix = Math.random().toString(36).substring(2, 10)
-    return `new-${doctype.toLowerCase().replace(/\s/g, "-")}-${suffix}`
-};
+  const suffix = Math.random().toString(36).substring(2, 10)
+  return `new-${doctype.toLowerCase().replace(/\s/g, '-')}-${suffix}`
+}
 
 // Factory function (can also be extracted to a separate file)
 export function createDoctypeResource(doctype, onSuccessCallback) {
-    return createResource({
-        url: 'ant_pos.ant_pos.api.get_doc_field',
-        method: 'POST',
-        auto: false,
-        makeParams(params) {
-            return {
-                doctype,
-                ...params
-            }
-        },
-        onSuccess(data) {
-            if (data) {
-                onSuccessCallback(data)
-            }
-        }
-    })
-};
+  return createResource({
+    url: 'ant_pos.ant_pos.api.get_doc_field',
+    method: 'POST',
+    auto: false,
+    makeParams(params) {
+      return {
+        doctype,
+        ...params,
+      }
+    },
+    onSuccess(data) {
+      if (data) {
+        onSuccessCallback(data)
+      }
+    },
+  })
+}

@@ -19,7 +19,10 @@
         :aria-invalid="invalid || undefined"
         @click="togglePopover()"
       >
-        <span class="truncate" :class="modelValue ? 'text-ink-gray-8' : 'text-ink-gray-4'">
+        <span
+          class="truncate"
+          :class="modelValue ? 'text-ink-gray-8' : 'text-ink-gray-4'"
+        >
           {{ modelValue || placeholder }}
         </span>
         <LucideChevronDown class="h-4 w-4 shrink-0 text-ink-gray-5" />
@@ -46,15 +49,22 @@ const emit = defineEmits(['update:modelValue'])
 
 const search = createResource({
   url: 'frappe.desk.search.search_link',
-  makeParams: (params) => ({ doctype: props.doctype, txt: params?.txt || '', page_length: 20 }),
+  makeParams: (params) => ({
+    doctype: props.doctype,
+    txt: params?.txt || '',
+    page_length: 20,
+  }),
 })
 
 const results = computed(() =>
   (search.data || []).map((row) => ({
     label: row.label || row.value,
     value: row.value,
-    description: row.description && row.description !== row.value ? row.description : undefined,
-  }))
+    description:
+      row.description && row.description !== row.value
+        ? row.description
+        : undefined,
+  })),
 )
 
 // Keep the current value listed, so the picker can show it as selected.
@@ -66,14 +76,16 @@ const options = computed(() => {
   return list
 })
 
-const selected = computed(() => options.value.find((o) => o.value === props.modelValue) || null)
+const selected = computed(
+  () => options.value.find((o) => o.value === props.modelValue) || null,
+)
 
 const onQuery = debounce((txt) => search.fetch({ txt: txt || '' }), 250)
 
 watch(
   () => props.doctype,
   () => search.fetch({ txt: '' }),
-  { immediate: true }
+  { immediate: true },
 )
 
 function onSelect(option) {

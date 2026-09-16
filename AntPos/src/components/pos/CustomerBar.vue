@@ -1,5 +1,7 @@
 <template>
-  <div class="shrink-0 bg-surface-white border-b border-outline-gray-1 flex items-center gap-2 px-3 lg:px-4 h-14">
+  <div
+    class="shrink-0 bg-surface-white border-b border-outline-gray-1 flex items-center gap-2 px-3 lg:px-4 h-14"
+  >
     <div class="flex-1 min-w-0">
       <Customer v-model:customer="model" />
     </div>

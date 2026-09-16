@@ -3,7 +3,9 @@
        are dragged in place; fields are added from each column. -->
   <div class="flex flex-col gap-5">
     <!-- Tabs -->
-    <div class="flex max-w-full items-center justify-between gap-2 overflow-x-auto rounded bg-surface-gray-2 px-2.5 py-2 text-base">
+    <div
+      class="flex max-w-full items-center justify-between gap-2 overflow-x-auto rounded bg-surface-gray-2 px-2.5 py-2 text-base"
+    >
       <Draggable
         v-if="tabs.length && tabs[tabIndex]?.label"
         :list="tabs"
@@ -34,8 +36,14 @@
               @blur="stopEditing"
               @click.stop
             />
-            <span v-else @dblclick="startEditing(tab)">{{ tab.label || 'Untitled' }}</span>
-            <Dropdown v-if="tabIndex === i && editing !== tab.name" :options="tabOptions(tab, i)" @click.stop>
+            <span v-else @dblclick="startEditing(tab)">{{
+              tab.label || 'Untitled'
+            }}</span>
+            <Dropdown
+              v-if="tabIndex === i && editing !== tab.name"
+              :options="tabOptions(tab, i)"
+              @click.stop
+            >
               <Button variant="ghost" class="!h-5 !px-1">
                 <LucideEllipsis class="h-4 w-4" aria-hidden="true" />
                 <span class="sr-only">{{ tab.label }} options</span>
@@ -44,20 +52,37 @@
           </div>
         </template>
       </Draggable>
-      <Button variant="ghost" class="shrink-0 !text-ink-gray-5 hover:!text-ink-gray-9" @click="addTab">
+      <Button
+        variant="ghost"
+        class="shrink-0 !text-ink-gray-5 hover:!text-ink-gray-9"
+        @click="addTab"
+      >
         <template #prefix><LucidePlus class="h-4 w-4" /></template>
         Add tab
       </Button>
     </div>
 
     <!-- Sections of the open tab -->
-    <div v-for="(tab, t) in tabs" v-show="tabIndex === t" :key="tab.name" class="min-h-[20rem]">
+    <div
+      v-for="(tab, t) in tabs"
+      v-show="tabIndex === t"
+      :key="tab.name"
+      class="min-h-[20rem]"
+    >
       <Draggable
         :list="tab.sections"
         item-key="name"
-        :group="tab.sections.length ? 'sections' : { name: 'sections', put: ['sections', 'columns', 'fields'] }"
+        :group="
+          tab.sections.length
+            ? 'sections'
+            : { name: 'sections', put: ['sections', 'columns', 'fields'] }
+        "
         handle=".section-drag-handle"
-        :class="tab.sections.length ? 'flex flex-col gap-5' : 'mb-5 rounded border-2 border-dashed border-outline-gray-2 p-3'"
+        :class="
+          tab.sections.length
+            ? 'flex flex-col gap-5'
+            : 'mb-5 rounded border-2 border-dashed border-outline-gray-2 p-3'
+        "
         @start="dragging = true"
         @end="dragging = false"
         @add="onDroppedIntoEmptyTab(tab)"
@@ -66,8 +91,13 @@
         <template #item="{ element: section, index: s }">
           <div class="flex flex-col gap-1.5 rounded bg-surface-gray-2 p-2.5">
             <div class="flex items-center justify-between gap-2">
-              <div class="flex h-7 min-w-0 items-center gap-2 text-base font-medium text-ink-gray-9">
-                <LucideGripVertical class="section-drag-handle h-4 w-4 shrink-0 cursor-grab text-ink-gray-4" aria-label="Drag section" />
+              <div
+                class="flex h-7 min-w-0 items-center gap-2 text-base font-medium text-ink-gray-9"
+              >
+                <LucideGripVertical
+                  class="section-drag-handle h-4 w-4 shrink-0 cursor-grab text-ink-gray-4"
+                  aria-label="Drag section"
+                />
                 <input
                   v-if="editing === section.name"
                   v-model="section.label"
@@ -80,22 +110,37 @@
                 <span
                   v-else
                   class="flex cursor-pointer items-center gap-1.5 truncate"
-                  :class="{ 'text-ink-gray-4': section.hideLabel || !section.label, italic: !section.label }"
+                  :class="{
+                    'text-ink-gray-4': section.hideLabel || !section.label,
+                    italic: !section.label,
+                  }"
                   @dblclick="startEditing(section)"
                 >
                   {{ section.label || 'No label' }}
-                  <LucideChevronDown v-if="section.collapsible" class="h-4 w-4 shrink-0" />
-                  <LucideEyeOff v-if="section.label && section.hideLabel" class="h-3.5 w-3.5 shrink-0" />
+                  <LucideChevronDown
+                    v-if="section.collapsible"
+                    class="h-4 w-4 shrink-0"
+                  />
+                  <LucideEyeOff
+                    v-if="section.label && section.hideLabel"
+                    class="h-3.5 w-3.5 shrink-0"
+                  />
                 </span>
               </div>
               <div class="flex shrink-0 items-center gap-1.5">
-                <span v-if="countFields(section)" class="rounded bg-surface-gray-3 px-1.5 py-0.5 text-xs leading-none text-ink-gray-5">
-                  {{ countFields(section) }} {{ countFields(section) === 1 ? 'field' : 'fields' }}
+                <span
+                  v-if="countFields(section)"
+                  class="rounded bg-surface-gray-3 px-1.5 py-0.5 text-xs leading-none text-ink-gray-5"
+                >
+                  {{ countFields(section) }}
+                  {{ countFields(section) === 1 ? 'field' : 'fields' }}
                 </span>
                 <Dropdown :options="sectionOptions(tab, section, s, t)">
                   <Button variant="ghost">
                     <LucideEllipsis class="h-4 w-4" aria-hidden="true" />
-                    <span class="sr-only">{{ section.label || 'Section' }} options</span>
+                    <span class="sr-only"
+                      >{{ section.label || 'Section' }} options</span
+                    >
                   </Button>
                 </Dropdown>
               </div>
@@ -112,7 +157,9 @@
               @change="emitChange"
             >
               <template #item="{ element: column }">
-                <div class="flex min-w-0 flex-1 cursor-grab flex-col gap-1.5 rounded border border-dashed border-outline-gray-2 bg-surface-modal p-2">
+                <div
+                  class="flex min-w-0 flex-1 cursor-grab flex-col gap-1.5 rounded border border-dashed border-outline-gray-2 bg-surface-modal p-2"
+                >
                   <Draggable
                     :list="column.fields"
                     group="fields"
@@ -126,29 +173,55 @@
                     <template #item="{ element: entry }">
                       <div
                         class="field flex cursor-auto items-center justify-between gap-2 rounded border bg-surface-modal px-2.5 py-2 text-base leading-4 text-ink-gray-8"
-                        :class="entry.hidden ? 'border-dashed border-outline-gray-2 opacity-70' : 'border-outline-gray-2'"
+                        :class="
+                          entry.hidden
+                            ? 'border-dashed border-outline-gray-2 opacity-70'
+                            : 'border-outline-gray-2'
+                        "
                       >
                         <div class="flex min-w-0 items-center gap-2">
-                          <LucideGripVertical class="field-drag-handle h-3.5 w-3.5 shrink-0 cursor-grab text-ink-gray-4" />
+                          <LucideGripVertical
+                            class="field-drag-handle h-3.5 w-3.5 shrink-0 cursor-grab text-ink-gray-4"
+                          />
                           <button
                             type="button"
                             class="min-w-0 text-left focus:outline-none focus-visible:underline"
                             :title="`${entryName(entry)} · ${meta[entryName(entry)]?.fieldtype || ''}`"
                             @click="openSettings(column, entry)"
                           >
-                            <span class="block truncate">{{ entryLabel(entry) }}</span>
-                            <span v-if="badges(entry).length" class="mt-1 flex flex-wrap gap-1">
-                              <span v-for="badge in badges(entry)" :key="badge.label" class="rounded px-1 text-[11px] leading-4" :class="badge.class">
+                            <span class="block truncate">{{
+                              entryLabel(entry)
+                            }}</span>
+                            <span
+                              v-if="badges(entry).length"
+                              class="mt-1 flex flex-wrap gap-1"
+                            >
+                              <span
+                                v-for="badge in badges(entry)"
+                                :key="badge.label"
+                                class="rounded px-1 text-[11px] leading-4"
+                                :class="badge.class"
+                              >
                                 {{ badge.label }}
                               </span>
                             </span>
                           </button>
                         </div>
                         <div class="flex shrink-0 items-center">
-                          <button type="button" class="grid h-6 w-6 place-items-center rounded text-ink-gray-5 hover:bg-surface-gray-3 hover:text-ink-gray-8 focus:outline-none focus-visible:ring-2 focus-visible:ring-outline-gray-3" :aria-label="`${entryLabel(entry)} settings`" @click="openSettings(column, entry)">
+                          <button
+                            type="button"
+                            class="grid h-6 w-6 place-items-center rounded text-ink-gray-5 hover:bg-surface-gray-3 hover:text-ink-gray-8 focus:outline-none focus-visible:ring-2 focus-visible:ring-outline-gray-3"
+                            :aria-label="`${entryLabel(entry)} settings`"
+                            @click="openSettings(column, entry)"
+                          >
                             <LucideSettings2 class="h-3.5 w-3.5" />
                           </button>
-                          <button type="button" class="grid h-6 w-6 place-items-center rounded text-ink-gray-5 hover:bg-surface-gray-3 hover:text-ink-gray-8 focus:outline-none focus-visible:ring-2 focus-visible:ring-outline-gray-3" :aria-label="`Remove ${entryLabel(entry)}`" @click="removeEntry(column, entry)">
+                          <button
+                            type="button"
+                            class="grid h-6 w-6 place-items-center rounded text-ink-gray-5 hover:bg-surface-gray-3 hover:text-ink-gray-8 focus:outline-none focus-visible:ring-2 focus-visible:ring-outline-gray-3"
+                            :aria-label="`Remove ${entryLabel(entry)}`"
+                            @click="removeEntry(column, entry)"
+                          >
                             <LucideX class="h-3.5 w-3.5" />
                           </button>
                         </div>
@@ -164,8 +237,14 @@
                     @update:model-value="(option) => addField(column, option)"
                   >
                     <template #target="{ togglePopover }">
-                      <Button class="w-full !bg-surface-modal" variant="outline" @click="togglePopover()">
-                        <template #prefix><LucidePlus class="h-4 w-4" /></template>
+                      <Button
+                        class="w-full !bg-surface-modal"
+                        variant="outline"
+                        @click="togglePopover()"
+                      >
+                        <template #prefix
+                          ><LucidePlus class="h-4 w-4"
+                        /></template>
                         Add field
                       </Button>
                     </template>
@@ -225,7 +304,9 @@ const props = defineProps({
 const MAX_COLUMNS = 4
 const vFocus = { mounted: (el) => el.focus() }
 
-const meta = computed(() => Object.fromEntries(props.fields.map((f) => [f.fieldname, f])))
+const meta = computed(() =>
+  Object.fromEntries(props.fields.map((f) => [f.fieldname, f])),
+)
 const tabIndex = ref(0)
 const dragging = ref(false)
 const editing = ref(null)
@@ -251,27 +332,41 @@ watch(
   () => tabs.value.length,
   (n) => {
     if (tabIndex.value >= n) tabIndex.value = Math.max(n - 1, 0)
-  }
+  },
 )
 
 // ---- fields ----------------------------------------------------------------
 
-const entryName = (entry) => (typeof entry === 'string' ? entry : entry.fieldname)
+const entryName = (entry) =>
+  typeof entry === 'string' ? entry : entry.fieldname
 const overridesOf = (entry) => {
   if (typeof entry === 'string') return {}
   const { fieldname, ...rest } = entry
   return rest
 }
-const entryLabel = (entry) => overridesOf(entry).label || meta.value[entryName(entry)]?.label || entryName(entry)
+const entryLabel = (entry) =>
+  overridesOf(entry).label ||
+  meta.value[entryName(entry)]?.label ||
+  entryName(entry)
 
 function badges(entry) {
   const f = meta.value[entryName(entry)] || {}
   const o = overridesOf(entry)
   const list = []
-  if (o.reqd || f.reqd) list.push({ label: 'Required', class: 'bg-surface-red-1 text-ink-red-4' })
-  if (o.read_only || f.read_only) list.push({ label: 'Read only', class: 'bg-surface-gray-3 text-ink-gray-6' })
-  if (o.hidden) list.push({ label: 'Hidden', class: 'bg-surface-amber-1 text-ink-amber-3' })
-  if (o.default !== undefined && o.default !== '') list.push({ label: `= ${o.default}`, class: 'bg-surface-blue-1 text-ink-blue-3' })
+  if (o.reqd || f.reqd)
+    list.push({ label: 'Required', class: 'bg-surface-red-1 text-ink-red-4' })
+  if (o.read_only || f.read_only)
+    list.push({
+      label: 'Read only',
+      class: 'bg-surface-gray-3 text-ink-gray-6',
+    })
+  if (o.hidden)
+    list.push({ label: 'Hidden', class: 'bg-surface-amber-1 text-ink-amber-3' })
+  if (o.default !== undefined && o.default !== '')
+    list.push({
+      label: `= ${o.default}`,
+      class: 'bg-surface-blue-1 text-ink-blue-3',
+    })
   return list
 }
 
@@ -279,7 +374,8 @@ const usedFields = computed(() => {
   const used = new Set()
   for (const tab of tabs.value)
     for (const section of tab.sections)
-      for (const column of section.columns) for (const entry of column.fields) used.add(entryName(entry))
+      for (const column of section.columns)
+        for (const entry of column.fields) used.add(entryName(entry))
   return used
 })
 
@@ -290,7 +386,7 @@ const availableFields = computed(() =>
       label: f.reqd ? `${f.label} *` : f.label,
       value: f.fieldname,
       description: `${f.fieldname} · ${f.fieldtype}`,
-    }))
+    })),
 )
 
 function addField(column, option) {
@@ -313,7 +409,11 @@ function applySettings(next) {
   const index = column.fields.indexOf(entry)
   if (index === -1) return
   const fieldname = entryName(entry)
-  column.fields.splice(index, 1, Object.keys(next).length ? { fieldname, ...next } : fieldname)
+  column.fields.splice(
+    index,
+    1,
+    Object.keys(next).length ? { fieldname, ...next } : fieldname,
+  )
   emitChange()
 }
 
@@ -353,7 +453,9 @@ function onDroppedIntoEmptyTab(tab) {
   const dropped = tab.sections[0]
   if (!dropped || Array.isArray(dropped.columns)) return
   tab.sections.splice(0, 1)
-  const columns = dropped.fields ? [dropped] : [{ ...newColumn(), fields: [dropped] }]
+  const columns = dropped.fields
+    ? [dropped]
+    : [{ ...newColumn(), fields: [dropped] }]
   tab.sections.push(newSection(columns))
   emitChange()
 }
@@ -380,10 +482,14 @@ function tabOptions(tab, i) {
           tab.label = ''
           return emitChange()
         }
-        confirmThen('Remove tab', 'Remove this tab and everything in it?', () => {
-          tabs.value.splice(i, 1)
-          emitChange()
-        })
+        confirmThen(
+          'Remove tab',
+          'Remove this tab and everything in it?',
+          () => {
+            tabs.value.splice(i, 1)
+            emitChange()
+          },
+        )
       },
     },
   ]
@@ -416,7 +522,11 @@ function sectionOptions(tab, section, s, t) {
           icon: section.hideLabel ? 'eye' : 'eye-off',
           onClick: toggle('hideLabel'),
         },
-        { label: section.hideBorder ? 'Show border' : 'Hide border', icon: 'minus', onClick: toggle('hideBorder') },
+        {
+          label: section.hideBorder ? 'Show border' : 'Hide border',
+          icon: 'minus',
+          onClick: toggle('hideBorder'),
+        },
         {
           label: 'Remove section',
           icon: 'trash-2',
@@ -425,7 +535,12 @@ function sectionOptions(tab, section, s, t) {
               tab.sections.splice(tab.sections.indexOf(section), 1)
               emitChange()
             }
-            if (countFields(section)) confirmThen('Remove section', 'This section has fields. Remove it anyway?', remove)
+            if (countFields(section))
+              confirmThen(
+                'Remove section',
+                'This section has fields. Remove it anyway?',
+                remove,
+              )
             else remove()
           },
         },
@@ -435,13 +550,26 @@ function sectionOptions(tab, section, s, t) {
           condition: () => tab.sections.length > 1,
           onClick: () => {
             const target = tab.sections[s === 0 ? s + 1 : s - 1]
-            target.columns = s === 0 ? [...section.columns, ...target.columns] : [...target.columns, ...section.columns]
+            target.columns =
+              s === 0
+                ? [...section.columns, ...target.columns]
+                : [...target.columns, ...section.columns]
             tab.sections.splice(s, 1)
             emitChange()
           },
         },
-        { label: 'Move to previous tab', icon: 'corner-up-left', condition: () => t > 0, onClick: moveSection(tabs.value[t - 1]) },
-        { label: 'Move to next tab', icon: 'corner-up-right', condition: () => t < tabs.value.length - 1, onClick: moveSection(tabs.value[t + 1]) },
+        {
+          label: 'Move to previous tab',
+          icon: 'corner-up-left',
+          condition: () => t > 0,
+          onClick: moveSection(tabs.value[t - 1]),
+        },
+        {
+          label: 'Move to next tab',
+          icon: 'corner-up-right',
+          condition: () => t < tabs.value.length - 1,
+          onClick: moveSection(tabs.value[t + 1]),
+        },
       ],
     },
     {
@@ -465,7 +593,12 @@ function sectionOptions(tab, section, s, t) {
               section.columns.pop()
               emitChange()
             }
-            if (last.fields.length) confirmThen('Remove column', 'This column has fields. Remove it anyway?', remove)
+            if (last.fields.length)
+              confirmThen(
+                'Remove column',
+                'This column has fields. Remove it anyway?',
+                remove,
+              )
             else remove()
           },
         },
@@ -483,7 +616,8 @@ function sectionOptions(tab, section, s, t) {
         {
           label: 'Move last column to next section',
           icon: 'corner-up-right',
-          condition: () => s < tab.sections.length - 1 && section.columns.length > 1,
+          condition: () =>
+            s < tab.sections.length - 1 && section.columns.length > 1,
           onClick: () => {
             tab.sections[s + 1].columns.push(section.columns.pop())
             emitChange()

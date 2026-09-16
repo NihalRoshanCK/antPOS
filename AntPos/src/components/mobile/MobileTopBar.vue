@@ -1,7 +1,10 @@
 <template>
   <header
     class="flex shrink-0 items-center gap-2 border-b border-outline-gray-1 bg-surface-white px-2"
-    style="padding-top: env(safe-area-inset-top); min-height: calc(3.25rem + env(safe-area-inset-top))"
+    style="
+      padding-top: env(safe-area-inset-top);
+      min-height: calc(3.25rem + env(safe-area-inset-top));
+    "
   >
     <button
       v-if="back"
@@ -20,8 +23,15 @@
     />
 
     <div class="min-w-0 flex-1 pl-1">
-      <h1 class="truncate text-lg font-semibold leading-tight text-ink-gray-9">{{ title }}</h1>
-      <p v-if="subtitle" class="num truncate text-xs leading-tight text-ink-gray-5">{{ subtitle }}</p>
+      <h1 class="truncate text-lg font-semibold leading-tight text-ink-gray-9">
+        {{ title }}
+      </h1>
+      <p
+        v-if="subtitle"
+        class="num truncate text-xs leading-tight text-ink-gray-5"
+      >
+        {{ subtitle }}
+      </p>
     </div>
 
     <Badge
@@ -54,8 +64,12 @@ const profileStore = usePosProfileStore()
 const mobile = useMobileView()
 
 const onPos = computed(() => route.name === 'Pos')
-const paying = computed(() => onPos.value && Boolean(invoiceStore.invoice?.docstatus))
-const inCart = computed(() => onPos.value && !paying.value && mobile.view === 'cart')
+const paying = computed(
+  () => onPos.value && Boolean(invoiceStore.invoice?.docstatus),
+)
+const inCart = computed(
+  () => onPos.value && !paying.value && mobile.view === 'cart',
+)
 
 const title = computed(() => {
   if (paying.value) return invoiceStore.invoice.is_return ? 'Refund' : 'Payment'
@@ -65,14 +79,21 @@ const title = computed(() => {
 
 const subtitle = computed(() => {
   if (paying.value) return invoiceStore.invoice.name
-  if (inCart.value) return invoiceStore.invoiceCustomer?.name || 'No customer selected'
+  if (inCart.value)
+    return invoiceStore.invoiceCustomer?.name || 'No customer selected'
   return profileStore.posProfileData?.name || ''
 })
 
 const back = computed(() => {
   if (paying.value) {
     // Same as the panel's "Back to cart": the draft is kept.
-    return { label: 'Back to cart', run: () => { invoiceStore.invoice.docstatus = 0; mobile.showCart() } }
+    return {
+      label: 'Back to cart',
+      run: () => {
+        invoiceStore.invoice.docstatus = 0
+        mobile.showCart()
+      },
+    }
   }
   if (inCart.value) return { label: 'Back to items', run: mobile.showItems }
   return null
@@ -80,8 +101,10 @@ const back = computed(() => {
 
 const badge = computed(() => {
   if (!onPos.value || paying.value) return null
-  if (invoiceStore.invoice?.is_return) return { label: 'Return', theme: 'orange' }
-  if (!invoiceStore.items.length) return asSalesOrder.value ? { label: 'Order', theme: 'green' } : null
+  if (invoiceStore.invoice?.is_return)
+    return { label: 'Return', theme: 'orange' }
+  if (!invoiceStore.items.length)
+    return asSalesOrder.value ? { label: 'Order', theme: 'green' } : null
   // A temp name (new-...) means the sale has never been saved.
   const saved = !String(invoiceStore.invoice?.name || '').startsWith('new-')
   const kind = asSalesOrder.value ? 'Order · ' : ''

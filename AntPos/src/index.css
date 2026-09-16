@@ -24,7 +24,9 @@
    stop shifting as totals recalculate on every keystroke. */
 .num {
   font-variant-numeric: tabular-nums lining-nums;
-  font-feature-settings: 'tnum' 1, 'lnum' 1;
+  font-feature-settings:
+    'tnum' 1,
+    'lnum' 1;
 }
 
 /* Plain input styled like frappe-ui's subtle TextInput, for places where a bare
@@ -41,8 +43,13 @@
   scrollbar-width: thin;
   scrollbar-color: var(--outline-gray-2) transparent;
 }
-.pos-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
-.pos-scroll::-webkit-scrollbar-track { background: transparent; }
+.pos-scroll::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.pos-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
 .pos-scroll::-webkit-scrollbar-thumb {
   background: var(--outline-gray-2);
   border-radius: 9999px;
@@ -52,13 +59,21 @@
 
 /* Cart badge nudge when an item is added from the list on a phone. */
 @keyframes pos-pop {
-  0% { transform: scale(0.6); }
-  60% { transform: scale(1.15); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(0.6);
+  }
+  60% {
+    transform: scale(1.15);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }

@@ -1,13 +1,21 @@
 <template>
-  <div class="shrink-0 border-t border-outline-gray-1 bg-surface-white px-3 py-2">
+  <div
+    class="shrink-0 border-t border-outline-gray-1 bg-surface-white px-3 py-2"
+  >
     <button
       type="button"
       class="flex h-12 w-full items-center gap-3 rounded-lg px-4 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-outline-gray-3"
-      :class="count
-        ? 'bg-surface-gray-7 text-ink-white active:opacity-90'
-        : 'cursor-default bg-surface-gray-2 text-ink-gray-5'"
+      :class="
+        count
+          ? 'bg-surface-gray-7 text-ink-white active:opacity-90'
+          : 'cursor-default bg-surface-gray-2 text-ink-gray-5'
+      "
       :disabled="!count"
-      :aria-label="count ? `View cart, ${count} ${count === 1 ? 'item' : 'items'}, total ${total}` : 'Cart is empty'"
+      :aria-label="
+        count
+          ? `View cart, ${count} ${count === 1 ? 'item' : 'items'}, total ${total}`
+          : 'Cart is empty'
+      "
       @click="mobile.showCart()"
     >
       <span class="relative">
@@ -21,7 +29,9 @@
         </span>
       </span>
       <span class="flex-1 text-base font-medium">
-        {{ count ? (count === 1 ? '1 item' : `${count} items`) : 'Cart is empty' }}
+        {{
+          count ? (count === 1 ? '1 item' : `${count} items`) : 'Cart is empty'
+        }}
       </span>
       <span v-if="count" class="num text-base font-semibold">{{ total }}</span>
       <LucideChevronRight v-if="count" class="h-5 w-5 opacity-70" />

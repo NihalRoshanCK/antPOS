@@ -15,7 +15,11 @@
       :aria-checked="mode === theme.mode"
       :tabindex="mode === theme.mode ? 0 : -1"
       class="group flex flex-col overflow-hidden rounded-lg border text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-outline-gray-3"
-      :class="mode === theme.mode ? 'border-outline-gray-5' : 'border-outline-gray-2 hover:border-outline-gray-3'"
+      :class="
+        mode === theme.mode
+          ? 'border-outline-gray-5'
+          : 'border-outline-gray-2 hover:border-outline-gray-3'
+      "
       @click="choose(theme.mode, i)"
     >
       <!-- Each half carries its own data-theme, so the preview shows that
@@ -26,16 +30,30 @@
           class="rounded-tl-sm"
           :class="theme.mode === 'automatic' ? 'w-1/2' : 'w-full'"
         />
-        <ThemePreview v-if="theme.mode === 'automatic'" scheme="dark" class="w-1/2" />
+        <ThemePreview
+          v-if="theme.mode === 'automatic'"
+          scheme="dark"
+          class="w-1/2"
+        />
       </div>
-      <div class="flex items-center justify-between gap-2 border-t border-outline-gray-2 px-3 py-2">
+      <div
+        class="flex items-center justify-between gap-2 border-t border-outline-gray-2 px-3 py-2"
+      >
         <span class="min-w-0">
-          <span class="block truncate text-base text-ink-gray-8">{{ theme.label }}</span>
-          <span class="block truncate text-sm text-ink-gray-5">{{ theme.info }}</span>
+          <span class="block truncate text-base text-ink-gray-8">{{
+            theme.label
+          }}</span>
+          <span class="block truncate text-sm text-ink-gray-5">{{
+            theme.info
+          }}</span>
         </span>
         <span
           class="size-3.5 shrink-0 rounded-full"
-          :class="mode === theme.mode ? 'border-4 border-outline-gray-5' : 'border border-outline-gray-4'"
+          :class="
+            mode === theme.mode
+              ? 'border-4 border-outline-gray-5'
+              : 'border border-outline-gray-4'
+          "
           aria-hidden="true"
         />
       </div>

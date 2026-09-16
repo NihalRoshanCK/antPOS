@@ -4,11 +4,10 @@ import { userResource } from '@/stores/user'
 import { loginUrl } from '@/utils/login'
 import { ref, computed } from 'vue'
 import { usePosProfileStore } from '@/stores/posProfile'
-import { usePermissionStore } from '@/stores/permission';
+import { usePermissionStore } from '@/stores/permission'
 
 export const useSessionStore = defineStore('antpos-session', () => {
-
-  const permissionStore = usePermissionStore();
+  const permissionStore = usePermissionStore()
   const posProfileStore = usePosProfileStore()
 
   function sessionUser() {
@@ -23,7 +22,7 @@ export const useSessionStore = defineStore('antpos-session', () => {
   let user = ref(sessionUser())
   const isLoggedIn = computed(() => !!user.value)
 
-  function initializeSession() {    
+  function initializeSession() {
     if (isLoggedIn.value) {
       // Failures are reported by the stores themselves.
       permissionStore.fetchPermissions().catch(() => {})
@@ -46,4 +45,3 @@ export const useSessionStore = defineStore('antpos-session', () => {
     logout,
   }
 })
-

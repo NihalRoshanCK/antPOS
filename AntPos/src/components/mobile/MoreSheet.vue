@@ -6,15 +6,26 @@
         class="flex w-full items-center gap-3 rounded-lg bg-surface-gray-1 p-3 text-left active:bg-surface-gray-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-outline-gray-3"
         @click="run({ run: () => openSettings('pos-profile') })"
       >
-        <div class="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full bg-surface-gray-3 text-sm font-semibold text-ink-gray-7">
-          <img v-if="user.user_image" :src="user.user_image" alt="" class="h-full w-full object-cover" />
+        <div
+          class="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full bg-surface-gray-3 text-sm font-semibold text-ink-gray-7"
+        >
+          <img
+            v-if="user.user_image"
+            :src="user.user_image"
+            alt=""
+            class="h-full w-full object-cover"
+          />
           <span v-else>{{ initials }}</span>
         </div>
         <div class="min-w-0">
-          <p class="truncate text-base font-medium text-ink-gray-9">{{ user.full_name }}</p>
+          <p class="truncate text-base font-medium text-ink-gray-9">
+            {{ user.full_name }}
+          </p>
           <p class="num truncate text-sm text-ink-gray-5">
             {{ profileStore.posProfileData?.name || 'No POS profile' }}
-            <template v-if="profileStore.openingShift?.name"> · shift {{ profileStore.openingShift.name }}</template>
+            <template v-if="profileStore.openingShift?.name">
+              · shift {{ profileStore.openingShift.name }}</template
+            >
           </p>
         </div>
         <LucideChevronRight class="ml-auto h-4 w-4 shrink-0 text-ink-gray-5" />
@@ -28,9 +39,15 @@
             :class="item.danger ? 'text-ink-red-4' : 'text-ink-gray-8'"
             @click="run(item)"
           >
-            <component :is="item.icon" class="h-5 w-5 shrink-0" :class="item.danger ? '' : 'text-ink-gray-5'" />
+            <component
+              :is="item.icon"
+              class="h-5 w-5 shrink-0"
+              :class="item.danger ? '' : 'text-ink-gray-5'"
+            />
             <span class="flex-1">{{ item.label }}</span>
-            <span v-if="item.hint" class="text-sm text-ink-gray-5">{{ item.hint }}</span>
+            <span v-if="item.hint" class="text-sm text-ink-gray-5">{{
+              item.hint
+            }}</span>
           </button>
         </li>
       </ul>
@@ -60,27 +77,53 @@ const session = useSessionStore()
 const router = useRouter()
 const { loadComponent } = inject('dynamicComponent')
 
-const user = computed(() => (session.isLoggedIn ? usersStore().getUser() : { full_name: 'Guest' }) || {})
+const user = computed(
+  () =>
+    (session.isLoggedIn ? usersStore().getUser() : { full_name: 'Guest' }) ||
+    {},
+)
 const initials = computed(() =>
   String(user.value.full_name || '?')
     .split(/\s+/)
     .map((w) => w[0])
     .join('')
     .slice(0, 2)
-    .toUpperCase()
+    .toUpperCase(),
 )
-
 
 const items = computed(() => [
   {
     label: 'Return an invoice',
     icon: markRaw(LucideUndo2),
-    run: () => { router.push({ name: 'Pos' }); mobile.showItems(); loadComponent('Return') },
+    run: () => {
+      router.push({ name: 'Pos' })
+      mobile.showItems()
+      loadComponent('Return')
+    },
   },
-  { label: 'Close shift', icon: markRaw(LucideFileMinus), run: () => loadComponent('CloseShift') },
-  { label: 'Settings', icon: markRaw(LucideSettings), run: () => openSettings('profile') },
-  { label: 'Go to desk', icon: markRaw(LucideLayoutGrid), run: () => { window.location.href = '/app' } },
-  { label: 'Log out', icon: markRaw(LucideLogOut), danger: true, run: () => session.logout.fetch() },
+  {
+    label: 'Close shift',
+    icon: markRaw(LucideFileMinus),
+    run: () => loadComponent('CloseShift'),
+  },
+  {
+    label: 'Settings',
+    icon: markRaw(LucideSettings),
+    run: () => openSettings('profile'),
+  },
+  {
+    label: 'Go to desk',
+    icon: markRaw(LucideLayoutGrid),
+    run: () => {
+      window.location.href = '/app'
+    },
+  },
+  {
+    label: 'Log out',
+    icon: markRaw(LucideLogOut),
+    danger: true,
+    run: () => session.logout.fetch(),
+  },
 ])
 
 function openSettings(page) {

@@ -1,9 +1,15 @@
 <template>
-  <Dialog :options="{ size: '2xl' }" v-model="dialogVisible" @after-leave="handleDialogClose">
+  <Dialog
+    v-model="dialogVisible"
+    :options="{ size: '2xl' }"
+    @after-leave="handleDialogClose"
+  >
     <template #body>
       <div class="bg-surface-modal px-4 pb-6 pt-5 sm:px-6">
         <div class="mb-5 flex items-center justify-between gap-2">
-          <h3 class="text-2xl font-semibold leading-6 text-ink-gray-9">New customer</h3>
+          <h3 class="text-2xl font-semibold leading-6 text-ink-gray-9">
+            New customer
+          </h3>
           <div class="flex items-center gap-1">
             <!-- As in Frappe CRM: admins change this form from the form itself. -->
             <Button
@@ -16,7 +22,12 @@
               <LucidePencilLine class="h-4 w-4" aria-hidden="true" />
               <span class="sr-only">Edit fields layout</span>
             </Button>
-            <Button variant="ghost" class="w-7" aria-label="Close" @click="handleDialogClose">
+            <Button
+              variant="ghost"
+              class="w-7"
+              aria-label="Close"
+              @click="handleDialogClose"
+            >
               <LucideX class="h-4 w-4" />
             </Button>
           </div>
@@ -31,7 +42,11 @@
             :show-errors="showErrors"
             id-prefix="customer"
           />
-          <p v-if="showErrors && missing.length" class="mt-4 text-sm text-ink-red-4" role="alert">
+          <p
+            v-if="showErrors && missing.length"
+            class="mt-4 text-sm text-ink-red-4"
+            role="alert"
+          >
             Fill in {{ missing.join(', ') }}.
           </p>
         </form>
@@ -47,7 +62,9 @@
         >
           Create customer
         </Button>
-        <Button class="flex-1 sm:flex-none" @click="handleDialogClose">Cancel</Button>
+        <Button class="flex-1 sm:flex-none" @click="handleDialogClose"
+          >Cancel</Button
+        >
       </div>
     </template>
   </Dialog>
@@ -62,66 +79,76 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref, watch } from 'vue';
-import { Dialog, Button, createResource } from 'frappe-ui';
-import emitter from '@/utils/emitter';
-import { showToast } from '@/utils';
-import LayoutForm from '@/components/form/LayoutForm.vue';
-import LayoutEditorModal from '@/components/layout-editor/LayoutEditorModal.vue';
-import LucidePencilLine from '~icons/lucide/pencil-line';
-import LucideX from '~icons/lucide/x';
-import { usePermissionStore } from '@/stores/permission';
-import { useBreakpoint } from '@/composables/useBreakpoint';
-import { applyDefaults, missingRequired, useFormLayout } from '@/utils/formLayout';
+import { computed, reactive, ref, watch } from 'vue'
+import { Dialog, Button, createResource } from 'frappe-ui'
+import emitter from '@/utils/emitter'
+import { showToast } from '@/utils'
+import LayoutForm from '@/components/form/LayoutForm.vue'
+import LayoutEditorModal from '@/components/layout-editor/LayoutEditorModal.vue'
+import LucidePencilLine from '~icons/lucide/pencil-line'
+import LucideX from '~icons/lucide/x'
+import { usePermissionStore } from '@/stores/permission'
+import { useBreakpoint } from '@/composables/useBreakpoint'
+import {
+  applyDefaults,
+  missingRequired,
+  useFormLayout,
+} from '@/utils/formLayout'
 
-const dialogVisible = ref(true);
-const permissions = usePermissionStore();
-const { isDesktop } = useBreakpoint();
-const editLayout = ref(false);
+const dialogVisible = ref(true)
+const permissions = usePermissionStore()
+const { isDesktop } = useBreakpoint()
+const editLayout = ref(false)
 
 // As in Frappe CRM, the form steps aside while its layout is edited; here it
 // comes back afterwards, with whatever was already typed.
 function openLayoutEditor() {
-  dialogVisible.value = false;
-  editLayout.value = true;
+  dialogVisible.value = false
+  editLayout.value = true
 }
 watch(editLayout, (open) => {
-  if (!open) dialogVisible.value = true;
-});
-const layout = useFormLayout('Customer', 'Quick Entry');
-const customer = reactive({});
-const showErrors = ref(false);
+  if (!open) dialogVisible.value = true
+})
+const layout = useFormLayout('Customer', 'Quick Entry')
+const customer = reactive({})
+const showErrors = ref(false)
 
 // Defaults (e.g. customer type "Individual") fill in once the layout is known.
-watch(() => layout.tabs, (tabs) => applyDefaults(tabs, customer), { immediate: true });
+watch(
+  () => layout.tabs,
+  (tabs) => applyDefaults(tabs, customer),
+  { immediate: true },
+)
 
-const missing = computed(() => missingRequired(layout.tabs, customer));
+const missing = computed(() => missingRequired(layout.tabs, customer))
 
 const handleDialogClose = () => {
-  dialogVisible.value = false;
-};
+  dialogVisible.value = false
+}
 
 const createCustomer = createResource({
   url: 'ant_pos.ant_pos.api.form_layout.create_from_quick_entry',
   method: 'POST',
   makeParams: () => ({ doctype: 'Customer', doc: JSON.stringify(customer) }),
   onSuccess(data) {
-    emitter.emit('customerCreated', data);
-    showToast('success', 'New Customer Created');
-    handleDialogClose();
+    emitter.emit('customerCreated', data)
+    showToast('success', 'New Customer Created')
+    handleDialogClose()
   },
   onError(err) {
     showToast(
       'error',
-      Array.isArray(err?.messages) ? err.messages[0] : err?.messages || 'Could not create customer',
-      'x-circle'
-    );
+      Array.isArray(err?.messages)
+        ? err.messages[0]
+        : err?.messages || 'Could not create customer',
+      'x-circle',
+    )
   },
-});
+})
 
 function submit() {
-  showErrors.value = true;
-  if (missing.value.length || createCustomer.loading) return;
-  createCustomer.fetch();
+  showErrors.value = true
+  if (missing.value.length || createCustomer.loading) return
+  createCustomer.fetch()
 }
 </script>
