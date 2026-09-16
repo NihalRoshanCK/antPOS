@@ -11,11 +11,28 @@ const OVERRIDES = ["label", "default", "reqd", "read_only", "hidden"];
 
 frappe.ui.form.on("Antpos Fields Layout", {
 	refresh(frm) {
-		if (!frm.doc.dt || !frm.doc.type) return;
-		frm.add_custom_button(__("Edit fields"), () => open_editor(frm, 0));
-		frm.add_custom_button(__("Start from default"), () => open_editor(frm, 1));
+		add_buttons(frm);
+	},
+	// On a new record the buttons appear as soon as both are picked.
+	dt(frm) {
+		add_buttons(frm);
+	},
+	type(frm) {
+		add_buttons(frm);
 	},
 });
+
+function add_buttons(frm) {
+	frm.remove_custom_button(__("Edit fields"));
+	frm.remove_custom_button(__("Start from default"));
+	if (!frm.doc.dt || !frm.doc.type) {
+		frm.set_intro(__("Pick a Document Type and a Type, then use Edit fields."), "blue");
+		return;
+	}
+	frm.set_intro("");
+	frm.add_custom_button(__("Edit fields"), () => open_editor(frm, 0)).addClass("btn-primary");
+	frm.add_custom_button(__("Start from default"), () => open_editor(frm, 1));
+}
 
 function open_editor(frm, from_default) {
 	frappe.call({

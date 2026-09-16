@@ -98,7 +98,7 @@
    "hidden": 0,
    "is_query_report": 0,
    "label": "Setup",
-   "link_count": 4,
+   "link_count": 5,
    "onboard": 0,
    "type": "Card Break"
   },
@@ -142,6 +142,17 @@
    "label": "Price List",
    "link_count": 0,
    "link_to": "Price List",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "POS Form Layouts",
+   "link_count": 0,
+   "link_to": "Antpos Fields Layout",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
@@ -240,7 +251,7 @@
    "type": "Link"
   }
  ],
- "modified": "2026-09-16 22:00:00.000000",
+ "modified": "2026-09-16 22:30:00.000000",
  "modified_by": "Administrator",
  "module": "Ant-Pos",
  "name": "antPOS",
