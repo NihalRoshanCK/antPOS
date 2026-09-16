@@ -224,6 +224,10 @@ bottom.
 
 ### Shell
 
+The browser tab shows the brand name from antPOS Settings. The POS tab is
+just the brand; other pages add their name ("Payments · Brand").
+
+
 The desktop shell follows Frappe CRM's `AppSidebar` (`components/Sidebar.vue`):
 
 - **Width:** 220px, or a 48px icon rail when collapsed. The choice is

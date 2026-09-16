@@ -93,8 +93,9 @@ onUnmounted(() => {
   window.removeEventListener('focus', refreshProfile);
 });
 
-// Browser tab: "<page> · <brand>", following antPOS Settings.
-const PAGE_TITLES = { Pos: 'Point of sale', Payments: 'Payments', Login: 'Log in' };
+// Browser tab: the brand from antPOS Settings. The POS is the main screen, so
+// its tab is just the brand; other pages add their name ("Payments · Brand").
+const PAGE_TITLES = { Payments: 'Payments', Login: 'Log in' };
 usePageMeta(() => {
   const brandName = brand.name?.trim() || 'antPOS';
   const page = PAGE_TITLES[route.name];
