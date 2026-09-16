@@ -337,7 +337,7 @@ const getbatchNo =  () => {
             value: props.items.batch_no,
         }];
     }    
-    return get_batch.data.map((batch_no) => ({
+    return (get_batch.data || []).map((batch_no) => ({
         label: batch_no.batch_id,
         value: batch_no.batch_id,
     }));
@@ -361,7 +361,7 @@ watch(
                 add_serial_no();
             }
 
-            const batch = get_batch.data.find(b => b.batch_no === newBatchNo);
+            const batch = (get_batch.data || []).find(b => b.batch_no === newBatchNo);
             props.items.stock_qty = batch ? batch.stock_qty : 0;
             props.items.expiry_date = batch ? batch.expiry_date : null;
             props.items.batch_no = typeof newBatchNo === 'object' ? newBatchNo?.value : newBatchNo;
@@ -537,11 +537,22 @@ onMounted( async () => {
     validateQty(props.items.qty);
     if(props.items.selected_serial_no) adjustSerialNumbers(props.items.selected_serial_no.length); 
     if(props.items.selected_serial_no) add_serial_no();
-    await get_batch.fetch({
-        item_code: props.items.item_code,
-        warehouse: store.posProfileData.warehouse,
-    })
-    await get_serial_no.fetch();
+
+    // Only ask for batches and serials when the item is actually tracked. This
+    // ran unconditionally for every cart line, so a 20-line sale fired 40
+    // requests, nearly all of them for data that cannot exist.
+    const lookups = [];
+    if (props.items.has_batch_no) {
+        lookups.push(get_batch.fetch({
+            item_code: props.items.item_code,
+            warehouse: store.posProfileData.warehouse,
+        }));
+    }
+    if (props.items.has_serial_no) {
+        lookups.push(get_serial_no.fetch());
+    }
+    if (lookups.length) await Promise.all(lookups);
+
     validateInvoice();
 });
  
