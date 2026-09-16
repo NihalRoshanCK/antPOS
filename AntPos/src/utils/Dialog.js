@@ -14,7 +14,6 @@ export function useDynamicComponent() {
                 Return: () => import('@/components/Dialog/Return.vue'),
                 CloseShift:() => import('@/components/Dialog/CloseShift.vue'),
                 Settings:() => import('@/components/Dialog/Settings.vue'),
-                ThemeSwitcher: () => import('@/components/Dialog/ThemeSwitcher.vue'),
 
             };
 

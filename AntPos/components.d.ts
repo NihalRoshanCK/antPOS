@@ -9,6 +9,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     BottomSheet: typeof import('./src/components/mobile/BottomSheet.vue')['default']
+    BrandPage: typeof import('./src/components/settings/BrandPage.vue')['default']
     CartBar: typeof import('./src/components/mobile/CartBar.vue')['default']
     CloseShift: typeof import('./src/components/Dialog/CloseShift.vue')['default']
     Customer: typeof import('./src/components/Customer.vue')['default']
@@ -37,15 +38,19 @@ declare module 'vue' {
     OpenShift: typeof import('./src/components/Dialog/Open-Shift.vue')['default']
     PaneResizer: typeof import('./src/components/PaneResizer.vue')['default']
     Payment: typeof import('./src/components/Payment.vue')['default']
+    PosProfileCard: typeof import('./src/components/PosProfileCard.vue')['default']
+    PosProfilePage: typeof import('./src/components/settings/PosProfilePage.vue')['default']
+    PreferencesPage: typeof import('./src/components/settings/PreferencesPage.vue')['default']
     Return: typeof import('./src/components/Dialog/Return.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     SaleModeBar: typeof import('./src/components/pos/SaleModeBar.vue')['default']
     Settings: typeof import('./src/components/Dialog/Settings.vue')['default']
+    SettingsPageLayout: typeof import('./src/components/settings/SettingsPageLayout.vue')['default']
     Sidebar: typeof import('./src/components/Sidebar.vue')['default']
     SidebarLink: typeof import('./src/components/SidebarLink.vue')['default']
-    ThemePreview: typeof import('./src/components/Dialog/ThemePreview.vue')['default']
-    ThemeSwitcher: typeof import('./src/components/Dialog/ThemeSwitcher.vue')['default']
+    ThemePreview: typeof import('./src/components/settings/ThemePreview.vue')['default']
+    ThemeSelector: typeof import('./src/components/settings/ThemeSelector.vue')['default']
     TotalsReadout: typeof import('./src/components/pos/TotalsReadout.vue')['default']
   }
 }

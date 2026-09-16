@@ -1,7 +1,11 @@
 <template>
   <BottomSheet v-model="mobile.moreOpen" title="More">
     <div class="px-4 pb-4">
-      <div class="flex items-center gap-3 rounded-lg bg-surface-gray-1 p-3">
+      <button
+        type="button"
+        class="flex w-full items-center gap-3 rounded-lg bg-surface-gray-1 p-3 text-left active:bg-surface-gray-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-outline-gray-3"
+        @click="run({ run: () => openSettings('pos-profile') })"
+      >
         <div class="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full bg-surface-gray-3 text-sm font-semibold text-ink-gray-7">
           <img v-if="user.user_image" :src="user.user_image" alt="" class="h-full w-full object-cover" />
           <span v-else>{{ initials }}</span>
@@ -13,7 +17,8 @@
             <template v-if="profileStore.openingShift?.name"> · shift {{ profileStore.openingShift.name }}</template>
           </p>
         </div>
-      </div>
+        <LucideChevronRight class="ml-auto h-4 w-4 shrink-0 text-ink-gray-5" />
+      </button>
 
       <ul class="mt-3 divide-y divide-outline-gray-1">
         <li v-for="item in items" :key="item.label">
@@ -38,16 +43,17 @@ import { computed, inject, markRaw } from 'vue'
 import { useRouter } from 'vue-router'
 import LucideUndo2 from '~icons/lucide/undo-2'
 import LucideFileMinus from '~icons/lucide/file-minus'
-import LucideSunMoon from '~icons/lucide/sun-moon'
 import LucideSettings from '~icons/lucide/settings'
 import LucideLayoutGrid from '~icons/lucide/layout-grid'
 import LucideLogOut from '~icons/lucide/log-out'
+import LucideChevronRight from '~icons/lucide/chevron-right'
 import BottomSheet from '@/components/mobile/BottomSheet.vue'
 import { useMobileView } from '@/stores/mobile'
 import { usePosProfileStore } from '@/stores/posProfile'
 import { useSessionStore } from '@/stores/session'
 import { usersStore } from '@/stores/users'
 import { useTheme } from '@/composables/useTheme'
+import { settingsPage } from '@/stores/settings'
 
 const mobile = useMobileView()
 const profileStore = usePosProfileStore()
@@ -75,11 +81,15 @@ const items = computed(() => [
     run: () => { router.push({ name: 'Pos' }); mobile.showItems(); loadComponent('Return') },
   },
   { label: 'Close shift', icon: markRaw(LucideFileMinus), run: () => loadComponent('CloseShift') },
-  { label: 'Theme', icon: markRaw(LucideSunMoon), hint: themeHint.value, run: () => loadComponent('ThemeSwitcher') },
-  { label: 'Settings', icon: markRaw(LucideSettings), run: () => loadComponent('Settings') },
+  { label: 'Settings', icon: markRaw(LucideSettings), hint: `Theme: ${themeHint.value}`, run: () => openSettings('preferences') },
   { label: 'Go to desk', icon: markRaw(LucideLayoutGrid), run: () => { window.location.href = '/app' } },
   { label: 'Log out', icon: markRaw(LucideLogOut), danger: true, run: () => session.logout.fetch() },
 ])
+
+function openSettings(page) {
+  settingsPage.value = page
+  loadComponent('Settings')
+}
 
 function run(item) {
   mobile.moreOpen = false

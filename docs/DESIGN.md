@@ -224,22 +224,38 @@ bottom.
 
 ### Shell
 
-- **Sidebar** follows frappe-ui 0.1.278's `Sidebar`: 240px wide, or a 48px
-  icon rail when collapsed; the header is a dropdown (logo, brand name, user)
-  that turns white and raised while open; items are ghost buttons, the active
-  one white with a light shadow (`bg-surface-selected`); labels fade out on
-  collapse and the rail shows tooltips; a `panel-right-open` control at the
-  bottom toggles and remembers the state. It lives in
-  `components/Sidebar.vue` and `components/SidebarLink.vue` as a port of the
-  stock component: below 1024px the rail is forced and the toggle hidden,
-  because the POS switches to its stacked layout there and a 240px sidebar
-  leaves too little room. The stock `<Sidebar>` only forces the rail below
-  640px and keeps its toggle visible when forced.
-- **Navbar**: white, 48px, page title, sale-state badge, profile badge.
+The desktop shell follows Frappe CRM's `AppSidebar` (`components/Sidebar.vue`):
 
-Heights used to be percentages of flex containers (`h-[94%]`, `h-[80%]`,
-`w-[18.4%]`); they are now flex with `min-h-0`, so the cart list is the only
-thing that scrolls.
+- **Width:** 220px, or a 48px icon rail when collapsed. The choice is
+  remembered per browser.
+- **Top:** the brand logo and name with the user's name. Its menu has:
+  - **Apps**, a submenu with the Desk and every app on `/apps`;
+  - **Settings**;
+  - **Close shift**;
+  - **Log out**, after a separator.
+- **Middle:** the pages. `SidebarLink` uses CRM's row styling.
+- **Foot:** the till's **POS profile card** (`PosProfileCard.vue`) and
+  Collapse.
+  - The card shows the profile, and a green dot with "Open since …" while a
+    shift is open.
+  - Its menu has *Profile and shift details* and *Close shift*.
+  - The profile used to be an outline badge in the header; the header now
+    only shows the sale state.
+
+**Settings** (`components/Dialog/Settings.vue`) is laid out like CRM's:
+grouped pages on the left (tabs across the top on a phone).
+
+- *Preferences* (everyone): theme cards for Light, Dark and Automatic,
+  shared with the desk. The previews use fixed colours, so each card shows
+  its own scheme. Ctrl/Cmd+Shift+G still toggles the theme. The separate
+  Theme dialog and menu items are gone.
+- *POS profile* (everyone): the profile (warehouse, price list, currency,
+  customer groups) and the open shift (cashier, dates, opening amounts),
+  with Close shift and, for System Managers, Open in desk.
+- *Brand* (System Managers): name, logo and favicon.
+
+On phones, More → **Settings** opens the same dialog, and the user card at
+the top of More opens the POS profile page.
 
 ## Item list
 

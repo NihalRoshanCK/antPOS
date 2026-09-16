@@ -22,6 +22,7 @@ export const usePermissionStore = defineStore('permissionStore', () => {
 
     // System Managers design the POS forms (/antPOS/layouts).
     const canManageLayouts = ref(false)
+    const isSystemManager = ref(false)
 
     const permissionResource = createResource({
         url: 'ant_pos.ant_pos.api.get_user_permissions',
@@ -45,6 +46,7 @@ export const usePermissionStore = defineStore('permissionStore', () => {
                 salesOrderCanOnlyOwn.value = data.sales_order.has_own_docs
 
                 canManageLayouts.value = Boolean(data.can_manage_layouts)
+                isSystemManager.value = Boolean(data.is_system_manager)
             }
         },
         onError(err) {
@@ -64,7 +66,7 @@ export const usePermissionStore = defineStore('permissionStore', () => {
         salesInvoiceCanSubmit, salesInvoiceCanCreate, salesInvoiceCanPrint,salesInvoiceCanOnlyOwn,
         paymentEntryCanSubmit, paymentEntryCanCreate, paymentEntryCanPrint,paymentEntryCanOnlyOwn,
         salesOrderCanSubmit, salesOrderCanCreate, salesOrderCanPrint,salesOrderCanOnlyOwn,
-        canManageLayouts,
+        canManageLayouts, isSystemManager,
         refresh, fetchPermissions
     }
 })

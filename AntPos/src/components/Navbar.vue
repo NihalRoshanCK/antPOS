@@ -12,15 +12,6 @@
         variant="subtle"
         size="md"
       />
-      <Badge
-        v-if="store.posProfileData"
-        variant="outline"
-        theme="gray"
-        size="md"
-        class="hidden max-w-[14rem] truncate sm:inline-flex"
-      >
-        {{ store.posProfileData?.name }}
-      </Badge>
     </div>
   </header>
 </template>

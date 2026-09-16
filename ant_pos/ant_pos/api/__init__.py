@@ -112,6 +112,8 @@ def get_user_permissions():
 
     # Form layouts decide what every cashier sees (api/form_layout.py).
     permissions["can_manage_layouts"] = "System Manager" in user_roles
+    # Brand settings and other site-wide options.
+    permissions["is_system_manager"] = "System Manager" in user_roles
 
     return permissions
 
