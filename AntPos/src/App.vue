@@ -1,7 +1,7 @@
 <template>
   <div>
     <FrappeUIProvider>
-      <div class="w-screen h-screen flex overflow-hidden select-none bg-pos-page">
+      <div class="w-screen h-screen flex overflow-hidden select-none bg-surface-gray-1">
         <div v-if="currentComponent">
           <component :is="currentComponent" @switchComponent="loadComponent" />
         </div>

@@ -1,103 +1,91 @@
 <template>
-  <div
-    :class="[
-      'h-full pb-4 bg-white shadow-lg flex-col items-center transition-all duration-300 ease-in-out flex ',
-      sidebarStore.isSidebarCollapsed
-      ? 'w-[3%] sm:hidden lg:flex'
-      : 'w-[30%] px-1 fixed inset-0 z-40 lg:w-[10%] lg:inset-auto lg:z-auto lg:relative'
-    ]"
+  <!-- Mobile backdrop -->
+  <Transition
+    enter-active-class="transition-opacity duration-150"
+    leave-active-class="transition-opacity duration-150"
+    enter-from-class="opacity-0"
+    leave-to-class="opacity-0"
   >
-    <Dropdown :options="option" :class="sidebarStore.isSidebarCollapsed ? '' :'adjust w-full' " >
-      <template #default>
-        <button
-          v-if="!sidebarStore.isSidebarCollapsed"
-          class="flex h-14 items-center pb-2 mt-1 max-w-full  duration-150 ease-in-out justify-center object-cover "
-          :class="sidebarStore.isSidebarCollapsed ? 'w-full ' : 'w-full  hover:bg-gray-100'"
-        >
-          <img
-            :src="brand.logo || '/assets/ant_pos/antPOS.png'"
-            alt="Brand Logo"
-            class="object-cover max-h-[60%] lg:max-h-full transition-all duration-300 ease-in-out"
-            :class="sidebarStore.isSidebarCollapsed ? 'h-7 w-full' : 'h-10 w-10 object-center'"
-          />
-          <div
-            v-show="!sidebarStore.isSidebarCollapsed"
-            class="flex flex-1 flex-col  text-left ml-3 transition-all duration-300 ease-in-out"
+    <div
+      v-if="sidebarStore.isMobileOpen"
+      class="fixed inset-0 z-40 bg-black/30 lg:hidden"
+      aria-hidden="true"
+      @click="sidebarStore.closeMobile()"
+    />
+  </Transition>
+
+  <aside
+    :class="[
+      'z-50 flex h-full flex-col border-r border-outline-gray-1 bg-surface-menu-bar',
+      'fixed inset-y-0 left-0 w-64 transition-transform duration-200 ease-out',
+      sidebarStore.isMobileOpen ? 'translate-x-0 shadow-xl' : '-translate-x-full',
+      'lg:static lg:translate-x-0 lg:shadow-none lg:transition-[width]',
+      sidebarStore.isSidebarCollapsed ? 'lg:w-14' : 'lg:w-56',
+    ]"
+    aria-label="Main navigation"
+  >
+    <div class="p-2">
+      <Dropdown :options="option" class="w-full">
+        <template #default>
+          <button
+            type="button"
+            class="flex w-full items-center gap-2 rounded-md p-1.5 hover:bg-surface-gray-3 focus:outline-none focus-visible:ring focus-visible:ring-outline-gray-3"
+            :class="collapsed ? 'justify-center' : ''"
           >
-          <div class="text-p-sm font-semibold text-gray-900">{{ brand.name ? brand.name : 'antPOS'}}</div>
-            <div class="mt-1 text-sm text-gray-600">
-              {{ currentUser.full_name }}
-            </div>
-          </div>
-          <FeatherIcon
-            v-show="!sidebarStore.isSidebarCollapsed"
-            name="chevron-down"
-            class="h-5 w-5 text-gray-500 "
-            aria-hidden="true"
-          />
-        </button>
-        <button
-          v-else
-          class="flex h-14 justify-center items-center pb-2 mt-1 duration-150 ease-in-out"
-          :class="sidebarStore.isSidebarCollapsed ? 'w-full' : 'w-44 rounded-lg hover:bg-gray-100'"
-        >
-          <img
-            :src="brand.logo || '/assets/ant_pos/antPOS.png'"
-            alt="Brand Logo"
-            class="object-cover transition-all duration-300 ease-in-out"
-            :class="sidebarStore.isSidebarCollapsed ? 'h-full w-full m-0.5' : 'h-10 w-10'"
-          />
-        </button>
-      </template>
-    </Dropdown>
-  
-    <div class="w-full flex flex-col gap-3 mt-6">
-      <div
-        v-if="permissionStore.salesInvoiceCanSubmit || permissionStore.salesInvoiceCanCreate || permissionStore.salesInvoiceCanPrint"
-        class="w-full p-2 flex gap-3 items-center hover:bg-gray-100 hover:cursor-pointer rounded-lg transition-all duration-500 ease-in-out"
-        :class="[
-          { 'bg-gray-300': currentRoute === 'Pos' },
-          sidebarStore.isSidebarCollapsed ? 'justify-center' : ''
-        ]"
-        @click="router.push({ name: 'Pos' })"
-      >
-        <FeatherIcon name="monitor" class="w-5 h-5 text-gray-600" />
-        <p v-show="!sidebarStore.isSidebarCollapsed" class="text-gray-700 font-medium">POS</p>
-      </div>
-  
-      <div
-        v-if="permissionStore.paymentEntryCanSubmit || permissionStore.paymentEntryCanCreate || permissionStore.paymentEntryCanPrint"
-        class="w-full p-2 flex gap-3 items-center hover:bg-gray-100 hover:cursor-pointer rounded-lg transition-all duration-500 ease-in-out"
-        :class="[
-          { 'bg-gray-300': currentRoute === 'Payments' },
-          sidebarStore.isSidebarCollapsed ? 'justify-center' : ''
-        ]"
-        @click="router.push({ name: 'Payments' })"
-      >
-        <FeatherIcon name="credit-card" class="w-5 h-5 text-gray-600" />
-          <p v-show="!sidebarStore.isSidebarCollapsed" class="text-gray-700 font-medium">Payments</p>
-      </div>
+            <img
+              :src="brand.logo || '/assets/ant_pos/antPOS.png'"
+              alt=""
+              class="h-8 w-8 shrink-0 rounded-md object-contain"
+            />
+            <span v-if="!collapsed" class="min-w-0 flex-1 text-left">
+              <span class="block truncate text-base font-semibold text-ink-gray-9">
+                {{ brand.name || 'antPOS' }}
+              </span>
+              <span class="block truncate text-sm text-ink-gray-5">{{ currentUser.full_name }}</span>
+            </span>
+            <FeatherIcon v-if="!collapsed" name="chevron-down" class="h-4 w-4 shrink-0 text-ink-gray-5" />
+          </button>
+        </template>
+      </Dropdown>
     </div>
-  
-    <Button
-      :varient="'solid'"
-      class="mt-auto w-full flex hover:cursor-pointer transition-all duration-500 ease-in-out "
-      :class="sidebarStore.isSidebarCollapsed ? 'justify-end' : ''"
-      @click="toggleSidebar()"
-    >
-      <div class="flex justify-center items-center">
-        <FeatherIcon
-          :name="!sidebarStore.isSidebarCollapsed ? 'chevrons-left' : 'chevrons-right'"
-          class="h-5 w-5"
-        />
-        <span v-show="!sidebarStore.isSidebarCollapsed">Collapse</span>
-      </div>
-    </Button>
-  </div>
+
+    <nav class="flex flex-col gap-0.5 px-2 pt-2">
+      <button
+        v-for="link in links"
+        :key="link.route"
+        type="button"
+        :title="collapsed ? link.label : undefined"
+        class="flex h-9 items-center gap-2.5 rounded-md px-2.5 text-base focus:outline-none focus-visible:ring focus-visible:ring-outline-gray-3"
+        :class="[
+          currentRoute === link.route
+            ? 'bg-surface-white text-ink-gray-9 font-medium shadow-sm'
+            : 'text-ink-gray-6 hover:bg-surface-gray-3',
+          collapsed ? 'justify-center' : '',
+        ]"
+        @click="go(link.route)"
+      >
+        <FeatherIcon :name="link.icon" class="h-4 w-4 shrink-0" />
+        <span v-if="!collapsed">{{ link.label }}</span>
+      </button>
+    </nav>
+
+    <div class="mt-auto hidden p-2 lg:block">
+      <button
+        type="button"
+        class="flex h-8 w-full items-center gap-2 rounded-md px-2.5 text-sm text-ink-gray-5 hover:bg-surface-gray-3 focus:outline-none focus-visible:ring focus-visible:ring-outline-gray-3"
+        :class="collapsed ? 'justify-center' : ''"
+        :aria-label="collapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+        @click="sidebarStore.toggleCollapsed()"
+      >
+        <FeatherIcon :name="collapsed ? 'chevrons-right' : 'chevrons-left'" class="h-4 w-4" />
+        <span v-if="!collapsed">Collapse</span>
+      </button>
+    </div>
+  </aside>
 </template>
 
 <script setup>
-import { FeatherIcon, Dropdown, Button } from 'frappe-ui';
+import { FeatherIcon, Dropdown } from 'frappe-ui';
 import { useRouter } from 'vue-router';
 import { inject, h, computed } from 'vue';
 import { getSettings } from '@/stores/settings'
@@ -120,12 +108,23 @@ const currentUser = computed(() => {
   return usersStore().getUser()
 })
 
-const toggleSidebar = () => {
-	sidebarStore.isSidebarCollapsed = !sidebarStore.isSidebarCollapsed
-	localStorage.setItem(
-		'isSidebarCollapsed',
-		JSON.stringify(sidebarStore.isSidebarCollapsed)
-	)
+// The icon rail is a desktop affordance; the mobile drawer is always full width.
+const collapsed = computed(() => sidebarStore.isSidebarCollapsed && !sidebarStore.isMobileOpen)
+
+const links = computed(() => {
+  const list = []
+  if (permissionStore.salesInvoiceCanSubmit || permissionStore.salesInvoiceCanCreate || permissionStore.salesInvoiceCanPrint) {
+    list.push({ route: 'Pos', label: 'Point of sale', icon: 'monitor' })
+  }
+  if (permissionStore.paymentEntryCanSubmit || permissionStore.paymentEntryCanCreate || permissionStore.paymentEntryCanPrint) {
+    list.push({ route: 'Payments', label: 'Payments', icon: 'credit-card' })
+  }
+  return list
+})
+
+const go = (name) => {
+  router.push({ name })
+  sidebarStore.closeMobile()
 }
 
 const option=[
@@ -133,6 +132,7 @@ const option=[
     label: 'Close Shift',
     icon: () => h(FeatherIcon, { name: 'file-minus' }),
     onClick: () => {
+      sidebarStore.closeMobile()
       loadComponent('CloseShift')
     },
   },
@@ -147,6 +147,7 @@ const option=[
     label: 'Settings',
     icon: () => h(FeatherIcon, { name: 'settings' }),
     onClick: () => {
+      sidebarStore.closeMobile()
       loadComponent('Settings')
     },
   },  

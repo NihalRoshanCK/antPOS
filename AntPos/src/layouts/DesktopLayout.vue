@@ -1,5 +1,5 @@
 <template>
-  <div class="flex w-full h-full min-h-0 select-none bg-pos-page">
+  <div class="flex h-full w-full min-h-0 select-none gap-3 bg-surface-gray-1 p-3">
     <ItemSelector />
     <ItemDetail />
   </div>

@@ -24,6 +24,9 @@ export default defineConfig({
     vueJsx(),
     VitePWA({
       registerType: 'autoUpdate',
+      // Registered by hand in src/main.js so a missing Service-Worker-Allowed
+      // header degrades quietly instead of throwing on every page load.
+      injectRegister: false,
       devOptions: {
         enabled: true,
       },

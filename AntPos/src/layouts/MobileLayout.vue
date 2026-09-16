@@ -1,9 +1,8 @@
 <template>
-  <!-- Stacked: scan on top where the caret lands, cart in the middle, totals and
-       Pay pinned in the thumb zone. -->
-  <div class="flex flex-col w-full h-full min-h-0 select-none bg-pos-page">
+  <!-- Stacked: scan on top, cart in the middle, totals and Pay at the bottom. -->
+  <div class="flex h-full w-full min-h-0 select-none flex-col bg-surface-white">
     <ItemSelector compact />
-    <ItemDetail />
+    <ItemDetail compact />
   </div>
 </template>
 

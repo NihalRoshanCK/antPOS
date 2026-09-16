@@ -1,5 +1,6 @@
 import frappe
 from frappe import _
+from frappe.utils import flt
 import json
 from typing import Dict, Any
 from erpnext.stock.get_item_details import get_item_details  
@@ -40,6 +41,33 @@ def _as_serial_no_string(value) -> str:
 		return value
 	return "\n".join(str(v) for v in value)
 
+
+
+def _available_batches(item_code: str, warehouse: str) -> list[dict]:
+	"""Batches of an item with stock in a warehouse, soonest expiry first.
+
+	Returns [{batch_no, expiry_date, stock_qty}]. Quantities come from erpnext's
+	get_batch_qty, which reads Serial and Batch Bundles. On v15 the stock ledger's
+	own batch_no column is always empty -- batch movement is recorded in bundles --
+	so the raw `tabStock Ledger Entry.batch_no` joins this module used before found
+	nothing, and no batched item could ever be sold.
+	"""
+	from erpnext.stock.doctype.batch.batch import get_batch_qty
+	from frappe.utils import getdate, nowdate
+
+	today = getdate(nowdate())
+	batches = []
+	for row in get_batch_qty(item_code=item_code, warehouse=warehouse) or []:
+		qty = flt(row.get("qty"))
+		expiry = row.get("expiry_date")
+		if qty <= 0 or (expiry and getdate(expiry) < today):
+			continue
+		batches.append(
+			frappe._dict(batch_no=row.get("batch_no"), expiry_date=expiry, stock_qty=qty)
+		)
+
+	batches.sort(key=lambda b: (b.expiry_date is None, b.expiry_date or today))
+	return batches
 
 def _update_item_info(scan_result: dict[str, str | None]) -> dict[str, str | None]:
 	if item_code := scan_result.get("item_code"):
@@ -181,43 +209,17 @@ def items(pos_profile, search_value, customer):
             order_by="creation"
         )
 
-    # If batch info is needed
     if has_batch_no:
-        batch_nos = frappe.db.sql("""
-            SELECT 
-                b.name AS batch_no,
-                b.expiry_date,
-                IFNULL(SUM(sle.actual_qty), 0) AS stock_qty
-            FROM `tabBatch` b
-            LEFT JOIN `tabStock Ledger Entry` sle 
-                ON sle.batch_no = b.name 
-                AND sle.item_code = %s 
-                AND sle.warehouse = %s
-            WHERE b.item = %s
-            GROUP BY b.name, b.expiry_date
-            HAVING stock_qty > 0
-        """, (item_code, pos_profile_doc.warehouse, item_code), as_dict=True)
+        batch_nos = _available_batches(item_code, pos_profile_doc.warehouse)
 
     # Condition 2: No batch with stock exists
     if has_batch_no and not selected_batch_no:
-        batches_with_qty = frappe.db.sql("""
-            SELECT sle.batch_no
-            FROM `tabStock Ledger Entry` sle
-            JOIN `tabBatch` b ON sle.batch_no = b.name
-            WHERE sle.item_code = %s
-            AND sle.warehouse = %s
-            AND sle.batch_no IS NOT NULL
-            GROUP BY sle.batch_no
-            HAVING SUM(sle.actual_qty) > 0
-            ORDER BY b.creation
-        """, (item_code, pos_profile_doc.warehouse), as_dict=True)
-
-        if not batches_with_qty:
+        if not batch_nos:
             frappe.throw(_("No batch with available stock found for item {0} in warehouse {1}").format(
                 item_code, pos_profile_doc.warehouse
             ))
-        else:
-            selected_batch_no = batches_with_qty[0].batch_no
+        # Soonest-expiring first, so stock rotates.
+        selected_batch_no = batch_nos[0].batch_no
 
     # Condition 1: Check if batch exists but no matching serial no in that batch
     if has_serial_no and has_batch_no and selected_batch_no:
@@ -270,12 +272,7 @@ def items(pos_profile, search_value, customer):
 
     # Check if selected batch has stock
     if has_batch_no and selected_batch_no:
-        qty = frappe.db.sql("""
-            SELECT SUM(actual_qty) FROM `tabStock Ledger Entry`
-            WHERE item_code = %s AND batch_no = %s AND warehouse = %s
-        """, (item_code, selected_batch_no, pos_profile_doc.warehouse))[0][0]
-
-        if not qty or qty <= 0:
+        if not any(b.batch_no == selected_batch_no for b in batch_nos):
             frappe.throw(_("Batch No {0} for item {1} is not available in warehouse {2}").format(
                 selected_batch_no, item_code, pos_profile_doc.warehouse
             ))
@@ -295,20 +292,4 @@ def get_batches_list(item_code, warehouse):
     """
     frappe.has_permission("Batch", "read", throw=True)
 
-    return frappe.db.sql("""
-        SELECT
-            b.name AS batch_no,
-            b.expiry_date,
-            IFNULL(SUM(sle.actual_qty), 0) AS stock_qty
-        FROM `tabBatch` b
-        INNER JOIN `tabStock Ledger Entry` sle
-            ON sle.batch_no = b.name
-            AND sle.item_code = %(item_code)s
-            AND sle.warehouse = %(warehouse)s
-            AND sle.is_cancelled = 0
-        WHERE b.item = %(item_code)s
-            AND (b.expiry_date IS NULL OR b.expiry_date >= CURDATE())
-        GROUP BY b.name, b.expiry_date
-        HAVING stock_qty > 0
-        ORDER BY b.expiry_date ASC, b.creation ASC
-    """, {"item_code": item_code, "warehouse": warehouse}, as_dict=True)
+    return _available_batches(item_code, warehouse)

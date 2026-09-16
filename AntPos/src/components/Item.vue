@@ -1,9 +1,9 @@
 <template>
     <article
         :class="[
-            'lg:border-b lg:border-pos-line lg:rounded-none',
+            'lg:border-b lg:border-outline-gray-1 lg:rounded-none',
             'border rounded-xl lg:bg-transparent bg-white',
-            items.custom_open ? 'border-pos-ink2 lg:bg-pos-page' : 'border-pos-line',
+            items.custom_open ? 'border-outline-gray-3 lg:bg-surface-gray-1' : 'border-outline-gray-1',
         ]"
     >
         <!-- Desktop: a real grid, so Qty/Rate/Amount line up down the column. -->
@@ -16,11 +16,11 @@
             >
                 <FeatherIcon
                     :name="items.custom_open ? 'chevron-down' : 'chevron-right'"
-                    class="w-4 h-4 shrink-0 text-pos-ink3"
+                    class="w-4 h-4 shrink-0 text-ink-gray-5"
                 />
                 <span class="min-w-0">
                     <span class="block text-[14px] font-medium truncate">{{ items.item_name || items.item_code }}</span>
-                    <span class="block text-[12px] text-pos-ink3 num truncate">{{ lineMeta }}</span>
+                    <span class="block text-[12px] text-ink-gray-5 num truncate">{{ lineMeta }}</span>
                 </span>
             </button>
             <div class="text-right num text-[14px]">{{ items.qty }}</div>
@@ -28,7 +28,7 @@
             <div class="text-right num text-[14px] font-semibold">{{ Number(items.amount || 0).toFixed(2) }}</div>
             <button
                 type="button"
-                class="justify-self-end text-pos-ink3 hover:text-pos-ret focus:outline-none focus-visible:text-pos-ret"
+                class="justify-self-end text-ink-gray-5 hover:text-ink-red-4 focus:outline-none focus-visible:text-ink-red-4"
                 :aria-label="`Remove ${items.item_code}`"
                 @click="invoiceStore.items.splice(index, 1)"
             >
@@ -47,246 +47,90 @@
                     @click="items.custom_open = !items.custom_open"
                 >
                     <span class="block text-[15px] font-medium leading-snug">{{ items.item_name || items.item_code }}</span>
-                    <span class="block text-[12px] text-pos-ink3 num mt-0.5 truncate">{{ lineMeta }}</span>
+                    <span class="block text-[12px] text-ink-gray-5 num mt-0.5 truncate">{{ lineMeta }}</span>
                 </button>
                 <span class="text-[16px] font-semibold num shrink-0">{{ Number(items.amount || 0).toFixed(2) }}</span>
             </div>
             <div class="flex items-center gap-2 mt-3">
-                <div class="flex items-center border border-pos-line rounded-lg overflow-hidden bg-white">
-                    <button type="button" class="w-11 h-11 grid place-items-center text-pos-ink2 active:bg-pos-page"
+                <div class="flex items-center border border-outline-gray-1 rounded-lg overflow-hidden bg-white">
+                    <button type="button" class="w-11 h-11 grid place-items-center text-ink-gray-6 active:bg-surface-gray-2"
                             aria-label="Decrease quantity" @click="step(-1)">
                         <FeatherIcon name="minus" class="w-4 h-4" />
                     </button>
                     <span class="w-12 text-center num text-[16px] font-medium">{{ items.qty }}</span>
-                    <button type="button" class="w-11 h-11 grid place-items-center text-pos-ink2 active:bg-pos-page"
+                    <button type="button" class="w-11 h-11 grid place-items-center text-ink-gray-6 active:bg-surface-gray-2"
                             aria-label="Increase quantity" @click="step(1)">
                         <FeatherIcon name="plus" class="w-4 h-4" />
                     </button>
                 </div>
-                <span class="text-[13px] text-pos-ink3 num">&times; {{ Number(items.rate || 0).toFixed(2) }}</span>
-                <button type="button" class="ml-auto w-11 h-11 grid place-items-center text-pos-ink3 active:text-pos-ret"
+                <span class="text-[13px] text-ink-gray-5 num">&times; {{ Number(items.rate || 0).toFixed(2) }}</span>
+                <button type="button" class="ml-auto w-11 h-11 grid place-items-center text-ink-gray-5 active:text-ink-red-4"
                         :aria-label="`Remove ${items.item_code}`" @click="invoiceStore.items.splice(index, 1)">
                     <FeatherIcon name="trash-2" class="w-4 h-4" />
                 </button>
             </div>
         </div>
-        <div v-if="items.custom_open" class="border-t border-pos-line px-3 lg:px-4 pb-3 pt-1">
-            <div class="grid grid-cols-2 lg:grid-cols-3 w-full gap-x-4 gap-y-1">
-                <div class="p-2">
-                    <FormControl
-                        type="text"
-                        :ref_for="true"
-                        size="sm"
-                        variant="subtle"
-                        placeholder="items Code"
-                        :disabled="true"
-                        label="items Code"
-                        v-model="items.item_code"
-                    />
-                </div>
-                <div class="p-2">
-                    <FormControl
-                        type="number"
-                        :ref_for="true"
-                        size="sm"
-                        variant="subtle"
-                        placeholder="0"
-                        :disabled="false"
-                        label="QTY"
-                        v-model="items.qty"
-                    />
-                </div>
-                <div class="p-2">
-                    <FormControl
-                    type="text"
-                    :ref_for="true"
-                    size="sm"
-                    variant="subtle"
-                    placeholder="UOM"
-                    :disabled="true"
-                    label="UOM"
-                    v-model="items.uom"
-                />
-            </div>
-            <div class="p-2">
-                <FormControl
-                    type="number"
-                    :ref_for="true"
-                    size="sm"
-                    variant="subtle"
-                    :disabled="!store.posProfileData.allow_rate_change"
-                    label="Rate"
-                    placeholder="0"
-                    :value="Number(items.rate).toFixed(2)"
-                    v-model="items.rate"
-                />
-            </div>
-            <div class="p-2">
-                <FormControl
-                    type="text"
-                    :ref_for="true"
-                    size="sm"
-                    variant="subtle"
-                    :disabled="true"
-                    label="Price List Rate"
-                    placeholder="0"
-                    :value="Number(items.price_list_rate).toFixed(2)"
-                    v-model="items.price_list_rate"
-                />
-            </div>
-            <div class="p-2">
-                <FormControl
-                    type="text"
-                    :ref_for="true"
-                    size="sm"
-                    variant="subtle"
-                    :disabled="true"
-                    label="Net Rate"
-                    placeholder="0"
-                    :value="Number(items.net_rate).toFixed(2)"
-                    v-model="items.net_rate"
-                />
-            </div>
-            <div class="p-2">
-                <FormControl
-                    type="number"
-                    :ref_for="true"
-                    size="sm"
-                    variant="subtle"
-                    placeholder="Discount Percentage"
-                    :disabled="false"
-                    label="Discount Percentage"
-                    v-model="items.discount_percentage"
-                />
-            </div>
-            <div class="p-2">
-                <FormControl
-                    type="number"
-                    :ref_for="true"
-                    size="sm"
-                    variant="subtle"
-                    :disabled="true"
-                    label="Discount Amount"
-                    placeholder="0"
-                    :value="Number(items.discount_amount).toFixed(2)"
-                    v-model="items.discount_amount"
-                />
-            </div>
-            
-            <div class="p-2">
-                <FormControl
-                    type="text"
-                    :ref_for="true"
-                    size="sm"
-                    variant="subtle"
-                    placeholder="Group"
-                    :disabled="true"
-                    label="Group"
-                    v-model="items.item_group"
-                />
-            </div>
-            <div class="p-2">
-                <FormControl
-                    type="number"
-                    :ref_for="true"
-                    size="sm"
-                    variant="subtle"
-                    placeholder="Stock Qty"
-                    :disabled="true"
-                    label="Stock Qty"
-                    v-model="items.stock_qty"
-                />
-            </div>
-            <div class="p-2">
-                <FormControl
-                    type="text"
-                    :ref_for="true"
-                    size="sm"
-                    variant="subtle"
-                    placeholder="Stock UOM"
-                    :disabled="true"
-                    label="Stock UOM"
-                    v-model="items.stock_uom"
-                />
-            </div>
-            <div class="p-2">
-                <FormControl
-                    type="number"
-                    :ref_for="true"
-                    size="sm"
-                    variant="subtle"
-                    placeholder="Serial No Qty"
-                    :disabled="true"
-                    label="Serial No Qty"
-                    v-model="serialNoQty"
-                />
-            </div>
-            <div class="flex items-center">
-                <DatePicker
-                    v-if="store.posProfileData.custom_set_sales_order"
-                    size="sm"
-                    variant="subtle"
-                    label="Delivery Date"
-                    placeholder="Delivery Date"
-                    :disabled="false"
-                    v-model="deliveryDate"
-                    :unique="true"
-                    />
+        <div v-if="items.custom_open" class="space-y-3 border-t border-outline-gray-1 px-3 py-3 lg:px-4">
+            <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                <FormControl type="number" size="md" variant="subtle" label="Quantity"
+                    v-model="items.qty" />
+                <FormControl type="number" size="md" variant="subtle" label="Rate"
+                    :disabled="!store.posProfileData?.allow_rate_change"
+                    v-model="items.rate" />
+                <FormControl type="number" size="md" variant="subtle" label="Discount (%)"
+                    :disabled="store.posProfileData?.allow_discount_change === 0"
+                    v-model="items.discount_percentage" />
+                <div>
+                    <p class="mb-1.5 text-base text-ink-gray-5">Discount amount</p>
+                    <p class="num flex h-8 items-center text-base text-ink-gray-8">{{ Number(items.discount_amount || 0).toFixed(2) }}</p>
                 </div>
             </div>
-            <div class="w-full">
-                <div class="p-2">
-                    <Autocomplete
-                        :options="get_serial_no_options()"
-                        placeholder="Serial No"
-                        :multiple="true"
-                        v-model="items.selected_serial_no"
-                    />
-                </div>
-                <div class="grid grid-cols-2 w-full gap-4">
-                    <div class="p-2">
-                        <FormControl
-                            type="number"
-                            :ref_for="true"
-                            size="sm"
-                            variant="subtle"
-                            placeholder="Batch No Available QTY"
-                            :disabled="false"
-                            label="Batch No Available QTY"
-                            v-model="items.stock_qty"
-                        />
-                    </div>
-                        <div class="p-2">
-                       
-                        <DatePicker
-                            size="sm"
-                            variant="subtle"
-                            label="Expiry Date"
-                            placeholder="Expiry Date"
-                            :disabled="false"
-                            v-model="items.expiry_date"
-                        />
-                </div>
 
+            <!-- Only for batch-tracked lines. These used to render on every item,
+                 plain ones included, and the two info fields were editable. -->
+            <div v-if="isBatched" class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                <div class="col-span-2">
+                    <Autocomplete
+                        :options="getbatchNo()"
+                        label="Batch"
+                        placeholder="Select batch"
+                        :disabled="invoiceStore.invoice.is_return"
+                        v-model="items.selected_batch_no"
+                        :hideSearch="true"
+                    />
                 </div>
                 <div>
-                    <div class="p-2 flex gap-4">
-                        <div class="w-full">
-                            <Autocomplete
-                                type="select"
-                                :options="getbatchNo()"
-                                size="sm"
-                                variant="subtle"
-                                placeholder="Batch No"
-                                :disabled="invoiceStore.invoice.is_return"
-                                label="Batch No"
-                                v-model="items.selected_batch_no"
-                                :hideSearch="true"
-                            />
-                        </div>
-                    </div>
+                    <p class="mb-1.5 text-base text-ink-gray-5">Available</p>
+                    <p class="num flex h-8 items-center text-base text-ink-gray-8">{{ items.stock_qty ?? '—' }}</p>
+                </div>
+                <div>
+                    <p class="mb-1.5 text-base text-ink-gray-5">Expires</p>
+                    <p class="num flex h-8 items-center text-base text-ink-gray-8">{{ items.expiry_date || '—' }}</p>
                 </div>
             </div>
+
+            <div v-if="isSerialised">
+                <Autocomplete
+                    :options="get_serial_no_options()"
+                    label="Serial numbers"
+                    placeholder="Select serial numbers"
+                    :multiple="true"
+                    v-model="items.selected_serial_no"
+                />
+                <p class="mt-1 text-xs text-ink-gray-5">
+                    {{ (items.selected_serial_no || []).length }} selected of {{ serialNoQty || (items.serial_no_options || []).length }} in stock
+                </p>
+            </div>
+
+            <div v-if="store.posProfileData?.custom_set_sales_order" class="max-w-xs">
+                <DatePicker size="md" variant="subtle" label="Delivery date"
+                    placeholder="Delivery date" v-model="deliveryDate" />
+            </div>
+
+            <p class="num text-xs text-ink-gray-5">
+                Price list {{ Number(items.price_list_rate || 0).toFixed(2) }}
+                <template v-if="items.item_group"> · {{ items.item_group }}</template>
+            </p>
         </div>
     </article>
 </template>
@@ -333,6 +177,11 @@ const lineMeta = computed(() => {
 
     return parts.filter(Boolean).join(' \u00b7 ');
 });
+
+// Held drafts and returns come back from the server without the has_* flags,
+// so fall back to whether the line already carries a batch or serial.
+const isBatched = computed(() => Boolean(props.items.has_batch_no || props.items.batch_no));
+const isSerialised = computed(() => Boolean(props.items.has_serial_no || props.items.serial_no));
 
 const step = (delta) => {
     const next = Number(props.items.qty || 0) + delta;
@@ -617,13 +466,13 @@ onMounted( async () => {
     // ran unconditionally for every cart line, so a 20-line sale fired 40
     // requests, nearly all of them for data that cannot exist.
     const lookups = [];
-    if (props.items.has_batch_no) {
+    if (isBatched.value) {
         lookups.push(get_batch.fetch({
             item_code: props.items.item_code,
             warehouse: store.posProfileData.warehouse,
         }));
     }
-    if (props.items.has_serial_no) {
+    if (isSerialised.value) {
         lookups.push(get_serial_no.fetch());
     }
     if (lookups.length) await Promise.all(lookups);

@@ -41,3 +41,16 @@ app.provide('dynamicComponent', useDynamicComponent());
 app.provide('emitter', emitter);
 
 app.mount('#app')
+// Offline shell. The worker lives under /assets/ant_pos/antPOS/, so claiming the
+// /antPOS/ scope needs the Service-Worker-Allowed header (docs/DEPLOYMENT.md).
+// Without it the browser refuses the registration; the app works normally, it
+// just has no offline shell, so there is nothing to surface to the cashier.
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker
+      .register('/assets/ant_pos/antPOS/sw.js', { scope: '/antPOS/' })
+      .catch((error) => {
+        console.info('antPOS: offline mode unavailable -', error.message)
+      })
+  })
+}

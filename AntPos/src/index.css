@@ -10,6 +10,15 @@
   font-feature-settings: 'tnum' 1, 'lnum' 1;
 }
 
+/* Plain input styled like frappe-ui's subtle TextInput, for places where a bare
+   <input> is simpler than the component (number fields bound to invoice keys). */
+.pos-input {
+  @apply h-8 rounded border border-[--surface-gray-2] bg-surface-gray-2 px-2.5 text-base text-ink-gray-8
+    placeholder-ink-gray-4 hover:border-outline-gray-modals hover:bg-surface-gray-3
+    focus:border-outline-gray-4 focus:bg-surface-white focus:shadow-sm focus:outline-none focus:ring-0
+    focus-visible:ring-2 focus-visible:ring-outline-gray-3;
+}
+
 /* Quiet scrollbars: the cart scrolls constantly during a sale. */
 .pos-scroll {
   scrollbar-width: thin;

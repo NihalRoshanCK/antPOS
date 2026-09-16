@@ -1,20 +1,22 @@
 <template>
-    <section class="flex-1 flex flex-col min-w-0 min-h-0 bg-white">
-
+    <section
+        :class="[
+            'flex-1 flex flex-col min-w-0 min-h-0 bg-surface-white',
+            compact ? '' : 'rounded-xl border border-outline-gray-1 shadow-sm overflow-hidden',
+        ]"
+    >
         <CustomerBar
             v-model:customer="invoiceStore.invoiceCustomer"
             @create="loadComponent('CustomerForm')"
         />
 
-        <!-- Return mode is destructive and easy to miss; say so plainly. -->
         <p v-if="invoiceStore.invoice.is_return"
-           class="shrink-0 bg-amber-50 border-b border-amber-200 text-pos-warn text-[13px] px-4 py-2">
-            Return &mdash; quantities are negative and this will credit the customer.
+           class="shrink-0 border-b border-outline-amber-1 bg-surface-amber-1 px-4 py-2 text-sm text-ink-amber-3">
+            Return: quantities are negative and the customer will be credited.
         </p>
 
-        <!-- Cart column header. Desktop only: on mobile each line is a card. -->
         <div class="hidden lg:grid shrink-0 grid-cols-[1fr_84px_96px_112px_32px] gap-3 px-4 py-2
-                    border-b border-pos-line text-[11px] font-semibold text-pos-ink3">
+                    border-b border-outline-gray-1 bg-surface-gray-1 text-sm font-medium text-ink-gray-5">
             <div>Item</div>
             <div class="text-right">Qty</div>
             <div class="text-right">Rate</div>
@@ -23,15 +25,18 @@
         </div>
 
         <div class="flex-1 overflow-y-auto pos-scroll min-h-0"
-             :class="invoiceStore.items.length ? 'lg:bg-white bg-pos-page' : ''">
-            <div v-if="!invoiceStore.items.length" class="px-6 py-16 text-center">
-                <p class="text-[14px] text-pos-ink2">No items yet</p>
-                <p class="text-[13px] text-pos-ink3 mt-1">
-                    {{ invoiceStore.invoiceCustomer?.name ? 'Scan a barcode to start the sale.' : 'Choose a customer, then scan a barcode.' }}
+             :class="compact && invoiceStore.items.length ? 'bg-surface-gray-1' : ''">
+            <div v-if="!invoiceStore.items.length" class="flex h-full flex-col items-center justify-center px-6 py-12 text-center">
+                <div class="grid h-12 w-12 place-items-center rounded-full bg-surface-gray-2 text-ink-gray-5">
+                    <FeatherIcon name="shopping-cart" class="h-5 w-5" />
+                </div>
+                <p class="mt-3 text-base font-medium text-ink-gray-8">Cart is empty</p>
+                <p class="mt-1 text-sm text-ink-gray-5">
+                    {{ invoiceStore.invoiceCustomer?.name ? 'Scan a barcode to add the first item.' : 'Choose a customer, then scan a barcode.' }}
                 </p>
             </div>
 
-            <div v-else class="lg:space-y-0 space-y-2 lg:p-0 p-3">
+            <div v-else :class="compact ? 'space-y-2 p-3' : ''">
                 <Item
                     v-for="(item, key) in invoiceStore.items"
                     :key="item.custom_id"
@@ -41,87 +46,112 @@
             </div>
         </div>
 
-        <!-- The only total-level field the cashier edits. Kept adjacent to the
-             readout so cause and effect are visible together. -->
-        <div v-if="invoiceStore.items.length && store.posProfileData?.allow_discount_change"
-             class="shrink-0 border-t border-pos-line bg-white px-4 py-2 flex items-center gap-3">
-            <label for="pos-discount" class="text-[12px] text-pos-ink2 shrink-0">
-                {{ usePercentDiscount ? 'Discount %' : `Discount (${store.posProfileData?.currency || ''})` }}
-            </label>
-            <input
-                id="pos-discount"
-                v-if="usePercentDiscount"
-                v-model="invoiceStore.invoice._additional_discount_percentage"
-                type="number"
-                inputmode="decimal"
-                placeholder="0"
-                class="num ml-auto w-28 h-9 px-2.5 rounded-md bg-pos-page border border-pos-line
-                       text-[14px] text-right focus:outline-none focus:border-pos-ink focus:bg-white"
-            />
-            <input
-                id="pos-discount"
-                v-else
-                v-model="invoiceStore.invoice._discount_amount"
-                type="number"
-                inputmode="decimal"
-                placeholder="0.00"
-                class="num ml-auto w-28 h-9 px-2.5 rounded-md bg-pos-page border border-pos-line
-                       text-[14px] text-right focus:outline-none focus:border-pos-ink focus:bg-white"
-            />
-        </div>
+        <footer class="shrink-0 border-t border-outline-gray-1 bg-surface-white"
+                style="padding-bottom: env(safe-area-inset-bottom)">
+            <div class="space-y-3 px-4 pt-3 pb-3">
+                <div v-if="invoiceStore.items.length && store.posProfileData?.allow_discount_change"
+                     class="flex items-center gap-3">
+                    <label for="pos-discount" class="text-sm text-ink-gray-6">
+                        {{ usePercentDiscount ? 'Additional discount (%)' : `Additional discount (${store.posProfileData?.currency || ''})` }}
+                    </label>
+                    <input
+                        id="pos-discount"
+                        v-if="usePercentDiscount"
+                        v-model="invoiceStore.invoice._additional_discount_percentage"
+                        type="number" inputmode="decimal" placeholder="0"
+                        class="pos-input num ml-auto w-28 text-right"
+                    />
+                    <input
+                        id="pos-discount"
+                        v-else
+                        v-model="invoiceStore.invoice._discount_amount"
+                        type="number" inputmode="decimal" placeholder="0.00"
+                        class="pos-input num ml-auto w-28 text-right"
+                    />
+                </div>
 
-        <TotalsReadout />
+                <TotalsReadout />
+            </div>
 
-        <!-- Actions. Pay is the widest target and sits furthest right (or, on
-             mobile, fills the thumb zone). -->
-        <div class="shrink-0 bg-white border-t border-pos-line p-3
-                    flex items-center gap-2 overflow-x-auto pos-scroll"
-             style="padding-bottom: calc(0.75rem + env(safe-area-inset-bottom))">
-
-            <Button variant="outline" theme="gray" class="!h-12 !px-4 shrink-0"
-                    @click="loadComponent('Held')">
-                Held
-            </Button>
-            <Button variant="outline" theme="gray" class="!h-12 !px-4 shrink-0 !text-pos-ret"
-                    @click="loadComponent('Return')">
-                Return
-            </Button>
-
-            <div class="ml-auto flex items-center gap-2 shrink-0">
-                <Button
-                    v-if="permissionStore.salesInvoiceCanCreate"
-                    variant="outline" theme="gray" class="!h-12 !px-4"
-                    @click="sales_invoice.fetch({ action: 'Save', status: 'save_new' })"
-                >
-                    Hold this sale
-                </Button>
-                <Button
-                    v-if="permissionStore.salesInvoiceCanPrint && permissionStore.salesInvoiceCanCreate"
-                    variant="outline" theme="gray" class="!h-12 !px-4 hidden sm:inline-flex"
-                    @click="sales_invoice.fetch({ action: 'Save', status: 'print' })"
-                >
-                    Save &amp; print
-                </Button>
+            <!-- Mobile: four equal secondary actions, Pay full width in the thumb zone. -->
+            <div v-if="compact" class="space-y-2 border-t border-outline-gray-1 bg-surface-gray-1 px-3 py-3">
+                <div class="grid grid-cols-4 gap-2">
+                    <button v-for="action in mobileActions" :key="action.label" type="button"
+                        class="flex h-14 flex-col items-center justify-center gap-1 rounded-md text-xs font-medium
+                               focus:outline-none focus-visible:ring focus-visible:ring-outline-gray-3
+                               disabled:cursor-not-allowed disabled:opacity-50"
+                        :class="action.class"
+                        :disabled="action.disabled"
+                        @click="action.run()">
+                        <FeatherIcon :name="action.icon" class="h-4 w-4" />
+                        {{ action.label }}
+                    </button>
+                </div>
                 <button
                     v-if="permissionStore.salesInvoiceCanSubmit"
                     type="button"
-                    class="h-12 px-6 lg:px-7 rounded-lg bg-pos-pay hover:bg-pos-pay-hover text-white
-                           text-[15px] font-semibold flex items-baseline gap-2
-                           focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-pos-pay
-                           disabled:opacity-40 disabled:cursor-not-allowed"
+                    class="flex h-12 w-full items-center justify-center gap-2 rounded-md text-lg font-semibold
+                           focus:outline-none focus-visible:ring focus-visible:ring-outline-green-2 disabled:cursor-not-allowed"
+                    :class="invoiceStore.items.length
+                        ? 'bg-surface-green-3 text-ink-white active:bg-green-800'
+                        : 'bg-surface-gray-2 text-ink-gray-4'"
                     :disabled="!invoiceStore.items.length"
                     @click="sales_invoice.fetch({ action: 'Save', status: 'pay' })"
                 >
-                    Pay
-                    <span class="num text-[17px]">{{ payableTotal }}</span>
+                    Pay <span class="num">{{ payableTotal }}</span>
                 </button>
             </div>
-        </div>
+
+            <div v-else class="flex items-center gap-2 border-t border-outline-gray-1 bg-surface-gray-1 px-3 py-3">
+                <Button variant="subtle" theme="blue" size="lg" @click="loadComponent('Held')">
+                    <template #prefix><FeatherIcon name="clock" class="h-4 w-4" /></template>
+                    Held
+                </Button>
+                <Button variant="subtle" theme="red" size="lg" @click="loadComponent('Return')">
+                    <template #prefix><FeatherIcon name="corner-up-left" class="h-4 w-4" /></template>
+                    Return
+                </Button>
+
+                <div class="ml-auto flex items-center gap-2">
+                    <Button
+                        v-if="permissionStore.salesInvoiceCanCreate"
+                        variant="outline" theme="gray" size="lg"
+                        :disabled="!invoiceStore.items.length"
+                        @click="sales_invoice.fetch({ action: 'Save', status: 'save_new' })"
+                    >
+                        Hold sale
+                    </Button>
+                    <Button
+                        v-if="permissionStore.salesInvoiceCanPrint && permissionStore.salesInvoiceCanCreate"
+                        variant="solid" theme="gray" size="lg"
+                        :disabled="!invoiceStore.items.length"
+                        @click="sales_invoice.fetch({ action: 'Save', status: 'print' })"
+                    >
+                        <template #prefix><FeatherIcon name="printer" class="h-4 w-4" /></template>
+                        Save &amp; print
+                    </Button>
+                    <button
+                        v-if="permissionStore.salesInvoiceCanSubmit"
+                        type="button"
+                        class="inline-flex h-10 min-w-[9rem] items-center justify-center gap-2 rounded-md px-5 text-lg font-semibold
+                               transition-colors focus:outline-none focus-visible:ring focus-visible:ring-outline-green-2
+                               disabled:cursor-not-allowed"
+                        :class="invoiceStore.items.length
+                            ? 'bg-surface-green-3 text-ink-white hover:bg-green-700 active:bg-green-800'
+                            : 'bg-surface-gray-2 text-ink-gray-4'"
+                        :disabled="!invoiceStore.items.length"
+                        @click="sales_invoice.fetch({ action: 'Save', status: 'pay' })"
+                    >
+                        Pay <span class="num">{{ payableTotal }}</span>
+                    </button>
+                </div>
+            </div>
+        </footer>
     </section>
 </template>
 
 <script setup>
-import { Button, createResource, debounce } from 'frappe-ui';
+import { Button, FeatherIcon, createResource, debounce } from 'frappe-ui';
 import { inject, watch, computed } from 'vue';
 import CustomerBar from '@/components/pos/CustomerBar.vue';
 import TotalsReadout from '@/components/pos/TotalsReadout.vue';
@@ -131,6 +161,11 @@ import { usePermissionStore } from '@/stores/permission';
 import { useInvoiceStore } from '@/stores/pos';
 import emitter from '@/utils/emitter'; 
 import Item from '@/components/Item.vue';
+
+const props = defineProps({
+    // Mobile layout: no card frame, cart lines render as cards, Pay goes full width.
+    compact: { type: Boolean, default: false },
+});
 
 const store = usePosProfileStore();
 const permissionStore = usePermissionStore();
@@ -240,6 +275,23 @@ const debouncedDiscount = debounce(calculateDiscount, 300);
 const usePercentDiscount = computed(
     () => Boolean(store.posProfileData?.custom_use_percentage_discount)
 );
+
+const mobileActions = computed(() => {
+    const empty = !invoiceStore.items.length;
+    const list = [
+        { label: 'Held', icon: 'clock', class: 'bg-surface-blue-1 text-ink-blue-3', run: () => loadComponent('Held') },
+        { label: 'Return', icon: 'corner-up-left', class: 'bg-surface-red-1 text-ink-red-4', run: () => loadComponent('Return') },
+    ];
+    if (permissionStore.salesInvoiceCanCreate) {
+        list.push({ label: 'Hold', icon: 'pause', disabled: empty, class: 'bg-surface-white border border-outline-gray-2 text-ink-gray-8',
+            run: () => sales_invoice.fetch({ action: 'Save', status: 'save_new' }) });
+    }
+    if (permissionStore.salesInvoiceCanPrint && permissionStore.salesInvoiceCanCreate) {
+        list.push({ label: 'Print', icon: 'printer', disabled: empty, class: 'bg-surface-gray-7 text-ink-white',
+            run: () => sales_invoice.fetch({ action: 'Save', status: 'print' }) });
+    }
+    return list;
+});
 
 const payableTotal = computed(() => {
     const invoice = invoiceStore.invoice || {};

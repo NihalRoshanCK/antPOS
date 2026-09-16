@@ -3,11 +3,11 @@
         :class="[
             'flex flex-col min-h-0 bg-white',
             compact
-                ? 'shrink-0 border-b border-pos-line'
-                : 'w-[30%] min-w-[280px] max-w-[380px] shrink-0 border-r border-pos-line',
+                ? 'shrink-0 border-b border-outline-gray-1'
+                : 'w-[30%] min-w-[280px] max-w-[380px] shrink-0 rounded-xl border border-outline-gray-1 shadow-sm overflow-hidden',
         ]"
     >
-        <div class="p-3" :class="compact ? '' : 'border-b border-pos-line'">
+        <div class="p-3" :class="compact ? '' : 'border-b border-outline-gray-1'">
             <FormControl
                 ref="searchInput"
                 type="text"
@@ -19,7 +19,7 @@
                 :disabled="invoiceStore.invoice.is_return"
             >
                 <template #prefix>
-                    <FeatherIcon class="w-4 text-pos-ink3" name="search" />
+                    <FeatherIcon class="w-4 text-ink-gray-5" name="search" />
                 </template>
             </FormControl>
         </div>
@@ -28,33 +28,33 @@
              cashier looks at between scans. -->
         <div v-if="!compact" class="flex-1 overflow-y-auto pos-scroll min-h-0">
             <template v-if="recentScans.length">
-                <p class="px-3 py-2 text-[11px] font-semibold text-pos-ink3 border-b border-pos-line">
+                <p class="px-3 py-2 text-[11px] font-semibold text-ink-gray-5 border-b border-outline-gray-1">
                     Recent scans
                 </p>
                 <button
                     v-for="scan in recentScans"
                     :key="scan.key"
                     type="button"
-                    class="w-full text-left px-3 py-2.5 border-b border-pos-line hover:bg-pos-page focus:outline-none focus-visible:bg-pos-page flex items-baseline gap-3"
+                    class="w-full text-left px-3 py-2.5 border-b border-outline-gray-1 hover:bg-surface-gray-1 focus:outline-none focus-visible:bg-surface-gray-1 flex items-baseline gap-3"
                     @click="rescan(scan)"
                 >
                     <span class="text-[14px] font-medium flex-1 truncate">{{ scan.item_name }}</span>
-                    <span class="text-[12px] text-pos-ink3 num shrink-0">{{ scan.item_code }}</span>
+                    <span class="text-[12px] text-ink-gray-5 num shrink-0">{{ scan.item_code }}</span>
                     <span class="text-[14px] num font-medium shrink-0">{{ Number(scan.rate || 0).toFixed(2) }}</span>
                 </button>
             </template>
 
             <div class="px-6 py-10 text-center">
-                <svg class="mx-auto text-pos-line2" width="34" height="34" viewBox="0 0 24 24"
+                <svg class="mx-auto text-ink-gray-3" width="34" height="34" viewBox="0 0 24 24"
                      fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
                     <path d="M3 5v14M7 5v14M11 5v14M15 5v14M19 5v14" />
                 </svg>
-                <p class="text-[13px] text-pos-ink2 mt-3 leading-relaxed">
+                <p class="text-[13px] text-ink-gray-6 mt-3 leading-relaxed">
                     Scan a barcode, or type an item code,<br />serial or batch number.
                 </p>
-                <p class="text-[12px] text-pos-ink3 mt-2">
+                <p class="text-[12px] text-ink-gray-5 mt-2">
                     Press
-                    <kbd class="px-1.5 py-0.5 rounded border border-pos-line bg-pos-page font-sans">Enter</kbd>
+                    <kbd class="px-1.5 py-0.5 rounded border border-outline-gray-1 bg-surface-gray-1 font-sans">Enter</kbd>
                     to add
                 </p>
             </div>

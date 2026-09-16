@@ -42,10 +42,10 @@ Every helper is idempotent, so re-running is safe.
 
 | Barcode | Item | Tracking | Stock |
 |---|---|---|---|
-| `1000000000017` | `ANTPOS-PLAIN` | none | 100 |
-| `1000000000024` | `ANTPOS-BATCH` | batch | `ANTPOS-BATCH-A` 40, `ANTPOS-BATCH-B` 25 |
-| `1000000000031` | `ANTPOS-SERIAL` | serial | 3 (`ANTPOS-SN-0001..0003`) |
-| `1000000000048` | `ANTPOS-BATCH-SERIAL` | batch + serial | 2 + 1 across two batches |
+| `1000000000016` | `ANTPOS-PLAIN` | none | 100 |
+| `1000000000023` | `ANTPOS-BATCH` | batch | `ANTPOS-BATCH-A` 40, `ANTPOS-BATCH-B` 25 |
+| `1000000000030` | `ANTPOS-SERIAL` | serial | 3 (`ANTPOS-SN-0001..0003`) |
+| `1000000000047` | `ANTPOS-BATCH-SERIAL` | batch + serial | 2 + 1 across two batches |
 
 These four exist because `scan_barcode` takes a different code path for each, and
 `items()` branches on `has_batch_no` / `has_serial_no`.
@@ -72,8 +72,8 @@ The data is shaped to catch regressions in the bugs this app has had:
 
 Worth walking once after seeding, since these are the paths that were broken:
 
-1. Scan `1000000000017` — item is added, no 500.
-2. Scan `1000000000031` — one serial is selected, not split into characters.
+1. Scan `1000000000016` — item is added, no 500.
+2. Scan `1000000000030` — one serial is selected, not split into characters.
 3. Expand a batched line — the dropdown lists A and B, never EXPIRED, and
    available qty is non-zero (it used to always read 0).
 4. Pay and print — the print window opens on a real invoice name, not
