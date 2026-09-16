@@ -360,6 +360,13 @@ const notifyRecalcError = (error) => {
     });
 };
 
+// Fields a totals recalculation must never overwrite: identity and document
+// state belong to the saved draft, and items are merged separately below.
+const RECALC_SKIP_KEYS = new Set([
+    'items', 'name', 'docstatus', 'doctype', 'status', 'owner', 'creation',
+    'modified', 'modified_by', 'amended_from', '__islocal', '__unsaved',
+]);
+
 const runDocMethod = createResource({
     url: 'ant_pos.ant_pos.api.sales_invoice.calculate_invoice_item_taxes',
     method: 'POST',
@@ -397,8 +404,14 @@ const runDocMethod = createResource({
     },
 
     onSuccess(data){
+        // A recalculation that lands after Pay is stale: the draft is already
+        // saved and is the source of truth. Applying it used to reset
+        // docstatus/name, which closed the payment panel and detached the
+        // screen from the saved draft (the next Pay then created a duplicate).
+        if (invoiceStore.invoice.docstatus) return;
+
         for (const key in data) {
-            if (key === 'items') continue;
+            if (RECALC_SKIP_KEYS.has(key)) continue;
 
             const existingValue = invoiceStore.invoice[key];
             const newValue = data[key];

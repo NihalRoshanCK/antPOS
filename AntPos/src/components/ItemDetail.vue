@@ -37,11 +37,15 @@
             </div>
 
             <div v-else :class="compact ? 'space-y-2 p-3' : ''">
+                <!-- inert while paying: edits here would not reach the saved
+                     draft, so the list would disagree with the invoice. -->
                 <Item
                     v-for="(item, key) in invoiceStore.items"
                     :key="item.custom_id"
                     :items="item"
                     :index="key"
+                    :inert="paying"
+                    :class="paying ? 'opacity-70' : ''"
                 />
             </div>
         </div>
@@ -49,7 +53,7 @@
         <footer class="shrink-0 border-t border-outline-gray-1 bg-surface-white"
                 style="padding-bottom: env(safe-area-inset-bottom)">
             <div class="space-y-3 px-4 pt-3 pb-3">
-                <div v-if="invoiceStore.items.length && store.posProfileData?.allow_discount_change"
+                <div v-if="!paying && invoiceStore.items.length && store.posProfileData?.allow_discount_change"
                      class="flex items-center gap-3">
                     <label for="pos-discount" class="text-sm text-ink-gray-6">
                         {{ usePercentDiscount ? 'Additional discount (%)' : `Additional discount (${store.posProfileData?.currency || ''})` }}
@@ -73,8 +77,12 @@
                 <TotalsReadout />
             </div>
 
+            <p v-if="paying" class="border-t border-outline-gray-1 bg-surface-gray-1 px-4 py-3 text-sm text-ink-gray-6">
+                Taking payment. Use <span class="font-medium text-ink-gray-8">Back to cart</span> to change items.
+            </p>
+
             <!-- Mobile: four equal secondary actions, Pay full width in the thumb zone. -->
-            <div v-if="compact" class="space-y-2 border-t border-outline-gray-1 bg-surface-gray-1 px-3 py-3">
+            <div v-else-if="compact" class="space-y-2 border-t border-outline-gray-1 bg-surface-gray-1 px-3 py-3">
                 <div class="grid grid-cols-4 gap-2">
                     <button v-for="action in mobileActions" :key="action.label" type="button"
                         class="flex h-14 flex-col items-center justify-center gap-1 rounded-md text-xs font-medium
@@ -159,19 +167,22 @@ import { createToast, showToast } from '@/utils';
 import { usePosProfileStore } from '@/stores/posProfile';
 import { usePermissionStore } from '@/stores/permission';
 import { useInvoiceStore } from '@/stores/pos';
-import emitter from '@/utils/emitter'; 
+import emitter from '@/utils/emitter';
+import { openInvoicePrint } from '@/utils/print';
 import Item from '@/components/Item.vue';
 
 const props = defineProps({
     // Mobile layout: no card frame, cart lines render as cards, Pay goes full width.
     compact: { type: Boolean, default: false },
+    // The payment panel is open: the draft is saved, so saving it again from
+    // here would conflict. The sale is finished from the payment panel.
+    paying: { type: Boolean, default: false },
 });
 
 const store = usePosProfileStore();
 const permissionStore = usePermissionStore();
 const invoiceStore = useInvoiceStore()
 const { loadComponent } = inject('dynamicComponent');
-const baseurl = createResource({url: 'ant_pos.ant_pos.utils.get_domain_url'});
 let status = '';
 let sales_invoice = createResource({
     url: 'frappe.desk.form.save.savedocs',
@@ -217,14 +228,7 @@ let sales_invoice = createResource({
             return
 
         }else if (status == 'print'){
-            await baseurl.fetch()
-            window.open(
-                `${baseurl.data}/printview?doctype=Sales+Invoice&name=${
-                    data.docs[0].name
-                }&format=${encodeURIComponent(store.posProfileData.print_format)}&trigger_print=1&no_letterhead=${store.posProfileData.letter_head ? 1 :0 }
-                &letterhead=${store.posProfileData.letter_head}`,
-                "_blank"
-            );
+            openInvoicePrint(data.docs[0].name, store.posProfileData);
         }
         showToast('success', 'Sales Invoice Drafted Successfully')
         emitter.emit('remove_invoice', true);
@@ -241,18 +245,12 @@ let sales_invoice = createResource({
     },
 });
    
-const getPayments = () => {
-    const total = invoiceStore.invoice.is_return ? -Math.abs(invoiceStore.invoice.rounded_total) : invoiceStore.invoice.rounded_total;
-    const payments = invoiceStore.invoice.payments.map(p => {
-        const amount = p.default ? total : 0;
-        return {
-            ...p,
-            amount,
-            base_amount: amount
-        };
-    });
-    return payments;
-};
+// Payment rows are sent with zero amounts. The cart's own total can still be
+// the value from before the last scan was recalculated, and saving it here put
+// a stale amount on the default mode. The payment panel fills the default mode
+// from the total the server computes when it saves the draft.
+const getPayments = () =>
+    (invoiceStore.invoice.payments || []).map((p) => ({ ...p, amount: 0, base_amount: 0 }));
 
 const getAdvances = () => {
     if (!invoiceStore.invoice.advances) return [];

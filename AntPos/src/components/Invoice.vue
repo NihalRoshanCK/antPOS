@@ -1,259 +1,191 @@
 <template>
-    <div class="md:w-5/12 w-full shadow-2xl pt-2 px-2 rounded ">
-        <div class="h-[85%] w-full">
-            <div class="grid grid-cols-2 gap-4 p-2">
-                <FormControl
-                    :type="'number'"
-                    :ref_for="true"
-                    size="sm"
-                    variant="subtle"
-                    placeholder="Placeholder"
-                    :disabled="true"
-                    label="Amount Paid"
-                    :value="Number(invoiceStore.invoice.paid_amount).toFixed(2)"
-                    v-model="invoiceStore.invoice.paid_amount" 
-                />
-                <FormControl
-                    :type="'number'"
-                    :ref_for="true"
-                    size="sm"
-                    variant="subtle"
-                    placeholder="Placeholder"
-                    :disabled="true"
-                    label="To Be Paid"
-                    :value="Number(invoiceStore.invoice.rounded_total).toFixed(2)"
+    <section
+        :class="[
+            'flex min-h-0 flex-col bg-surface-white',
+            compact
+                ? 'flex-1'
+                : 'w-[38%] min-w-[300px] max-w-[520px] shrink-0 overflow-hidden rounded-xl border border-outline-gray-1 shadow-sm',
+        ]"
+        aria-label="Payment"
+    >
+        <header class="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-outline-gray-1 px-4">
+            <h2 class="text-base font-semibold text-ink-gray-9">
+                {{ invoiceStore.invoice.is_return ? 'Refund' : 'Payment' }}
+            </h2>
+            <span class="num truncate text-sm text-ink-gray-5">{{ invoiceStore.invoice.name }}</span>
+        </header>
 
-                    v-model="invoiceStore.invoice.rounded_total"
-                />
-                <FormControl
-                    v-if="invoiceStore.invoice.paid_amount > invoiceStore.invoice.rounded_total" 
-                    :type="'number'"
-                    :ref_for="true"
-                    size="sm"
-                    variant="subtle"
-                    placeholder="Placeholder"
-                    :disabled="true"
-                    label="Paid Change"
-                    :value="Number(invoiceStore.invoice.paid_amount - invoiceStore.invoice.rounded_total).toFixed(2)"
-                />
-            </div>
-            <div class="grid grid-cols-2 gap-4 p-2 items-center" v-for="(mode, index) in store.posProfileData?.payments" :key="index">
-
-                <FormControl
-                    v-if="invoiceStore.invoice?.payments?.[index] && invoiceStore.invoice?.payments?.[index].amount !== undefined"
-                    type="number"
-                    size="sm"
-                    variant="subtle"
-                    placeholder="0.00"
-                    :disabled="false"
-                    :label="mode.mode_of_payment"
-                    :value="Number(invoiceStore.invoice.payments[index].amount).toFixed(2)"
-                    v-model="invoiceStore.invoice.payments[index].amount"
-                    @change="changePaymentAmount($event)"
-                />
-                <Button
-                    v-if="invoiceStore.invoice?.payments?.[index] && invoiceStore.invoice?.payments?.[index].amount !== undefined"
-                    class="w-full h-full"
-                    :variant="'solid'"
-                    theme="gray"
-                    size="lg"
-                    label="Button"
-                    :loading="false"
-                    :disabled="false"
-                    @click="changemode(index)"
+        <div class="min-h-0 flex-1 space-y-5 overflow-y-auto pos-scroll p-4">
+            <!-- What is owed, what has been entered, and the difference. -->
+            <div class="rounded-lg bg-surface-gray-1 p-3">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <p class="text-sm text-ink-gray-5">To pay</p>
+                        <p class="num text-2xl font-semibold text-ink-gray-9">{{ money(toPay) }}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm text-ink-gray-5">Paid</p>
+                        <p class="num text-2xl font-semibold text-ink-gray-9">{{ money(paid) }}</p>
+                    </div>
+                </div>
+                <div
+                    v-if="Math.abs(balance) >= 0.005"
+                    class="mt-3 flex items-center justify-between border-t border-outline-gray-2 pt-2 text-sm"
                 >
-                    {{ mode.mode_of_payment }}
-                </Button>
-            </div>
-            <div class="grid grid-cols-2 gap-4 p-2">
-                <FormControl
-                    :type="'number'"
-                    :ref_for="true"
-                    size="sm"
-                    variant="subtle"
-                    placeholder="0.00"
-                    :disabled="true"
-                    label="Net Total"
-                    :value="Number(invoiceStore.invoice.net_total).toFixed(2)"
-                    v-model="invoiceStore.invoice.net_total"
-                />
-                <FormControl
-                    :type="'number'"
-                    :ref_for="true"
-                    size="sm"
-                    variant="subtle"
-                    placeholder="0.00"
-                    :disabled="true"
-                    label="Tax and Charges"
-                    :value="Number(invoiceStore.invoice.total_taxes_and_charges).toFixed(2)"
-                    v-model="invoiceStore.invoice.total_taxes_and_charges"
-                />
-                <FormControl
-                    :type="'number'"
-                    :ref_for="true"
-                    size="sm"
-                    variant="subtle"
-                    placeholder="0.00"
-                    :disabled="true"
-                    label="Total Amount"
-                    :value="Number(invoiceStore.invoice.total).toFixed(2)"
-                    v-model="invoiceStore.invoice.total"
-                />
-                <FormControl
-                    :type="'number'"
-                    :ref_for="true"
-                    size="sm"
-                    variant="subtle"
-                    placeholder="0.00"
-                    :disabled="true"
-                    label="Discount Amount"
-                    :value="Number(invoiceStore.invoice.discount_amount).toFixed(2)"
-                    v-model="invoiceStore.invoice.discount_amount"
-                />
-                <FormControl
-                    :type="'number'"
-                    :ref_for="true"
-                    size="sm"
-                    variant="subtle"
-                    placeholder="0.00"
-                    :disabled="true"
-                    label="Grand Total"
-                    :value="Number(invoiceStore.invoice.grand_total).toFixed(2)"
-                    v-model="invoiceStore.invoice.grand_total"
-                />
-                <FormControl
-                    :type="'number'"
-                    :ref_for="true"
-                    size="sm"
-                    variant="subtle"
-                    placeholder="0.00"
-                    :disabled="true"
-                    label="Rounded Total"
-                    :value="Number(invoiceStore.invoice.rounded_total).toFixed(2)"
-                    v-model="invoiceStore.invoice.rounded_total"
-                />
-            </div>
-            <div v-for="(credit, index) in invoiceStore.invoice.advances" :key="index">
-                <div class="grid grid-cols-3 gap-4 p-2">
-                    <FormControl
-                        :type="'text'"
-                        :ref_for="true"
-                        size="sm"
-                        variant="subtle"
-                        placeholder="0.00"
-                        :disabled="true"
-                        label="Credit Origin"
-                        v-model="credit.reference_name"
-                    />
-                    <FormControl
-                        :type="'number'"
-                        :ref_for="true"
-                        size="sm"
-                        variant="subtle"
-                        placeholder="0.00"
-                        :disabled="true"
-                        label="Total Credit"
-                        :value="Number(credit.advance_amount).toFixed(2)"
-                        v-model="credit.advance_amount"
-                    />
-                    <FormControl
-                        :type="'number'"
-                        :ref_for="true"
-                        size="sm"
-                        variant="subtle"
-                        placeholder="0.00"
-                        :disabled="false"
-                        label="Credit To Redeem"
-                        :value="Number(credit.allocated_amount).toFixed(2)"
-                        v-model="credit.allocated_amount"
-                        @change="changePaymentAmount($event)"
-                    />
+                    <span class="text-ink-gray-6">{{ balance > 0 ? 'Change to give' : 'Still to pay' }}</span>
+                    <span class="num font-semibold" :class="balance > 0 ? 'text-ink-green-3' : 'text-ink-amber-3'">
+                        {{ money(Math.abs(balance)) }}
+                    </span>
                 </div>
             </div>
+
             <div>
-                <DatePicker
-                    v-if="store.posProfileData.custom_set_sales_order"
-                    size="md"
-                    v-model="deliveryDate"
-                    variant="subtle"
-                    placeholder="Delivery Date"
-                    :disabled="false"
-                />     
-            </div>
-        </div>
-        <div class="h-[14%] w-full mt-2 flex flex-col gap-2 ">
-            <div class="h-1/2 ">
-                <div class="flex gap-8 h-full mb-3 justify-center items-center">
-                    <Button
-                        class="w-1/2 h-[90%]"
-                        :variant="'solid'"
-                        theme="gray"
-                        size="lg"
-                        label="Submit"
-                        :loading="false"
-                        :disabled="false"
-                        @click="submitInvoice()"
+                <h3 class="mb-2 text-sm font-medium text-ink-gray-7">Payment method</h3>
+                <div class="space-y-2">
+                    <div
+                        v-for="(payment, index) in invoiceStore.invoice.payments || []"
+                        :key="payment.mode_of_payment"
+                        class="flex items-end gap-2"
                     >
-                        Submit
-                    </Button>
-                    <Button
-                        class="w-1/2  h-[90%]"
-                        :variant="'solid'"
-                        theme="gray"
-                        size="lg"
-                        label="Submit & Print"
-                        :loading="false"
-                        :disabled="false"
-                        @click="submitInvoice('print')"
-                    >
-                        Submit & Print
-                    </Button>
+                        <div class="min-w-0 flex-1">
+                            <FormControl
+                                type="number"
+                                size="md"
+                                variant="subtle"
+                                placeholder="0.00"
+                                :label="payment.mode_of_payment"
+                                v-model="payment.amount"
+                                @change="changePaymentAmount($event)"
+                            />
+                        </div>
+                        <Button variant="subtle" size="md" class="shrink-0" @click="changemode(index)">
+                            Pay full amount
+                        </Button>
+                    </div>
+                    <p v-if="!(invoiceStore.invoice.payments || []).length" class="text-sm text-ink-gray-5">
+                        No payment methods are set up on this POS Profile.
+                    </p>
                 </div>
             </div>
-            <div class="h-1/2">
-                <Button
-                    class="w-full h-[90%]"
-                    :variant="'ghost'"
-                    size="lg"
-                    label="Cancel"
-                    :loading="false"
-                    :disabled="false"
-                    @click="emitter.emit('remove_invoice', true)"
-                    theme="red"
+
+            <div v-if="(invoiceStore.invoice.advances || []).length">
+                <h3 class="mb-2 text-sm font-medium text-ink-gray-7">Customer credit</h3>
+                <div class="space-y-2">
+                    <div
+                        v-for="credit in invoiceStore.invoice.advances"
+                        :key="credit.reference_name"
+                        class="flex items-end gap-2"
+                    >
+                        <div class="min-w-0 flex-1">
+                            <p class="truncate text-sm text-ink-gray-8">{{ credit.reference_name }}</p>
+                            <p class="num text-xs text-ink-gray-5">{{ money(credit.advance_amount) }} available</p>
+                        </div>
+                        <div class="w-32 shrink-0">
+                            <FormControl
+                                type="number"
+                                size="md"
+                                variant="subtle"
+                                placeholder="0.00"
+                                label="Use"
+                                v-model="credit.allocated_amount"
+                                @change="changePaymentAmount($event)"
+                            />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div v-if="store.posProfileData?.custom_set_sales_order" class="max-w-xs">
+                <DatePicker size="md" variant="subtle" label="Delivery date" placeholder="Delivery date" v-model="deliveryDate" />
+            </div>
+
+            <dl class="space-y-1.5 text-sm">
+                <div v-for="row in summary" :key="row.label" class="flex justify-between gap-2">
+                    <dt class="text-ink-gray-5">{{ row.label }}</dt>
+                    <dd class="num text-ink-gray-8" :class="row.strong ? 'font-semibold' : ''">{{ money(row.value) }}</dd>
+                </div>
+            </dl>
+        </div>
+
+        <footer class="shrink-0 space-y-2 border-t border-outline-gray-1 p-3" style="padding-bottom: calc(0.75rem + env(safe-area-inset-bottom))">
+            <div class="grid grid-cols-2 gap-2">
+                <button
+                    type="button"
+                    class="inline-flex h-10 items-center justify-center rounded-md bg-surface-green-3 px-4 text-lg font-semibold text-ink-white transition-colors hover:bg-green-700 active:bg-green-800 focus:outline-none focus-visible:ring focus-visible:ring-outline-green-2 disabled:cursor-not-allowed disabled:opacity-60"
+                    :disabled="submitting"
+                    @click="run(() => submitInvoice())"
                 >
-                    Cancel
+                    Submit
+                </button>
+                <Button variant="solid" theme="gray" size="lg" :disabled="submitting" @click="run(() => submitInvoice('print'))">
+                    <template #prefix><FeatherIcon name="printer" class="h-4 w-4" /></template>
+                    Submit &amp; print
                 </Button>
             </div>
-        </div>
-    </div>
+            <div class="flex items-center justify-between gap-2">
+                <Button variant="ghost" size="md" :disabled="submitting" @click="backToCart">
+                    <template #prefix><FeatherIcon name="arrow-left" class="h-4 w-4" /></template>
+                    Back to cart
+                </Button>
+                <Button variant="ghost" theme="red" size="md" :disabled="submitting" @click="cancelSale">
+                    Cancel sale
+                </Button>
+            </div>
+        </footer>
+    </section>
 </template>
 
 <script setup>
-import { Button, FormControl, createResource, DatePicker, dayjsLocal  } from 'frappe-ui'
+import { Button, FeatherIcon, FormControl, createResource, DatePicker, dayjsLocal } from 'frappe-ui'
 import { ref, onMounted , watch, computed } from 'vue'
 import { createToast } from '@/utils';
 import { showToast } from '@/utils'
 import emitter from '@/utils/emitter';
+import { openInvoicePrint } from '@/utils/print';
 import { usePosProfileStore } from '@/stores/posProfile';
 import { useInvoiceStore } from '@/stores/pos';
 
 
+defineProps({
+    // Phones show the payment panel full screen instead of in the side pane.
+    compact: { type: Boolean, default: false },
+});
+
 let doc = ref({})
 const store = usePosProfileStore();
 const invoiceStore = useInvoiceStore()
-const baseurl = createResource({url: 'ant_pos.ant_pos.utils.get_domain_url',});
 const addPayments = () => {
-    invoiceStore.invoice.paid_amount = invoiceStore.invoice.base_rounded_total
-    if (!invoiceStore.invoice.payments) invoiceStore.invoice.payments = []
-    store.posProfileData.payments.forEach(element => {
-        if (!invoiceStore.invoice.payments.some(payment => payment.mode_of_payment === element.mode_of_payment) && (invoiceStore.invoice.is_return && element.allow_in_returns || !invoiceStore.invoice.is_return )) {
-            invoiceStore.invoice.payments.push({
-                "mode_of_payment": element.mode_of_payment,
-                "amount": Number(element.default) ? Number(invoiceStore.invoice.base_rounded_total) : 0.00,
-                "base_amount": Number(element.default) ? Number(invoiceStore.invoice.base_rounded_total) : 0.00,
-            })
+    const inv = invoiceStore.invoice
+    const due = Number(inv.rounded_total || inv.grand_total || 0)
+    if (!Array.isArray(inv.payments)) inv.payments = []
+
+    const allowed = (store.posProfileData?.payments || []).filter(
+        (mode) => !inv.is_return || mode.allow_in_returns
+    )
+    for (const mode of allowed) {
+        if (!inv.payments.some((p) => p.mode_of_payment === mode.mode_of_payment)) {
+            inv.payments.push({ mode_of_payment: mode.mode_of_payment, default: mode.default, amount: 0, base_amount: 0 })
         }
-    })
+    }
+
+    // Pre-fill the default mode with the amount due unless something was
+    // already entered. This used to depend on the cart's background total
+    // recalculation having finished before Pay was pressed; when it had not,
+    // the server saved every row at 0 and nothing was pre-filled, while "Paid"
+    // was still set to the full total.
+    const entered =
+        inv.payments.some((p) => Number(p.amount)) ||
+        (inv.advances || []).some((a) => Number(a.allocated_amount))
+    if (!entered && due) {
+        const defaultMode = allowed.find((m) => Number(m.default))?.mode_of_payment
+        const row = inv.payments.find((p) => p.mode_of_payment === defaultMode) || inv.payments[0]
+        if (row) {
+            row.amount = due
+            row.base_amount = due
+        }
+    }
+
+    changePaymentAmount()
 }
 
 const changemode = (index) => {
@@ -265,6 +197,48 @@ const changemode = (index) => {
         }
     })
     invoiceStore.invoice.paid_amount = invoiceStore.invoice.base_rounded_total
+}
+
+const money = (value) => Number(value || 0).toFixed(2)
+const toPay = computed(() => Number(invoiceStore.invoice.rounded_total || invoiceStore.invoice.grand_total || 0))
+const paid = computed(() => Number(invoiceStore.invoice.paid_amount || 0))
+// Positive: change is due. Negative: part of the bill is still unpaid.
+const balance = computed(() => paid.value - toPay.value)
+
+const summary = computed(() => {
+    const inv = invoiceStore.invoice
+    const rows = [
+        { label: 'Net total', value: inv.net_total },
+        { label: 'Taxes and charges', value: inv.total_taxes_and_charges },
+    ]
+    if (Number(inv.discount_amount)) rows.push({ label: 'Discount', value: inv.discount_amount })
+    rows.push({ label: 'Grand total', value: inv.grand_total })
+    if (Number(inv.rounding_adjustment)) rows.push({ label: 'Rounding', value: inv.rounding_adjustment })
+    rows.push({ label: 'Rounded total', value: inv.rounded_total, strong: true })
+    return rows
+})
+
+// Guard against double submission while the save/submit round trips run.
+const submitting = ref(false)
+const run = async (action) => {
+    if (submitting.value) return
+    submitting.value = true
+    try {
+        await action()
+    } finally {
+        submitting.value = false
+    }
+}
+
+// The invoice is already saved as a draft; editing it and pressing Pay again
+// updates that same draft.
+const backToCart = () => {
+    invoiceStore.invoice.docstatus = 0
+}
+
+// Discards the sale on this screen. The draft stays in Sales Invoice.
+const cancelSale = () => {
+    emitter.emit('remove_invoice', true)
 }
 
 const deliveryDate = computed({
@@ -378,7 +352,7 @@ const submitInvoice = async (action = null) => {
 };
 
 const createPayments = async (invoice) =>{
-    if (invoice.advances.some((element) => element.allocated_amount > 0)) { 
+    if ((invoice.advances || []).some((element) => element.allocated_amount > 0)) {
         for (const element of invoice.payments) {
             if (element.amount > 0) {
                 await makepayment.fetch({ payments: element, invoice: invoice, method: 'Submit', change: true });
@@ -387,18 +361,7 @@ const createPayments = async (invoice) =>{
     }
 };
 
-const createPrint = async (name) =>{
-    await baseurl.fetch()
-    if (!store.posProfileData?.skip_printview){
-        window.open(
-            `${baseurl.data}/printview?doctype=Sales+Invoice&name=${
-                name
-            }&format=${encodeURIComponent(store.posProfileData.print_format)}&trigger_print=1&no_letterhead=${store.posProfileData.letter_head ? 1 :0 }
-            &letterhead=${store.posProfileData.letter_head}`,
-            "_blank"
-        );
-    }
-}
+const createPrint = (name) => openInvoicePrint(name, store.posProfileData)
 
 createResource({
     url: 'run_doc_method',
@@ -483,12 +446,12 @@ const validatePaymentBeforeSave = async () => {
     let advance = 0
     let payment = 0
     
-    invoiceStore.invoice.advances.forEach((element) => {
+    ;(invoiceStore.invoice.advances || []).forEach((element) => {
         element.allocated_amount = Number(element.allocated_amount)
         advance += element.allocated_amount
     })
 
-    invoiceStore.invoice.payments.forEach((element) => {
+    ;(invoiceStore.invoice.payments || []).forEach((element) => {
         payment += Number(element.amount)
     })
 
