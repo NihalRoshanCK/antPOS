@@ -6,7 +6,8 @@ mock-up:
 | | Before | After |
 |---|---|---|
 | Desktop | `images/before-desktop.png` | `images/pos-desktop.png`, `images/pos-desktop-empty.png` |
-| Mobile | `images/before-mobile.png` | `images/pos-mobile.png`, `images/pos-mobile-menu.png` |
+| Mobile | `images/before-mobile.png` | `images/pos-mobile.png`, `images/pos-mobile-empty.png` |
+| Sidebar | | `images/sidebar-expanded.png`, `images/sidebar-menu.png`, `images/sidebar-collapsed.png` |
 
 ## Principle: stay inside frappe-ui
 
@@ -33,14 +34,19 @@ prop for the mobile variant.
 
 ### Shell
 
-- **Sidebar**: on desktop a static column that collapses to a 56px icon rail
-  (persisted). On mobile it is an off-canvas drawer with a backdrop, closed by
-  default and closed again after navigating.
-  The old sidebar used the same persisted flag for both, so on phones it stayed
-  pinned open over the app, which clipped the search, the customer field and the
-  action buttons.
-- **Navbar**: white, 48px, page title, sale-state badge, profile badge. The
-  hamburger only appears below 1024px.
+- **Sidebar** follows frappe-ui 0.1.278's `Sidebar`: 240px wide, or a 48px
+  icon rail when collapsed; the header is a dropdown (logo, brand name, user)
+  that turns white and raised while open; items are ghost buttons, the active
+  one white with a light shadow (`bg-surface-selected`); labels fade out on
+  collapse and the rail shows tooltips; a `panel-right-open` control at the
+  bottom toggles and remembers the state. It is ported into
+  `components/Sidebar.vue` and `components/SidebarLink.vue` rather than
+  imported, because the installed frappe-ui (0.1.177) has an older revision of
+  the component and upgrading frappe-ui affects every component the app uses.
+  Below 1024px the rail is forced and the toggle is hidden, because the POS
+  switches to its stacked layout there and a 240px sidebar leaves too little
+  room. frappe-ui only forces the rail below 640px.
+- **Navbar**: white, 48px, page title, sale-state badge, profile badge.
 
 Heights used to be percentages of flex containers (`h-[94%]`, `h-[80%]`,
 `w-[18.4%]`); they are now flex with `min-h-0`, so the cart list is the only

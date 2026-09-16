@@ -1,13 +1,6 @@
 <template>
   <header class="flex h-12 shrink-0 items-center gap-3 border-b border-outline-gray-1 bg-surface-white px-3 lg:px-4">
-    <button
-      type="button"
-      class="-ml-1 grid h-9 w-9 place-items-center rounded-md text-ink-gray-7 hover:bg-surface-gray-2 lg:hidden"
-      aria-label="Open menu"
-      @click="sidebarStore.openMobile()"
-    >
-      <FeatherIcon name="menu" class="h-5 w-5" />
-    </button>
+
 
     <h1 class="truncate text-lg font-semibold text-ink-gray-9">{{ title }}</h1>
 
@@ -42,7 +35,7 @@
 <script setup>
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { Switch, Badge, FeatherIcon } from 'frappe-ui';
+import { Switch, Badge } from 'frappe-ui';
 import { usePosProfileStore } from '@/stores/posProfile';
 import { useInvoiceStore } from '@/stores/pos';
 
@@ -51,8 +44,6 @@ const router = useRouter();
 const invoiceStore = useInvoiceStore()
 
 const currentRoute = computed(() => router.currentRoute.value.name)
-import { useSidebar } from '@/stores/sidebar';
-let sidebarStore = useSidebar()
 
 const createSalesOrder = computed({
   get() {

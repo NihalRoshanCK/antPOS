@@ -10,13 +10,9 @@ function readCollapsed() {
 }
 
 export const useSidebar = defineStore('sidebar', () => {
-	// Desktop only: narrow icon rail vs full sidebar. Persisted per browser.
+	// Narrow icon rail vs full sidebar on desktop. Persisted per browser; below
+	// the desktop breakpoint the sidebar is always the rail.
 	const isSidebarCollapsed = ref(readCollapsed())
-
-	// Mobile only: the off-canvas drawer. Never persisted -- it must start
-	// closed. Sharing isSidebarCollapsed for this is what left the sidebar
-	// pinned open over the whole app on phones.
-	const isMobileOpen = ref(false)
 
 	function toggleCollapsed() {
 		isSidebarCollapsed.value = !isSidebarCollapsed.value
@@ -27,13 +23,5 @@ export const useSidebar = defineStore('sidebar', () => {
 		}
 	}
 
-	function openMobile() {
-		isMobileOpen.value = true
-	}
-
-	function closeMobile() {
-		isMobileOpen.value = false
-	}
-
-	return { isSidebarCollapsed, isMobileOpen, toggleCollapsed, openMobile, closeMobile }
+	return { isSidebarCollapsed, toggleCollapsed }
 })

@@ -1,169 +1,144 @@
 <template>
-  <!-- Mobile backdrop -->
-  <Transition
-    enter-active-class="transition-opacity duration-150"
-    leave-active-class="transition-opacity duration-150"
-    enter-from-class="opacity-0"
-    leave-to-class="opacity-0"
-  >
-    <div
-      v-if="sidebarStore.isMobileOpen"
-      class="fixed inset-0 z-40 bg-black/30 lg:hidden"
-      aria-hidden="true"
-      @click="sidebarStore.closeMobile()"
-    />
-  </Transition>
-
+  <!-- Mirrors frappe-ui 0.1.278's Sidebar (header dropdown, ghost-button items,
+       bg-surface-selected active state, fading labels, panel-right-open toggle).
+       Ported rather than imported: the installed frappe-ui is 0.1.177, whose
+       Sidebar is an older revision, and upgrading frappe-ui touches every
+       component this app uses. -->
   <aside
-    :class="[
-      'z-50 flex h-full flex-col border-r border-outline-gray-1 bg-surface-menu-bar',
-      'fixed inset-y-0 left-0 w-64 transition-transform duration-200 ease-out',
-      sidebarStore.isMobileOpen ? 'translate-x-0 shadow-xl' : '-translate-x-full',
-      'lg:static lg:translate-x-0 lg:shadow-none lg:transition-[width]',
-      sidebarStore.isSidebarCollapsed ? 'lg:w-14' : 'lg:w-56',
-    ]"
+    class="flex h-full flex-shrink-0 flex-col overflow-y-auto overflow-x-hidden border-r border-outline-gray-1 bg-surface-menu-bar p-2 transition-all duration-300 ease-in-out"
+    :class="shouldCollapse ? 'w-12' : 'w-60'"
     aria-label="Main navigation"
   >
-    <div class="p-2">
-      <Dropdown :options="option" class="w-full">
-        <template #default>
-          <button
-            type="button"
-            class="flex w-full items-center gap-2 rounded-md p-1.5 hover:bg-surface-gray-3 focus:outline-none focus-visible:ring focus-visible:ring-outline-gray-3"
-            :class="collapsed ? 'justify-center' : ''"
-          >
+    <!-- Header -->
+    <Dropdown :options="menuItems">
+      <template v-slot="{ open }">
+        <button
+          type="button"
+          class="flex h-12 items-center rounded-md py-2 duration-300 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-outline-gray-3"
+          :class="
+            shouldCollapse
+              ? 'w-auto px-0'
+              : open
+                ? 'w-[14rem] bg-surface-white px-2 shadow-sm'
+                : 'w-[14rem] px-2 hover:bg-surface-gray-3'
+          "
+        >
+          <div class="h-8 w-8 flex-shrink-0 overflow-hidden rounded">
             <img
               :src="brand.logo || '/assets/ant_pos/antPOS.png'"
+              class="h-full w-full object-cover"
               alt=""
-              class="h-8 w-8 shrink-0 rounded-md object-contain"
             />
-            <span v-if="!collapsed" class="min-w-0 flex-1 text-left">
-              <span class="block truncate text-base font-semibold text-ink-gray-9">
-                {{ brand.name || 'antPOS' }}
-              </span>
-              <span class="block truncate text-sm text-ink-gray-5">{{ currentUser.full_name }}</span>
-            </span>
-            <FeatherIcon v-if="!collapsed" name="chevron-down" class="h-4 w-4 shrink-0 text-ink-gray-5" />
-          </button>
-        </template>
-      </Dropdown>
-    </div>
+          </div>
+          <div
+            class="flex flex-1 flex-col truncate text-left duration-300 ease-in-out"
+            :class="shouldCollapse ? 'ml-0 w-0 overflow-hidden opacity-0' : 'ml-2 w-auto opacity-100'"
+          >
+            <div class="truncate text-base font-medium leading-none text-ink-gray-8">
+              {{ brand.name || 'antPOS' }}
+            </div>
+            <div class="mt-1 truncate text-sm leading-none text-ink-gray-6">
+              {{ currentUser.full_name }}
+            </div>
+          </div>
+          <div
+            class="duration-300 ease-in-out"
+            :class="shouldCollapse ? 'ml-0 w-0 overflow-hidden opacity-0' : 'ml-2 w-auto opacity-100'"
+          >
+            <LucideChevronDown class="h-4 w-4 text-ink-gray-7" />
+          </div>
+        </button>
+      </template>
+    </Dropdown>
 
-    <nav class="flex flex-col gap-0.5 px-2 pt-2">
-      <button
+    <!-- Section -->
+    <nav class="mt-2 flex flex-col space-y-0.5">
+      <SidebarLink
         v-for="link in links"
         :key="link.route"
-        type="button"
-        :title="collapsed ? link.label : undefined"
-        class="flex h-9 items-center gap-2.5 rounded-md px-2.5 text-base focus:outline-none focus-visible:ring focus-visible:ring-outline-gray-3"
-        :class="[
-          currentRoute === link.route
-            ? 'bg-surface-white text-ink-gray-9 font-medium shadow-sm'
-            : 'text-ink-gray-6 hover:bg-surface-gray-3',
-          collapsed ? 'justify-center' : '',
-        ]"
-        @click="go(link.route)"
-      >
-        <FeatherIcon :name="link.icon" class="h-4 w-4 shrink-0" />
-        <span v-if="!collapsed">{{ link.label }}</span>
-      </button>
+        :label="link.label"
+        :icon="link.icon"
+        :is-active="currentRoute === link.route"
+        :is-collapsed="shouldCollapse"
+        @click="router.push({ name: link.route })"
+      />
     </nav>
 
-    <div class="mt-auto hidden p-2 lg:block">
-      <button
-        type="button"
-        class="flex h-8 w-full items-center gap-2 rounded-md px-2.5 text-sm text-ink-gray-5 hover:bg-surface-gray-3 focus:outline-none focus-visible:ring focus-visible:ring-outline-gray-3"
-        :class="collapsed ? 'justify-center' : ''"
-        :aria-label="collapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+    <!-- Footer -->
+    <div v-if="!forceCollapse" class="mt-auto flex flex-col gap-2">
+      <SidebarLink
+        :label="shouldCollapse ? 'Expand' : 'Collapse'"
+        :is-collapsed="shouldCollapse"
         @click="sidebarStore.toggleCollapsed()"
       >
-        <FeatherIcon :name="collapsed ? 'chevrons-right' : 'chevrons-left'" class="h-4 w-4" />
-        <span v-if="!collapsed">Collapse</span>
-      </button>
+        <template #icon>
+          <LucidePanelRightOpen
+            class="size-4 text-ink-gray-6 duration-300 ease-in-out"
+            :class="{ 'rotate-180': shouldCollapse }"
+          />
+        </template>
+      </SidebarLink>
     </div>
   </aside>
 </template>
 
 <script setup>
-import { FeatherIcon, Dropdown } from 'frappe-ui';
-import { useRouter } from 'vue-router';
-import { inject, h, computed } from 'vue';
+import { Dropdown } from 'frappe-ui'
+import { useRouter } from 'vue-router'
+import { inject, computed, markRaw } from 'vue'
 import { getSettings } from '@/stores/settings'
-import { usersStore } from '@/stores/users';
-import { useSidebar } from '@/stores/sidebar';
-import { usePermissionStore } from '@/stores/permission';
-import { useSessionStore } from '@/stores/session';
+import { usersStore } from '@/stores/users'
+import { useSidebar } from '@/stores/sidebar'
+import { usePermissionStore } from '@/stores/permission'
+import { useSessionStore } from '@/stores/session'
+import { useBreakpoint } from '@/composables/useBreakpoint'
+import SidebarLink from '@/components/SidebarLink.vue'
+
+import LucideChevronDown from '~icons/lucide/chevron-down'
+import LucidePanelRightOpen from '~icons/lucide/panel-right-open'
+import LucideMonitor from '~icons/lucide/monitor'
+import LucideCreditCard from '~icons/lucide/credit-card'
+import LucideFileMinus from '~icons/lucide/file-minus'
+import LucideLayoutGrid from '~icons/lucide/layout-grid'
+import LucideSettings from '~icons/lucide/settings'
+import LucideLogOut from '~icons/lucide/log-out'
 
 const sidebarStore = useSidebar()
-const permissionStore = usePermissionStore();
-const sessionStore = useSessionStore();
-const router = useRouter();
+const permissionStore = usePermissionStore()
+const sessionStore = useSessionStore()
+const router = useRouter()
 const { brand } = getSettings()
+const { loadComponent } = inject('dynamicComponent')
+const { isDesktop } = useBreakpoint()
+
 const currentRoute = computed(() => router.currentRoute.value.name)
-const { loadComponent } = inject('dynamicComponent');
+
 const currentUser = computed(() => {
-  if (!sessionStore.isLoggedIn) {
-    return { full_name: 'Guest' }
-  }
+  if (!sessionStore.isLoggedIn) return { full_name: 'Guest' }
   return usersStore().getUser()
 })
 
-// The icon rail is a desktop affordance; the mobile drawer is always full width.
-const collapsed = computed(() => sidebarStore.isSidebarCollapsed && !sidebarStore.isMobileOpen)
+// frappe-ui collapses to the icon rail below `sm`. The POS switches to its
+// stacked layout below `lg`, and a 240px sidebar leaves too little room for it
+// there, so the rail is forced for the whole mobile layout.
+const forceCollapse = computed(() => !isDesktop.value)
+const shouldCollapse = computed(() => forceCollapse.value || sidebarStore.isSidebarCollapsed)
 
 const links = computed(() => {
   const list = []
   if (permissionStore.salesInvoiceCanSubmit || permissionStore.salesInvoiceCanCreate || permissionStore.salesInvoiceCanPrint) {
-    list.push({ route: 'Pos', label: 'Point of sale', icon: 'monitor' })
+    list.push({ route: 'Pos', label: 'Point of sale', icon: markRaw(LucideMonitor) })
   }
   if (permissionStore.paymentEntryCanSubmit || permissionStore.paymentEntryCanCreate || permissionStore.paymentEntryCanPrint) {
-    list.push({ route: 'Payments', label: 'Payments', icon: 'credit-card' })
+    list.push({ route: 'Payments', label: 'Payments', icon: markRaw(LucideCreditCard) })
   }
   return list
 })
 
-const go = (name) => {
-  router.push({ name })
-  sidebarStore.closeMobile()
-}
-
-const option=[
-  {
-    label: 'Close Shift',
-    icon: () => h(FeatherIcon, { name: 'file-minus' }),
-    onClick: () => {
-      sidebarStore.closeMobile()
-      loadComponent('CloseShift')
-    },
-  },
-  {
-    label: 'Desk',
-    icon: () => h(FeatherIcon, { name: 'home' }),
-    onClick: () => {
-       window.location.href = '/app'
-    },
-  },
-  {
-    label: 'Settings',
-    icon: () => h(FeatherIcon, { name: 'settings' }),
-    onClick: () => {
-      sidebarStore.closeMobile()
-      loadComponent('Settings')
-    },
-  },  
-  {
-    label: 'Logout',
-    icon: () => h(FeatherIcon, { name: 'log-out' }),
-    onClick: () => {
-      sessionStore.logout.fetch()
-    },
-  },
+const menuItems = [
+  { label: 'Close shift', icon: markRaw(LucideFileMinus), onClick: () => loadComponent('CloseShift') },
+  { label: 'Go to desk', icon: markRaw(LucideLayoutGrid), onClick: () => { window.location.href = '/app' } },
+  { label: 'Settings', icon: markRaw(LucideSettings), onClick: () => loadComponent('Settings') },
+  { label: 'Log out', icon: markRaw(LucideLogOut), onClick: () => sessionStore.logout.fetch() },
 ]
-
 </script>
-
-<style scoped>
-  .adjust ::v-deep > div > div >div {
-    width: 100%;
-  }
-</style>

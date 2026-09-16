@@ -9,7 +9,7 @@
       size="lg"
       icon="plus"
       class="shrink-0"
-      aria-label="New customer"
+      label="New customer"
       title="New customer"
       @click="$emit('create')"
     />
