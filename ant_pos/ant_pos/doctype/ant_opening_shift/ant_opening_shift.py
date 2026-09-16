@@ -4,7 +4,27 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import date_diff, today
+from frappe.utils import cint, date_diff, today
+
+# Roles that may open or close a shift on behalf of another user. They match
+# the roles with unrestricted access on the shift doctypes.
+SHIFT_MANAGER_ROLES = ("System Manager", "Sales Manager")
+
+
+def is_shift_manager(user=None):
+	user = user or frappe.session.user
+	return user == "Administrator" or bool(set(SHIFT_MANAGER_ROLES) & set(frappe.get_roles(user)))
+
+
+def profile_users(pos_profile):
+	"""Users listed on a POS Profile. An empty list means anyone may use it,
+	as in ERPNext's own POS."""
+	return frappe.get_all("POS Profile User", filters={"parent": pos_profile}, pluck="user")
+
+
+def can_use_profile(pos_profile, user=None):
+	users = profile_users(pos_profile)
+	return not users or (user or frappe.session.user) in users
 
 
 class AntOpeningShift(Document):
@@ -19,8 +39,36 @@ class AntOpeningShift(Document):
 		if not self.posting_date:
 			self.posting_date = today()
 
+		self.validate_cashier()
+		self.validate_pos_profile()
 		self.validate_period()
 		self.validate_no_open_shift()
+
+	def validate_cashier(self):
+		if self.cashier != frappe.session.user and not is_shift_manager():
+			frappe.throw(_("You can only open a shift for yourself."), frappe.PermissionError)
+		if not cint(frappe.db.get_value("User", self.cashier, "enabled")):
+			frappe.throw(_("User {0} is disabled.").format(frappe.bold(self.cashier)))
+
+	def validate_pos_profile(self):
+		profile = frappe.db.get_value("POS Profile", self.pos_profile, ["company", "disabled"], as_dict=True)
+		if not profile:
+			frappe.throw(_("POS Profile {0} does not exist.").format(frappe.bold(self.pos_profile)))
+		if profile.disabled:
+			frappe.throw(_("POS Profile {0} is disabled.").format(frappe.bold(self.pos_profile)))
+		if profile.company != self.company:
+			frappe.throw(
+				_("POS Profile {0} belongs to company {1}, not {2}.").format(
+					frappe.bold(self.pos_profile), frappe.bold(profile.company), frappe.bold(self.company)
+				)
+			)
+		if not can_use_profile(self.pos_profile, self.cashier):
+			frappe.throw(
+				_("{0} is not a user of POS Profile {1}.").format(
+					frappe.bold(self.cashier), frappe.bold(self.pos_profile)
+				),
+				frappe.PermissionError,
+			)
 
 	def validate_period(self):
 		"""A shift cannot end before it starts."""

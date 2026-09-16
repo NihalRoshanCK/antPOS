@@ -54,7 +54,7 @@
         </div>
       </template>
       <template #actions>
-        <Button variant="solid" @click="submit.submit">Confirm</Button>
+        <Button variant="solid" :loading="submit.loading" @click="submit.submit()">Confirm</Button>
         <Button class="ml-2" @click="validate_pos">Close</Button>
       </template>
     </Dialog>
@@ -65,6 +65,7 @@
 import { createResource, Button, Dialog, FormControl } from 'frappe-ui';
 import { ref, watch, reactive, onMounted  } from 'vue';
 import { usePosProfileStore } from '@/stores/posProfile'
+import { createToast } from '@/utils'
 
 const store = usePosProfileStore()
 const options = reactive({company: [],profile: {},});
@@ -118,6 +119,14 @@ const submit = createResource({
   },
   onSuccess(data) {          
     validate_pos();
+  },
+  onError(error) {
+    const messages = error?.messages
+    createToast({
+      title: 'Could not open the shift',
+      message: (Array.isArray(messages) ? messages[0] : messages) || error?.message || 'Something went wrong.',
+      type: 'error',
+    });
   },
 });
 

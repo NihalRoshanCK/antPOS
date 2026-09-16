@@ -1,6 +1,7 @@
 # Copyright (c) 2024, Anther Technologies Pvt. Ltd. and Contributors
 # See license.txt
 
+from contextlib import nullcontext
 from unittest.mock import patch
 
 import frappe
@@ -29,9 +30,27 @@ def make_opening_shift(**kwargs):
 # A cashier with no shifts: tests must not depend on whether the site's own
 # users (e.g. Administrator) have a shift open.
 CASHIER = "antpos-shift-test@example.com"
+MODULE = "ant_pos.ant_pos.doctype.ant_opening_shift.ant_opening_shift"
+
+
+def as_user(test, user):
+	"""Run as `user` until the test ends (the session is not patchable)."""
+	previous = frappe.session.user
+	frappe.set_user(user)
+	test.addCleanup(frappe.set_user, previous)
+	return nullcontext()
 
 
 class TestAntOpeningShift(FrappeTestCase):
+	"""Dates and the one-open-shift rule. Cashier and profile checks are
+	covered in TestShiftOwnership."""
+
+	def setUp(self):
+		for check in ("validate_cashier", "validate_pos_profile"):
+			patcher = patch.object(AntOpeningShift, check)
+			patcher.start()
+			self.addCleanup(patcher.stop)
+
 	def test_posting_date_defaults_to_today(self):
 		"""posting_date is mandatory and was previously stamped unconditionally."""
 		doc = frappe.new_doc("Ant Opening Shift")
@@ -99,3 +118,93 @@ class TestAntOpeningShift(FrappeTestCase):
 		with patch("frappe.db.exists", return_value="ANT-OPEN-EXISTING"):
 			with self.assertRaises(frappe.ValidationError):
 				doc.validate()
+
+
+class TestShiftOwnership(FrappeTestCase):
+	def shift(self, cashier=CASHIER):
+		doc = frappe.new_doc("Ant Opening Shift")
+		doc.update({"cashier": cashier, "company": "Company A", "pos_profile": "Till 1"})
+		return doc
+
+	def profile(self, company="Company A", disabled=0):
+		return patch("frappe.db.get_value", return_value=frappe._dict(company=company, disabled=disabled))
+
+	def test_cashier_cannot_open_a_shift_for_someone_else(self):
+		with (
+			as_user(self, "cashier-a@example.com"),
+			patch(f"{MODULE}.is_shift_manager", return_value=False),
+		):
+			with self.assertRaises(frappe.PermissionError):
+				self.shift(cashier="cashier-b@example.com").validate_cashier()
+
+	def test_manager_can_open_a_shift_for_someone_else(self):
+		with (
+			as_user(self, "manager@example.com"),
+			patch(f"{MODULE}.is_shift_manager", return_value=True),
+			patch("frappe.db.get_value", return_value=1),
+		):
+			self.shift(cashier="cashier-b@example.com").validate_cashier()
+
+	def test_disabled_cashier_is_refused(self):
+		with patch("frappe.db.get_value", return_value=0):
+			with self.assertRaises(frappe.ValidationError):
+				self.shift(cashier="Administrator").validate_cashier()
+
+	def test_profile_of_another_company_is_refused(self):
+		with self.profile(company="Company B"), patch(f"{MODULE}.profile_users", return_value=[]):
+			with self.assertRaises(frappe.ValidationError):
+				self.shift().validate_pos_profile()
+
+	def test_disabled_profile_is_refused(self):
+		with self.profile(disabled=1), patch(f"{MODULE}.profile_users", return_value=[]):
+			with self.assertRaises(frappe.ValidationError):
+				self.shift().validate_pos_profile()
+
+	def test_profile_users_are_enforced(self):
+		with self.profile(), patch(f"{MODULE}.profile_users", return_value=["someone@example.com"]):
+			with self.assertRaises(frappe.PermissionError):
+				self.shift().validate_pos_profile()
+		with self.profile(), patch(f"{MODULE}.profile_users", return_value=[CASHIER]):
+			self.shift().validate_pos_profile()
+
+	def test_profile_without_users_is_open_to_all(self):
+		with self.profile(), patch(f"{MODULE}.profile_users", return_value=[]):
+			self.shift().validate_pos_profile()
+
+	def test_create_opening_ignores_client_cashier_and_status(self):
+		from ant_pos.ant_pos.api.pos_profile import create_opening
+
+		created = {}
+
+		def capture(doc):
+			created.update(cashier=doc.cashier, status=doc.status, owner_field=doc.get("amended_from"))
+
+		with (
+			patch.object(AntOpeningShift, "insert", capture),
+			patch.object(AntOpeningShift, "submit"),
+			patch("ant_pos.ant_pos.api.pos_profile.profile_payment_modes", return_value=["Cash"]),
+		):
+			create_opening(
+				{
+					"company": "Company A",
+					"pos_profile": "Till 1",
+					"cashier": "someone-else@example.com",
+					"status": "Closed",
+					"amended_from": "X",
+					"opening_balance_details": [{"mode_of_payment": "Cash", "opening_amount": 5}],
+				}
+			)
+		self.assertEqual(created, {"cashier": frappe.session.user, "status": "Open", "owner_field": None})
+
+	def test_create_opening_refuses_foreign_payment_modes(self):
+		from ant_pos.ant_pos.api.pos_profile import create_opening
+
+		with patch("ant_pos.ant_pos.api.pos_profile.profile_payment_modes", return_value=["Cash"]):
+			with self.assertRaises(frappe.ValidationError):
+				create_opening(
+					{
+						"company": "Company A",
+						"pos_profile": "Till 1",
+						"opening_balance_details": [{"mode_of_payment": "Bank", "opening_amount": 5}],
+					}
+				)

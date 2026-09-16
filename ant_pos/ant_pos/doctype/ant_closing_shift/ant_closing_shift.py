@@ -2,6 +2,8 @@ import frappe
 from frappe import _
 from frappe.model.document import Document
 
+from ant_pos.ant_pos.doctype.ant_opening_shift.ant_opening_shift import is_shift_manager
+
 
 class AntClosingShift(Document):
     def validate(self):
@@ -9,6 +11,7 @@ class AntClosingShift(Document):
             self.ant_opening_shift = self.get_opening_shift()
 
         opening_shift_doc = frappe.get_doc("Ant Opening Shift", self.ant_opening_shift)
+        self.validate_opening_shift(opening_shift_doc)
 
         self.opening_start_date = opening_shift_doc.period_start_date
         self.opening_end_date = frappe.utils.now()
@@ -43,6 +46,29 @@ class AntClosingShift(Document):
 
         for payment in self.get_pos_payments():
             self.append("pos_payments", payment)
+
+    def validate_opening_shift(self, opening):
+        """Only an open, submitted shift can be closed, once, by its cashier
+        (or a shift manager)."""
+        if opening.docstatus != 1 or opening.status != "Open":
+            frappe.throw(
+                _("Shift {0} is not open.").format(frappe.bold(opening.name)),
+                title=_("Shift Not Open"),
+            )
+        if opening.cashier != frappe.session.user and not is_shift_manager():
+            frappe.throw(_("You can only close your own shift."), frappe.PermissionError)
+
+        filters = {"ant_opening_shift": opening.name, "docstatus": ["<", 2]}
+        if not self.is_new():
+            filters["name"] = ["!=", self.name]
+        other = frappe.db.get_value("Ant Closing Shift", filters, "name")
+        if other:
+            frappe.throw(
+                _("Shift {0} is already being closed in {1}.").format(
+                    frappe.bold(opening.name), frappe.bold(other)
+                ),
+                title=_("Already Closing"),
+            )
 
     def get_opening_shift(self):
         # Ant Opening Shift stores the operator in `cashier`, not `user`.
@@ -138,9 +164,37 @@ class AntClosingShift(Document):
 
     def on_cancel(self):
         """Reopen the shift so it can be closed again."""
-        if self.ant_opening_shift:
-            frappe.db.set_value(
-                "Ant Opening Shift",
-                self.ant_opening_shift,
-                {"status": "Open", "ant_closing_shift_detail": None},
+        if not self.ant_opening_shift:
+            return
+        opening = frappe.db.get_value(
+            "Ant Opening Shift",
+            self.ant_opening_shift,
+            ["cashier", "ant_closing_shift_detail"],
+            as_dict=True,
+        )
+        # Only undo what this closing did.
+        if not opening or opening.ant_closing_shift_detail != self.name:
+            return
+        # A cashier has one open shift at a time; reopening this one next to a
+        # newer shift would give them two.
+        other = frappe.db.exists(
+            "Ant Opening Shift",
+            {
+                "cashier": opening.cashier,
+                "docstatus": 1,
+                "status": "Open",
+                "name": ["!=", self.ant_opening_shift],
+            },
+        )
+        if other:
+            frappe.throw(
+                _("{0} has since opened shift {1}. Close it before cancelling this closing.").format(
+                    frappe.bold(opening.cashier), frappe.bold(other)
+                ),
+                title=_("Shift Already Open"),
             )
+        frappe.db.set_value(
+            "Ant Opening Shift",
+            self.ant_opening_shift,
+            {"status": "Open", "ant_closing_shift_detail": None},
+        )

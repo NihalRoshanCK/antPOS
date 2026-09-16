@@ -1,8 +1,25 @@
 # Copyright (c) 2025, Anther Technologies Pvt. Ltd. and Contributors
 # See license.txt
 
+from contextlib import nullcontext
+from unittest.mock import patch
+
 import frappe
 from frappe.tests.utils import FrappeTestCase
+
+MODULE = "ant_pos.ant_pos.doctype.ant_closing_shift.ant_closing_shift"
+
+
+def as_user(test, user):
+	"""Run as `user` until the test ends (the session is not patchable)."""
+	previous = frappe.session.user
+	frappe.set_user(user)
+	test.addCleanup(frappe.set_user, previous)
+	return nullcontext()
+
+
+def opening(**values):
+	return frappe._dict({"name": "SHIFT-1", "docstatus": 1, "status": "Open", "cashier": "cashier-a@example.com", **values})
 
 
 class TestAntClosingShift(FrappeTestCase):
@@ -55,3 +72,62 @@ class TestAntClosingShift(FrappeTestCase):
 		row = shift.append("pos_transactions", {"return_against": original[0]})
 		invalid, _cancelled = row.get_invalid_links()
 		self.assertEqual(invalid, [])
+
+
+class TestClosingOwnership(FrappeTestCase):
+	def closing(self):
+		return frappe.new_doc("Ant Closing Shift")
+
+	def test_only_an_open_submitted_shift_can_be_closed(self):
+		for shift in (opening(docstatus=0), opening(status="Closed"), opening(docstatus=2)):
+			with self.assertRaises(frappe.ValidationError):
+				self.closing().validate_opening_shift(shift)
+
+	def test_cashier_cannot_close_another_users_shift(self):
+		with (
+			as_user(self, "cashier-b@example.com"),
+			patch(f"{MODULE}.is_shift_manager", return_value=False),
+		):
+			with self.assertRaises(frappe.PermissionError):
+				self.closing().validate_opening_shift(opening())
+
+	def test_cashier_can_close_own_shift(self):
+		with (
+			as_user(self, "cashier-a@example.com"),
+			patch(f"{MODULE}.is_shift_manager", return_value=False),
+			patch("frappe.db.get_value", return_value=None),
+		):
+			self.closing().validate_opening_shift(opening())
+
+	def test_shift_cannot_be_closed_twice(self):
+		with (
+			as_user(self, "cashier-a@example.com"),
+			patch("frappe.db.get_value", return_value="CLOSE-OTHER"),
+		):
+			with self.assertRaises(frappe.ValidationError):
+				self.closing().validate_opening_shift(opening())
+
+	def test_cancel_does_not_reopen_next_to_a_newer_shift(self):
+		doc = frappe.get_doc({"doctype": "Ant Closing Shift", "name": "CLOSE-1", "ant_opening_shift": "SHIFT-1"})
+		linked = frappe._dict(cashier="cashier-a@example.com", ant_closing_shift_detail="CLOSE-1")
+		with (
+			patch("frappe.db.get_value", return_value=linked),
+			patch("frappe.db.exists", return_value="SHIFT-2"),
+			patch("frappe.db.set_value") as set_value,
+		):
+			with self.assertRaises(frappe.ValidationError):
+				doc.on_cancel()
+		set_value.assert_not_called()
+
+	def test_cancel_reopens_only_its_own_shift(self):
+		doc = frappe.get_doc({"doctype": "Ant Closing Shift", "name": "CLOSE-1", "ant_opening_shift": "SHIFT-1"})
+		with patch("frappe.db.set_value") as set_value:
+			other = frappe._dict(cashier="cashier-a@example.com", ant_closing_shift_detail="CLOSE-9")
+			with patch("frappe.db.get_value", return_value=other):
+				doc.on_cancel()
+			set_value.assert_not_called()
+
+			linked = frappe._dict(cashier="cashier-a@example.com", ant_closing_shift_detail="CLOSE-1")
+			with patch("frappe.db.get_value", return_value=linked), patch("frappe.db.exists", return_value=None):
+				doc.on_cancel()
+			set_value.assert_called_once()
