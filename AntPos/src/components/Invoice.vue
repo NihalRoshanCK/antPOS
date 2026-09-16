@@ -459,6 +459,10 @@ const makepayment = createResource({
                 company: params.invoice.company,
                 cost_center: params.invoice.cost_center,
                 branch: params.invoice.branch,
+                // Ant Closing Shift collects payments by reference_no; without
+                // this, advance payments never appear in the shift totals.
+                reference_no: store.openingShift.name,
+                reference_date: params.invoice.posting_date,
             }),
             action: params.method
         }

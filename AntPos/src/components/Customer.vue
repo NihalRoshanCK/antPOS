@@ -4,18 +4,20 @@
       :options="computedOptions"
       v-model="selectedCustomer"
       placeholder="Select Customer"
+      @update:query="onQuery"
     />
   </div>
 </template>
 
 <script setup>
 import { computed, onMounted, onUnmounted, watch, defineProps } from 'vue';
-import emitter from '@/utils/emitter'; 
+import emitter from '@/utils/emitter';
 import Autocomplete from '@/components/custom_components/Autocomplete.vue';
-import { createListResource } from 'frappe-ui';
+import { createListResource, debounce } from 'frappe-ui';
 import { createToast } from '@/utils';
 import { usePosProfileStore } from '@/stores/posProfile';
 import { useInvoiceStore } from '@/stores/pos';
+
 const emit = defineEmits(['update:customer']);
 
 const props = defineProps({
@@ -24,24 +26,51 @@ const props = defineProps({
         required: true,
     },
 });
-const invoiceStore = useInvoiceStore()
-const getCustomerGroups = computed(()=>{
 
-  if (usePosProfileStore()?.hasNoData){
-    return []
+const posProfileStore = usePosProfileStore();
+const invoiceStore = useInvoiceStore();
+
+// How many customers to pull per request. The list is searched server-side, so
+// this is a page of results, not the whole table.
+const PAGE_LENGTH = 20;
+
+const customerGroups = computed(
+  () => posProfileStore.posProfileData?.customer_groups?.map((item) => item.customer_group) || []
+);
+
+const toOption = (item) => ({
+  label: item.name || 'Unnamed',
+  value: item.name,
+  name: item.name,
+  mobile_no: item.mobile_no || '',
+  customer_group: item.customer_group,
+  territory: item.territory,
+  is_internal_customer: item.is_internal_customer,
+});
+
+const buildFilters = (query) => {
+  const filters = { disabled: false };
+
+  // The POS Profile restricts which customer groups a cashier may sell to.
+  // This was previously snapshotted at resource-creation time, before the
+  // profile had loaded, so it was always empty and every customer was visible.
+  if (customerGroups.value.length) {
+    filters.customer_group = ['in', customerGroups.value];
   }
-  return usePosProfileStore().posProfileData?.customer_groups.map(item=>item.customer_group);
 
-})
+  if (query) {
+    filters.name = ['like', `%${query}%`];
+  }
+
+  return filters;
+};
 
 const customerResource = createListResource({
   doctype: 'Customer',
-  fields: ['name', 'mobile_no','customer_group','territory','is_internal_customer'],
-  filters: {
-    disabled: false,
-  },
-  orFilters: getCustomerGroups?.value?.length > 0 ? [['customer_group', 'in', getCustomerGroups?.value]] : [],
-  pageLength: Number.MAX_VALUE * 2,
+  fields: ['name', 'mobile_no', 'customer_group', 'territory', 'is_internal_customer'],
+  filters: buildFilters(''),
+  orderBy: 'modified desc',
+  pageLength: PAGE_LENGTH,
   auto: false,
   onError(error) {
       createToast({
@@ -53,69 +82,59 @@ const customerResource = createListResource({
         timeout: 5,
       });
   },
-  transform: (data) => {
-    return data.map((item) => ({
-      label: item.name,
-      value: item.name,
-      mobile_no: item.mobile_no,
-      name: item.name,
-      customer_group: item.customer_group,
-      territory: item.territory,
-      is_internal_customer: item.is_internal_customer,
-    }));
-  },
+  transform: (data) => data.map(toOption),
 });
 
-const computedOptions = computed(() => {
-  return customerResource?.data
-    ? customerResource.data.map((option) => ({
-        mobile_no: option.mobile_no || '',
-        label: option.label || 'Unnamed',
-        value: option.value,
-        name: option.name,
-        customer_group: option.customer_group,
-        territory: option.territory,
-        is_internal_customer: option.is_internal_customer,
-      }))
-    : [];
-});
+const search = (query) => {
+  // Search by name or mobile number. Frappe ORs `orFilters` among themselves and
+  // ANDs the result with `filters`, so the group restriction still applies.
+  customerResource.update({
+    filters: buildFilters(''),
+    orFilters: query
+      ? [
+          ['name', 'like', `%${query}%`],
+          ['mobile_no', 'like', `%${query}%`],
+        ]
+      : [],
+  });
+  customerResource.reload();
+};
+
+const onQuery = debounce(search, 300);
+
+const computedOptions = computed(() => customerResource.data || []);
 
 const refreshCustomerList = async (params) => {
-  await customerResource.fetch();
-  selectedCustomer.value={
-    mobile_no: params.mobile_no || '',
-    label: params.name || 'Unnamed',
-    value: params.name,
-    name: params.name,
-    customer_group: params.customer_group,
-    territory: params.territory,
-    is_internal_customer: params.is_internal_customer,
-  }
+  await customerResource.reload();
+  selectedCustomer.value = toOption(params);
 };
 
 onMounted(() => {
-  emitter.on("customerCreated"  ,refreshCustomerList);
+  emitter.on('customerCreated', refreshCustomerList);
+  customerResource.reload();
 });
 
 onUnmounted(() => {
-  emitter.off("customerCreated" , refreshCustomerList);
+  emitter.off('customerCreated', refreshCustomerList);
 });
 
 const selectedCustomer = computed({
   get: () => props.customer,
   set: (newVal) => {
-    if(invoiceStore.invoice.is_return) return
+    if (invoiceStore.invoice.is_return) return;
       emit('update:customer', newVal);
-      emitter.emit('calctotal')
-      emitter.emit('clear',false)
-      
+      emitter.emit('calctotal');
+      emitter.emit('clear', false);
   },
 });
 
-watch(usePosProfileStore().hasNoData, (newVal) => {
-  
-    customerResource.reload();
+// Reload once the POS profile arrives: the customer-group restriction depends on
+// it. The previous version passed the unwrapped boolean rather than a getter, so
+// this never fired after the initial run.
+watch(
+  () => posProfileStore.hasNoData,
+  () => customerResource.reload()
+);
 
-}, { immediate: true });
-
+watch(customerGroups, () => search(''));
 </script>

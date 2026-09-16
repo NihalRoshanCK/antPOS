@@ -199,6 +199,9 @@ const invoices = createListResource({
         customer: paymentStore.paymentCustomer.name
     },
     orderBy: 'creation asc',
+    // The page-size buttons and "Load more" below drive this; it must not be
+    // Infinity. (There used to be a second pageLength key here that silently
+    // overrode the first.)
     pageLength: 20,
     transform(data) {
         for (let d of data) {
@@ -206,7 +209,6 @@ const invoices = createListResource({
         }
         return data
     },
-    pageLength: Number.MAX_VALUE * 2,
 });
 
 const filteredInvoices = computed(() => {
@@ -369,22 +371,23 @@ let save = createResource({
         return {
             doc: JSON.stringify(
                 {
-                doctype:"Payment Entry",
+                    doctype: "Payment Entry",
                     payment_type: "Receive",
-                    posting_date:now(),
-                    party_type:'Customer',
-                    mode_of_payment:params.mode,
+                    posting_date: now(),
+                    party_type: 'Customer',
+                    mode_of_payment: params.mode,
                     party: paymentStore.paymentCustomer.name,
-                    paid_from_account_currency:store.posProfileData?.currency,
-                    paid_from:'Debtors - FITPL',
-                    paid_to:"MGR Cash - FITPL",
-                    paid_to_account_currency:store.posProfileData?.currency,
-                    paid_amount: params.amount ,
+                    company: store.posProfileData?.company,
+                    cost_center: store.posProfileData?.cost_center,
+                    // paid_from / paid_to and their currencies are company-specific
+                    // and are resolved server-side in ant_pos.ant_pos.api.payment_entry.validate
+                    paid_amount: params.amount,
                     base_paid_amount: params.amount,
                     received_amount: params.amount,
                     base_received_amount: params.amount,
                     references: params.references.length > 0 ?  params.references : [],
-                    reference_no:store.openingShift.name
+                    reference_no: store.openingShift.name,
+                    reference_date: now(),
                 },
             ),
             action: params.action

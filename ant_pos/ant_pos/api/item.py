@@ -31,6 +31,19 @@ def _get_scan_item(item_code: str) -> dict | None:
 	return frappe.db.get_value("Item", item_code, ITEM_SCAN_FIELDS, as_dict=True)
 
 
+def _as_serial_no_string(value) -> str:
+	"""Normalise a serial-no value to the newline-separated string ERPNext expects.
+
+	Callers hand us None (item has no serials), a single serial as a string, or a
+	list of serials.
+	"""
+	if not value:
+		return ""
+	if isinstance(value, str):
+		return value
+	return "\n".join(str(v) for v in value)
+
+
 def _update_item_info(scan_result: dict[str, str | None]) -> dict[str, str | None]:
 	if item_code := scan_result.get("item_code"):
 		if item_info := frappe.get_cached_value(
@@ -130,8 +143,10 @@ def scan_barcode(search_value: str, search_itemname:bool) -> Dict[str, Any]:
         return item_data
 
     # If nothing is found
-    frappe.local.response["http_status_code"] = 404  # Not Found
-    return "No matching item found. Please check the barcode, serial number, batch number, or item code.",
+    frappe.throw(
+        _("No matching item found. Please check the barcode, serial number, batch number, or item code."),
+        frappe.DoesNotExistError,
+    )
 
 
 @frappe.whitelist()
@@ -233,7 +248,7 @@ def items(pos_profile, search_value, customer):
         "cost_center": pos_profile_doc.cost_center,
         "tax_category": pos_profile_doc.tax_category,
         "batch_no": selected_batch_no,
-        "serial_no":"\n".join(selected_serial_no),
+        "serial_no": _as_serial_no_string(selected_serial_no),
         "warehouse": pos_profile_doc.warehouse,
         "is_pos": 1,
     }

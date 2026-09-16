@@ -266,6 +266,8 @@ const props = defineProps({
     },
 });
 
+const SERIAL_NO_PAGE_LENGTH = 500;
+
 const serialNoQty = computed(() => props.items?.serial_no_options?.length || 0);
 
 const get_batch = createResource({
@@ -290,7 +292,9 @@ const get_serial_no = createListResource({
         warehouse: store.posProfileData.warehouse,
         item_code: props.items.item_code,
     },
-    pageLength: Number.MAX_VALUE * 2,
+    // A single POS line never needs more serials than this; fetching the whole
+    // Serial No table per cart row was the single worst query in the app.
+    pageLength: SERIAL_NO_PAGE_LENGTH,
     onSuccess(data) {            
         props.items.serial_no_options = data.map((serial_no) => ({
             label: serial_no.serial_no,
