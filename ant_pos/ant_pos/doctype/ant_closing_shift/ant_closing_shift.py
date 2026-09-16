@@ -22,14 +22,23 @@ class AntClosingShift(Document):
         self.taxes = []
         self.grand_total = 0
         self.net_total = 0
-        self.total_quantity = 0 
-        tax_map = {}
+        self.total_quantity = 0
 
-        pos_transactions = self.get_pos_transactions()
-        if pos_transactions:
-            self.process_pos_transactions(pos_transactions, tax_map)
+        for tx in self.get_pos_transactions():
+            self.append("pos_transactions", {
+                "pos_invoice": tx["pos_invoice"],
+                "customer": tx["customer"],
+                "net_total": tx["net_total"],
+                "posting_date": tx["posting_date"],
+                "grand_total": tx["grand_total"],
+                "return_against": tx["return_against"],
+                "is_return": tx["is_return"],
+            })
+            self.grand_total += tx["grand_total"] or 0
+            self.net_total += tx["net_total"] or 0
+            self.total_quantity += tx["total_qty"] or 0
 
-        for tax_row in tax_map.values():
+        for tax_row in self.get_pos_taxes():
             self.append("taxes", tax_row)
 
         for payment in self.get_pos_payments():
@@ -52,18 +61,49 @@ class AntClosingShift(Document):
         return shift
 
     def get_pos_transactions(self):
+        """Invoices in this shift, one row each."""
         return frappe.db.sql("""
             SELECT
                 si.name AS pos_invoice, si.customer, si.net_total, si.total_qty,
                 si.posting_date, si.grand_total, si.return_against, si.is_return,
-                si.outstanding_amount, st.account_head, st.charge_type, st.rate,
-                st.tax_amount, st.description
+                si.outstanding_amount
             FROM
                 `tabSales Invoice` si
-            LEFT JOIN
-                `tabSales Taxes and Charges` st ON si.name = st.parent
             WHERE
                 si.custom_ant_opening = %s AND si.docstatus = 1
+        """, (self.ant_opening_shift,), as_dict=True)
+
+    def get_pos_taxes(self):
+        """Tax totals for this shift, grouped by account head and effective rate.
+
+        This used to ride along on the invoice query as a LEFT JOIN, fanning out
+        to one row per (invoice x tax line) and then being de-duplicated in
+        Python. The grouping is unchanged: the rate is still derived per invoice
+        and rows are still keyed on (account_head, rate), so a shift containing
+        both 5% and 18% lines on one account head still yields two rows.
+        """
+        return frappe.db.sql("""
+            SELECT
+                account_head,
+                rate,
+                SUM(amount) AS amount
+            FROM (
+                SELECT
+                    st.account_head AS account_head,
+                    ROUND(st.tax_amount / NULLIF(si.net_total, 0) * 100, 2) AS rate,
+                    st.tax_amount AS amount
+                FROM
+                    `tabSales Taxes and Charges` st
+                JOIN
+                    `tabSales Invoice` si ON si.name = st.parent
+                WHERE
+                    si.custom_ant_opening = %s
+                    AND si.docstatus = 1
+                    AND st.tax_amount != 0
+                    AND st.account_head IS NOT NULL
+            ) per_invoice
+            GROUP BY
+                account_head, rate
         """, (self.ant_opening_shift,), as_dict=True)
 
     def get_pos_payments(self):
@@ -72,45 +112,6 @@ class AntClosingShift(Document):
             filters={"reference_no": self.ant_opening_shift, "docstatus": 1},
             fields=["name as payment_entry","party as customer", "posting_date", "paid_amount", "payment_type"]
         )
-
-    def process_pos_transactions(self, pos_transactions, tax_map):
-        seen_invoices = set()
-
-        for tx in pos_transactions:
-            invoice_name = tx["pos_invoice"]
-
-            if invoice_name not in seen_invoices:
-                seen_invoices.add(invoice_name)
-                self.append("pos_transactions", {
-                    "pos_invoice": tx["pos_invoice"],
-                    "customer": tx["customer"],
-                    "net_total": tx["net_total"],
-                    "posting_date": tx["posting_date"],
-                    "grand_total": tx["grand_total"],
-                    "return_against": tx["return_against"],
-                    "is_return": tx["is_return"],
-                })
-
-                self.grand_total += tx["grand_total"] or 0
-                self.net_total += tx["net_total"] or 0
-                self.total_quantity += tx["total_qty"] or 0
-
-            if tx.get("account_head") and tx["tax_amount"]:
-                try:
-                    rate_percentage = round((tx["tax_amount"] / tx["net_total"]) * 100, 2) if tx["net_total"] else 0
-                except ZeroDivisionError:
-                    rate_percentage = 0
-
-                key = (tx["account_head"], rate_percentage)
-
-                if key in tax_map:
-                    tax_map[key]["amount"] += tx["tax_amount"] or 0
-                else:
-                    tax_map[key] = {
-                        "account_head": tx["account_head"],
-                        "rate": rate_percentage,
-                        "amount": tx["tax_amount"] or 0,
-                    }
 
     def before_submit(self):
         if not self.ant_opening_shift:

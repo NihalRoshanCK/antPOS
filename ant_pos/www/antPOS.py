@@ -10,7 +10,6 @@ no_cache = 1
 
 
 def get_context():
-	frappe.db.commit()
 	context = frappe._dict()
 	context.boot = get_boot()
 	return context

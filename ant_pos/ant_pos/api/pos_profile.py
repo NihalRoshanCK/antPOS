@@ -45,25 +45,24 @@ def get_pos_profiles_by_company():
         ignore_permissions=False
     )
 
+    if not pos_profiles:
+        return {}
+
+    # One query for every profile's payment methods rather than one per profile.
+    modes_by_profile = {}
+    for row in frappe.get_all(
+        "POS Payment Method",
+        filters={"parent": ["in", [p["name"] for p in pos_profiles]]},
+        fields=["parent", "mode_of_payment"],
+        order_by="idx asc",
+    ):
+        modes_by_profile.setdefault(row["parent"], []).append(row["mode_of_payment"])
+
     company_profiles = {}
-
     for profile in pos_profiles:
-        company = profile["company"]
-        pos_name = profile["name"]
-
-        if company not in company_profiles:
-            company_profiles[company] = []
-
-        # Fetch modes of payment (this is safe as it's a child table or linked with parent)
-        modes_of_payment = frappe.get_all(
-            "POS Payment Method",
-            filters={"parent": pos_name},
-            fields=["mode_of_payment"],
-        )
-
-        company_profiles[company].append({
-            "name": pos_name,
-            "modes_of_payment": [mop["mode_of_payment"] for mop in modes_of_payment],
+        company_profiles.setdefault(profile["company"], []).append({
+            "name": profile["name"],
+            "modes_of_payment": modes_by_profile.get(profile["name"], []),
         })
 
     return company_profiles
