@@ -8,7 +8,8 @@
         ]"
         aria-label="Payment"
     >
-        <header class="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-outline-gray-1 px-4">
+        <!-- On mobile the top bar already names the screen and the invoice. -->
+        <header v-if="!compact" class="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-outline-gray-1 px-4">
             <h2 class="text-base font-semibold text-ink-gray-9">
                 {{ invoiceStore.invoice.is_return ? 'Refund' : 'Payment' }}
             </h2>

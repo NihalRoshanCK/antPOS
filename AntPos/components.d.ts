@@ -8,6 +8,8 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    BottomSheet: typeof import('./src/components/mobile/BottomSheet.vue')['default']
+    CartBar: typeof import('./src/components/mobile/CartBar.vue')['default']
     CloseShift: typeof import('./src/components/Dialog/CloseShift.vue')['default']
     Customer: typeof import('./src/components/Customer.vue')['default']
     CustomerBar: typeof import('./src/components/pos/CustomerBar.vue')['default']
@@ -15,11 +17,15 @@ declare module 'vue' {
     Held: typeof import('./src/components/Dialog/Held.vue')['default']
     ImageUploader: typeof import('./src/components/Controls/ImageUploader.vue')['default']
     Invoice: typeof import('./src/components/Invoice.vue')['default']
+    InvoicePicker: typeof import('./src/components/pos/InvoicePicker.vue')['default']
     Item: typeof import('./src/components/Item.vue')['default']
     ItemCard: typeof import('./src/components/pos/ItemCard.vue')['default']
     ItemCatalog: typeof import('./src/components/pos/ItemCatalog.vue')['default']
     ItemDetail: typeof import('./src/components/ItemDetail.vue')['default']
     ItemSelector: typeof import('./src/components/ItemSelector.vue')['default']
+    MobileTabBar: typeof import('./src/components/mobile/MobileTabBar.vue')['default']
+    MobileTopBar: typeof import('./src/components/mobile/MobileTopBar.vue')['default']
+    MoreSheet: typeof import('./src/components/mobile/MoreSheet.vue')['default']
     Navbar: typeof import('./src/components/Navbar.vue')['default']
     OpenShift: typeof import('./src/components/Dialog/Open-Shift.vue')['default']
     Payment: typeof import('./src/components/Payment.vue')['default']

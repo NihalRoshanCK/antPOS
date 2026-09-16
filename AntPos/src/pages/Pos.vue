@@ -8,11 +8,13 @@
 import { onBeforeMount, onUnmounted } from 'vue'
 import { useInvoiceStore } from '@/stores/pos'
 import { useBreakpoint } from '@/composables/useBreakpoint'
+import { useInvoiceRecalc } from '@/composables/useInvoiceRecalc'
 import DesktopLayout from '@/layouts/DesktopLayout.vue'
 import MobileLayout from '@/layouts/MobileLayout.vue'
 
 const invoiceStore = useInvoiceStore()
 const { isDesktop } = useBreakpoint()
+useInvoiceRecalc()
 
 onBeforeMount(() => {
   invoiceStore.invoiceResource.fetch()

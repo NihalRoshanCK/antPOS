@@ -1,22 +1,56 @@
 <template>
-  <!-- Stacked: scan on top, cart in the middle, totals and Pay at the bottom.
-       While paying, the payment panel takes the whole screen. -->
+  <!-- Phones: one task per screen.
+         items   -> customer, scan/search and the item list, with a cart bar
+         cart    -> lines, totals and Pay (top bar has the way back)
+         payment -> the payment panel, full screen -->
   <div class="flex h-full w-full min-h-0 select-none flex-col bg-surface-white">
     <Invoice v-if="paying" compact />
+
+    <ItemDetail v-else-if="mobile.view === 'cart'" compact />
+
     <template v-else>
+      <CustomerBar
+        v-model:customer="invoiceStore.invoiceCustomer"
+        @create="loadComponent('CustomerForm')"
+      />
       <ItemSelector compact />
-      <ItemDetail compact />
+      <CartBar />
     </template>
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, inject, watch } from 'vue'
 import ItemSelector from '@/components/ItemSelector.vue'
 import ItemDetail from '@/components/ItemDetail.vue'
 import Invoice from '@/components/Invoice.vue'
+import CustomerBar from '@/components/pos/CustomerBar.vue'
+import CartBar from '@/components/mobile/CartBar.vue'
 import { useInvoiceStore } from '@/stores/pos'
+import { useMobileView } from '@/stores/mobile'
 
 const invoiceStore = useInvoiceStore()
+const mobile = useMobileView()
+const { loadComponent } = inject('dynamicComponent')
+
 const paying = computed(() => Boolean(invoiceStore.invoice?.docstatus))
+
+// An empty cart has nothing to show: after a sale is submitted or cancelled,
+// or the last line is removed, return to the item list.
+watch(
+  () => invoiceStore.items.length,
+  (count) => {
+    if (!count && !paying.value) mobile.showItems()
+  }
+)
+
+// A held or returned invoice loaded from a dialog should be reviewed first.
+watch(
+  () => invoiceStore.invoice?.name,
+  (name, previous) => {
+    if (name && previous && name !== previous && !String(name).startsWith('new-') && invoiceStore.items.length) {
+      mobile.showCart()
+    }
+  }
+)
 </script>

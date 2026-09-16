@@ -1,173 +1,191 @@
 <template>
-    <div class="w-full h-[94%] flex p-2 gap-4">
-        <div class="w-full h-full ">
-            <div class="w-full h-full flex gap-6 ">
-                <div class="w-[65%] h-full">
-                    <div class="w-full h-full shadow-2xl p-4 rounded">
-                        <div class="h-[6%]">
-                            <Customer  v-model:customer="paymentStore.paymentCustomer" />
-                        </div>
-                        <div class="w-full h-[94%] flex flex-col gap-4">
-                            <TextInput type="text" v-model="searchQuery" placeholder="Search">
-                                <template #prefix>
-                                    <FeatherIcon class="w-4" name="search" />
-                                </template>
-                            </TextInput>
-                            <div class="flex justify-evenly text-center bg-surface-gray-7 text-ink-white rounded-md p-3 h-[6%] items-center">
-                                <div class="w-[4%]">
-                                    <input name="name" id="id" type="checkbox" :checked="selectAll"
-                                    class="text-ink-gray-9 rounded-sm focus:outline-none focus:ring-0 focus:border-transparent" @change="toggleAllSelection" />
-                                </div>
-                                <p class="w-[19%]">Name</p>
-                                <p class="w-[19%]">Customer</p>
-                                <p class="w-[19%]">Amount</p>
-                                <p class="w-[19%]">Outstanding</p>
-                            </div>
-                            <div class="h-[92%] overflow-y-scroll rounded scrollbar-hide flex flex-col  gap-3 text-center">
-                                <div v-if="filteredInvoices.length === 0" class="flex justify-center items-center h-full">
-                                    <p class="text-ink-gray-5">No invoices found</p>
-                                </div>
-                                <div v-for="invoice in filteredInvoices" :key="invoice.name" class=" w-full ">
-                                    <div class="flex justify-evenly items-center rounded text-center bg-surface-blue-1 text-ink-gray-8 p-2.5 ">
-                                        <div class="w-[4%] ">
-                                            <input name="name" id="id" type="checkbox" :checked="invoice.selected" 
-                                            class="text-ink-gray-9 rounded-sm focus:outline-none focus:ring-0 focus:border-transparent" @change="toggleSelection(invoice)" />
-                                        </div>
-                                        <p class="w-[19%]">{{ invoice.name }}</p>
-                                        <p class="w-[19%]">{{ invoice.customer }}</p>
-                                        <p class="w-[19%]">{{ invoice.grand_total }}</p>
-                                        <p class="w-[19%]">{{ invoice.outstanding_amount }}</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="flex justify-between items-center mt-4">
-                                <div class="flex gap-2">
-                                    <Button
-                                        v-for="size in [20, 100, 500, 2500]"
-                                        :key="size"
-                                        :variant="selectedPageLength === size ? 'solid' : 'ghost'"
-                                        @click="setPageLength(size)"
-                                        :ref_for="true"
-                                        :loading="invoices.loading"
-                                        :disabled="invoices.loading"
-                                        :link="null"
-                                    >
-                                        {{ size }}
-                                    </Button>
+    <!-- Desktop: invoices and the payment form side by side, each scrolling.
+         Phones: one scrolling column with the submit button pinned below. -->
+    <div class="flex h-full w-full min-h-0 flex-col bg-surface-gray-1 lg:flex-row lg:gap-3 lg:p-3">
+        <div class="min-h-0 flex-1 overflow-y-auto pos-scroll lg:flex lg:min-w-0 lg:flex-row lg:gap-3 lg:overflow-hidden">
 
-                                </div>
-                                <Button 
-                                    @click="invoices.next()" 
-                                    variant="solid"
-                                    :loading="invoices.loading"
-                                    :disabled="invoices.loading"
-                                
+            <!-- Customer and invoices -->
+            <section class="flex flex-col bg-surface-white lg:min-h-0 lg:min-w-0 lg:flex-1 lg:overflow-hidden lg:rounded-xl lg:border lg:border-outline-gray-1 lg:shadow-sm">
+                <div class="space-y-3 border-b border-outline-gray-1 p-3">
+                    <Customer v-model:customer="paymentStore.paymentCustomer" />
+                    <TabButtons
+                        class="w-full"
+                        :buttons="[
+                            { label: 'Settle invoices', value: 'credit' },
+                            { label: 'Advance payment', value: 'advanced' },
+                        ]"
+                        v-model="currentTab"
+                    />
+                    <TextInput
+                        v-if="currentTab === 'credit' && paymentStore.paymentCustomer?.name"
+                        type="text"
+                        size="md"
+                        variant="subtle"
+                        v-model="searchQuery"
+                        placeholder="Search invoices"
+                    >
+                        <template #prefix><FeatherIcon class="w-4 text-ink-gray-5" name="search" /></template>
+                    </TextInput>
+                </div>
+
+                <div class="p-3 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:pos-scroll">
+                    <div v-if="!paymentStore.paymentCustomer?.name" class="px-4 py-10 text-center">
+                        <p class="text-base font-medium text-ink-gray-8">Choose a customer</p>
+                        <p class="mt-1 text-sm text-ink-gray-5">
+                            {{ currentTab === 'credit' ? 'Their unpaid invoices will appear here.' : 'Then enter the amount they are paying in advance.' }}
+                        </p>
+                    </div>
+
+                    <template v-else-if="currentTab === 'credit'">
+                        <label
+                            v-if="filteredInvoices.length"
+                            class="mb-2 flex cursor-pointer items-center gap-3 px-3 py-1 text-sm text-ink-gray-6"
+                        >
+                            <input
+                                type="checkbox"
+                                class="h-4 w-4 rounded-sm text-ink-gray-9 focus:ring-0"
+                                :checked="selectAll"
+                                @change="toggleAllSelection"
+                            />
+                            <span class="flex-1">Select all</span>
+                            <span class="num">{{ filteredInvoices.length }} unpaid</span>
+                        </label>
+
+                        <ul v-if="filteredInvoices.length" class="space-y-2">
+                            <li v-for="invoice in filteredInvoices" :key="invoice.name">
+                                <label
+                                    class="flex min-h-[3.75rem] cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors"
+                                    :class="invoice.selected
+                                        ? 'border-outline-gray-4 bg-surface-gray-1'
+                                        : 'border-outline-gray-1 hover:border-outline-gray-3'"
                                 >
-                                    Load more
+                                    <input
+                                        type="checkbox"
+                                        class="h-4 w-4 shrink-0 rounded-sm text-ink-gray-9 focus:ring-0"
+                                        :checked="invoice.selected"
+                                        @change="toggleSelection(invoice)"
+                                    />
+                                    <span class="min-w-0 flex-1">
+                                        <span class="num block truncate text-sm font-medium text-ink-gray-9">{{ invoice.name }}</span>
+                                        <span class="num block text-sm text-ink-gray-5">
+                                            of {{ Number(invoice.grand_total || 0).toFixed(2) }}
+                                        </span>
+                                    </span>
+                                    <span class="shrink-0 text-right">
+                                        <span class="num block text-base font-semibold text-ink-gray-9">
+                                            {{ Number(invoice.outstanding_amount || 0).toFixed(2) }}
+                                        </span>
+                                        <span class="block text-xs text-ink-gray-5">due</span>
+                                    </span>
+                                </label>
+                            </li>
+                        </ul>
+
+                        <div v-else-if="!invoices.loading" class="px-4 py-10 text-center">
+                            <p class="text-sm text-ink-gray-5">This customer has no unpaid invoices.</p>
+                        </div>
+
+                        <div v-if="invoices.hasNextPage && filteredInvoices.length" class="pt-3 text-center">
+                            <Button variant="ghost" :loading="invoices.loading" @click="invoices.next()">Load more</Button>
+                        </div>
+                    </template>
+
+                    <p v-else class="px-1 text-sm text-ink-gray-6">
+                        Record money received from
+                        <span class="font-medium text-ink-gray-8">{{ paymentStore.paymentCustomer.name }}</span>
+                        ahead of an invoice. It is available to use against their future sales.
+                    </p>
+                </div>
+            </section>
+
+            <!-- Payment -->
+            <section class="border-t border-outline-gray-1 bg-surface-white lg:flex lg:min-h-0 lg:w-[380px] lg:shrink-0 lg:flex-col lg:overflow-y-auto lg:rounded-xl lg:border lg:shadow-sm">
+                <div class="space-y-4 p-3">
+                    <div v-if="currentTab === 'credit'" class="rounded-lg bg-surface-gray-1 p-3">
+                        <FormControl
+                            type="number"
+                            size="md"
+                            variant="subtle"
+                            placeholder="0.00"
+                            label="Amount to settle"
+                            v-model="paymentStore.payment.paymentAmount"
+                            @change="calculateAmountTotal"
+                        />
+                        <p class="mt-1 text-xs text-ink-gray-5">Filled from the invoices you select. You can lower it for a part payment.</p>
+                    </div>
+
+                    <div>
+                        <h3 class="mb-2 text-sm font-medium text-ink-gray-7">Payment method</h3>
+                        <div class="space-y-2">
+                            <div v-for="(mode, index) in modes" :key="mode.mode_of_payment" class="flex items-end gap-2">
+                                <div class="min-w-0 flex-1">
+                                    <FormControl
+                                        type="number"
+                                        size="md"
+                                        variant="subtle"
+                                        placeholder="0.00"
+                                        :label="mode.mode_of_payment"
+                                        v-model="mode.amount"
+                                    />
+                                </div>
+                                <Button
+                                    v-if="currentTab === 'credit'"
+                                    variant="subtle"
+                                    size="md"
+                                    class="shrink-0"
+                                    @click="changemode(index)"
+                                >
+                                    Use full amount
                                 </Button>
                             </div>
                         </div>
                     </div>
-                </div>
-                <div class="w-[35%] h-full">
-                    <div class="w-full h-full shadow-2xl p-4 rounded flex flex-col justify-between">
-    
-                        <div class="flex flex-col gap-4">
-                            <div class="flex flex-col gap-6 h-fit">
-                                <div class="flex justify-evenly bg-surface-gray-7 text-ink-white rounded-md p-3">
-                                    <p>Payment Total</p>
-                                </div>
-                                    <TabButtons
-                                        class=" flex "
-                                        :buttons="[
-                                        {
-                                            label: 'Credit',
-                                            value: 'credit',
-                                        },
-                                        {
-                                            label: 'Advanced',
-                                            value: 'advanced',
-                                        },
-                                        ]"
-                                        v-model="currentTab"
-                                    />
-                                <FormControl
-                                :type="'number'"
-                                :ref_for="true"
-                                size="sm"
-                                variant="subtle"
-                                placeholder="0"
-                                :disabled="false"
-                                label="Credit To Redeem"
-                                v-model="paymentStore.payment.paymentAmount"
-                                @change="calculateAmountTotal"
-                                />
-                            </div>
-                            <div>
-                                <p class="text-2xl font-bold">Payment Method</p>
-                                <div
-                                    class="grid grid-cols-2 gap-4 p-2 items-center"
-                                    v-for="(mode, index) in modes"
-                                    :key="index"
-                                >
-                                    <FormControl
-                                        type="number"
-                                        size="sm"
-                                        variant="subtle"
-                                        placeholder="0"
-                                        :disabled="false"
-                                        :label="`${mode.mode_of_payment}:`"
-                                        v-model="mode.amount"
-                                    />
-                                    <Button
-                                        class="w-full h-full"
-                                        :variant="'solid'"
-                                        theme="gray"
-                                        size="lg"
-                                        label="Button"
-                                        :loading="false"
-                                        :disabled="false"
-                                        @click="changemode(index)"
-                                    >
-                                        {{ mode.mode_of_payment }}
-                                    </Button>
-                                </div>
-                                <FormControl
-                                    type="number"
-                                    size="sm"
-                                    variant="subtle"
-                                    placeholder="0"
-                                    :disabled="true"
-                                    v-model="paymentStore.payment.diff"
-                                    label="Difference:"
-                                />
-                            </div>
-                        </div>
-                        <div class="text-right">
-                            <Button
-                                class="w-full p-2 h-full"
-                                :variant="'solid'"
-                                theme="gray"
-                                size="lg"
-                                label="Button"
-                                :loading="false"
-                                @click="createpayment"
-                                :disabled="!hasSelectedInvoice"
-                                >
-                                Submit
-                                
-                            </Button>
-                        </div>
+
+                    <div
+                        v-if="currentTab === 'credit' && Math.abs(Number(paymentStore.payment.diff || 0)) >= 0.005"
+                        class="flex items-center justify-between rounded-lg bg-surface-gray-1 px-3 py-2 text-sm"
+                    >
+                        <span class="text-ink-gray-6">
+                            {{ Number(paymentStore.payment.diff) > 0 ? 'Not yet allocated' : 'More than selected' }}
+                        </span>
+                        <span class="num font-semibold" :class="Number(paymentStore.payment.diff) > 0 ? 'text-ink-amber-3' : 'text-ink-red-4'">
+                            {{ Math.abs(Number(paymentStore.payment.diff)).toFixed(2) }}
+                        </span>
                     </div>
                 </div>
-            </div>
+
+                <div class="hidden border-t border-outline-gray-1 p-3 lg:mt-auto lg:block">
+                    <button
+                        type="button"
+                        class="inline-flex h-10 w-full items-center justify-center rounded-md text-lg font-semibold transition-colors focus:outline-none focus-visible:ring focus-visible:ring-outline-green-2 disabled:cursor-not-allowed"
+                        :class="hasSelectedInvoice ? 'bg-surface-green-3 text-ink-white hover:bg-green-700' : 'bg-surface-gray-2 text-ink-gray-4'"
+                        :disabled="!hasSelectedInvoice"
+                        @click="createpayment"
+                    >
+                        Record payment
+                    </button>
+                </div>
+            </section>
+        </div>
+
+        <!-- Phones: the action stays in reach while the list scrolls. -->
+        <div class="shrink-0 border-t border-outline-gray-1 bg-surface-white p-3 lg:hidden">
+            <button
+                type="button"
+                class="inline-flex h-12 w-full items-center justify-center rounded-md text-lg font-semibold transition-colors focus:outline-none focus-visible:ring focus-visible:ring-outline-green-2 disabled:cursor-not-allowed"
+                :class="hasSelectedInvoice ? 'bg-surface-green-3 text-ink-white active:bg-green-800' : 'bg-surface-gray-2 text-ink-gray-4'"
+                :disabled="!hasSelectedInvoice"
+                @click="createpayment"
+            >
+                Record payment
+            </button>
         </div>
     </div>
 </template>
 
 <script setup>
 
-import { createListResource, TextInput, FormControl, FeatherIcon, createResource, TabButtons } from 'frappe-ui';
+import { Button, createListResource, TextInput, FormControl, FeatherIcon, createResource, TabButtons } from 'frappe-ui';
 import { ref, computed, watch, onBeforeMount, onMounted } from 'vue';
 import Customer from '@/components/Customer.vue';
 import { createToast } from '@/utils';

@@ -3,11 +3,11 @@
         :class="[
             'flex flex-col min-h-0 bg-surface-white',
             compact
-                ? 'shrink-0 border-b border-outline-gray-1'
+                ? 'flex-1'
                 : 'w-[38%] min-w-[300px] max-w-[520px] shrink-0 rounded-xl border border-outline-gray-1 shadow-sm overflow-hidden',
         ]"
     >
-        <div class="flex items-center gap-2 p-3" :class="compact ? '' : 'border-b border-outline-gray-1'">
+        <div class="flex items-center gap-2 border-b border-outline-gray-1 p-3">
             <div class="min-w-0 flex-1">
                 <FormControl
                     ref="searchInput"
@@ -24,27 +24,18 @@
                     </template>
                 </FormControl>
             </div>
-            <Button
-                v-if="compact && showList"
-                variant="subtle"
-                size="md"
-                label="Browse items"
-                :disabled="invoiceStore.invoice.is_return"
-                @click="browseOpen = true"
-            >
-                <template #icon><LucideLayoutGrid class="h-4 w-4" /></template>
-            </Button>
         </div>
 
-        <!-- Desktop: the list lives in the pane. -->
+        <!-- The list lives in the pane on desktop and is the main screen on phones. -->
         <ItemCatalog
-            v-if="!compact && showList"
+            v-if="showList"
             :query="debounceSearch"
+            :dense="compact"
             :disabled="Boolean(invoiceStore.invoice.is_return)"
             @select="addFromList"
         />
 
-        <div v-else-if="!compact" class="px-6 py-10 text-center">
+        <div v-else class="px-6 py-10 text-center">
             <svg class="mx-auto text-ink-gray-3" width="34" height="34" viewBox="0 0 24 24"
                  fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
                 <path d="M3 5v14M7 5v14M11 5v14M15 5v14M19 5v14" />
@@ -59,45 +50,12 @@
             </p>
         </div>
 
-        <!-- Phones: the list opens in a sheet so the cart keeps the screen. It
-             stays open, so several items can be added in a row. -->
-        <!-- paddingTop replaces position:'top', which starts the panel 20vh down
-             and pushed the list footer off short phone screens. -->
-        <Dialog v-if="compact && showList" v-model="browseOpen" :options="{ title: 'Add items', size: 'xl', paddingTop: '1rem' }">
-            <template #body-content>
-                <div class="-mx-4 flex h-[min(72vh,calc(100dvh-13rem))] flex-col">
-                    <div class="px-4 pb-2">
-                        <FormControl
-                            type="text"
-                            v-model="browseSearch"
-                            placeholder="Search items"
-                            size="md"
-                            variant="subtle"
-                        >
-                            <template #prefix>
-                                <FeatherIcon class="w-4 text-ink-gray-5" name="search" />
-                            </template>
-                        </FormControl>
-                        <p class="mt-2 text-xs text-ink-gray-5">
-                            {{ invoiceStore.items.length }} {{ invoiceStore.items.length === 1 ? 'line' : 'lines' }} in the cart
-                        </p>
-                    </div>
-                    <ItemCatalog
-                        :query="browseSearch"
-                        dense
-                        :disabled="Boolean(invoiceStore.invoice.is_return)"
-                        @select="addFromList"
-                    />
-                </div>
-            </template>
-        </Dialog>
     </section>
 </template>
 
 <script setup>
-import { Button, Dialog, FormControl, FeatherIcon, createResource } from 'frappe-ui';
-import { computed, ref, onMounted } from 'vue';
-import LucideLayoutGrid from '~icons/lucide/layout-grid';
+import { FormControl, FeatherIcon, createResource } from 'frappe-ui';
+import { computed, ref, onMounted, onUnmounted } from 'vue';
 import ItemCatalog from '@/components/pos/ItemCatalog.vue';
 import { createToast } from '@/utils';
 import { showToast } from '@/utils'
@@ -106,17 +64,13 @@ import emitter from '@/utils/emitter';
 import { useInvoiceStore } from '@/stores/pos';
 
 defineProps({
-    // Mobile stacks the scan box above the cart; the item list moves into a
-    // sheet opened from the Browse button.
+    // Phones: no card frame; the list fills the screen above the cart bar.
     compact: { type: Boolean, default: false },
 });
 
 const store = usePosProfileStore();
 const debounceSearch = ref('');
 const invoiceStore = useInvoiceStore()
-
-const browseOpen = ref(false);
-const browseSearch = ref('');
 
 // POS Profile > antPOS Item List > Show Item List. Defaults on when the field
 // has not been installed yet.
@@ -171,10 +125,6 @@ const addFromList = (item) => {
             const line = invoiceStore.items.find((l) => l.item_code === item.item_code && !l.is_return);
             if (line) line.qty = Number(line.qty || 0) + extra;
         });
-};
-
-const remove_invoice = ( include_customer = false ) => {
-    invoiceStore.unmountAndRefresh(include_customer)
 };
 
 const searchResource = createResource({
@@ -327,155 +277,12 @@ const addNewLine = async (data) => {
     debounceSearch.value = '';
 };
 
-// Totals are recalculated on every cart edit (scan, qty, serial, batch,
-// discount). If that call is failing, every edit used to raise another
-// "Internal Server Error" toast. Show one explanatory message, then stay quiet
-// while the same failure keeps repeating.
-const RECALC_ERROR_COOLDOWN_MS = 60 * 1000;
-let lastRecalcError = { key: '', at: 0 };
-
-const notifyRecalcError = (error) => {
-    let serverMessage = Array.isArray(error?.messages) ? error.messages[0] : error?.messages;
-    // frappe-ui substitutes this literal when the server crashed without a
-    // message; it tells the cashier nothing.
-    if (serverMessage === 'Internal Server Error') serverMessage = '';
-    const key = serverMessage || error?.exc_type || error?.message || 'unknown';
-    const now = Date.now();
-    if (key === lastRecalcError.key && now - lastRecalcError.at < RECALC_ERROR_COOLDOWN_MS) {
-        lastRecalcError.at = now;
-        return;
-    }
-    lastRecalcError = { key, at: now };
-
-    createToast({
-        title: 'Totals could not be updated',
-        // A validation message from the server is actionable; a crash is not,
-        // so say what it means for the cashier instead of echoing the status.
-        message: serverMessage
-            || 'The server failed to calculate this invoice. Items are kept, but totals and taxes may be wrong. Ask your administrator to check the server error log.',
-        icon: 'alert-triangle',
-        iconClasses: 'bg-surface-red-5 text-ink-white rounded-md p-px',
-        position: 'top-center',
-        timeout: 8,
-    });
-};
-
-// Fields a totals recalculation must never overwrite: identity and document
-// state belong to the saved draft, and items are merged separately below.
-const RECALC_SKIP_KEYS = new Set([
-    'items', 'name', 'docstatus', 'doctype', 'status', 'owner', 'creation',
-    'modified', 'modified_by', 'amended_from', '__islocal', '__unsaved',
-]);
-
-const runDocMethod = createResource({
-    url: 'ant_pos.ant_pos.api.sales_invoice.calculate_invoice_item_taxes',
-    method: 'POST',
-    auto: false,
-    debounce: 500,
-    makeParams(params) {
-        return {
-            ...params
-        };   
-    },
-    transform(data){
-        if (data && data.items && data.items.length > 0) {
-            data.items.forEach(item => {
-                if (item.serial_no) {
-                    item.selected_serial_no = item.serial_no.trim().split('\n').map(serial => ({
-                        label: serial,
-                        value: serial
-                    }));
-                    
-                }
-                if (item.batch_no) {
-                    
-                    item.selected_batch_no = {
-                        label: item.batch_no,
-                        value: item.batch_no
-                    };
-                } else {
-                    item.selected_batch_no = null;
-                }
-                
-            });
-            
-        }
-        return data
-    },
-
-    onSuccess(data){
-        // A recalculation that lands after Pay is stale: the draft is already
-        // saved and is the source of truth. Applying it used to reset
-        // docstatus/name, which closed the payment panel and detached the
-        // screen from the saved draft (the next Pay then created a duplicate).
-        if (invoiceStore.invoice.docstatus) return;
-
-        for (const key in data) {
-            if (RECALC_SKIP_KEYS.has(key)) continue;
-
-            const existingValue = invoiceStore.invoice[key];
-            const newValue = data[key];
-
-            // Check for changes or new keys
-            if (JSON.stringify(existingValue) !== JSON.stringify(newValue)) {
-                invoiceStore.invoice[key] = newValue;
-            }
-        }
-        data.items.forEach(n => {
-            const e = invoiceStore.items.find(b => b.custom_id === n.custom_id);
-            if (!e) return;
-            for (const k in n) {
-                if (k !== 'custom_id' && e[k] !== n[k]) {
-                    if (JSON.stringify(e[k]) !== JSON.stringify(n[k])) {
-                        e[k] = n[k];
-                    }
-                }
-            }
-        });
-    },
-    onError(error) {
-        notifyRecalcError(error);
-    }
+onMounted(() => {
+    emitter.on('fetchSearchResource', fetchSearchResource);
 });
 
+onUnmounted(() => {
+    emitter.off('fetchSearchResource', fetchSearchResource);
+});
 
-const calculateAmountTotal = async () => {
-    if (invoiceStore.items.length === 0 ) {
-        remove_invoice(false);
-        return;
-    }
-    await runDocMethod.fetch({doc: JSON.stringify({
-        ...invoiceStore.invoice,
-        doctype: 'Sales Invoice',
-        is_pos: invoiceStore.invoice.is_return ? invoiceStore.invoice.is_pos : 1,
-        pos_profile: store.posProfileData.name,
-        company: store.posProfileData.company,
-        selling_price_list: store.posProfileData.selling_price_list,
-        items: invoiceStore.items,
-        customer: invoiceStore.invoiceCustomer?.name,
-        update_stock: 1,
-        additional_discount_percentage: invoiceStore.invoice._additional_discount_percentage ? Number(invoiceStore.invoice._additional_discount_percentage) : 0 ,
-        discount_amount: invoiceStore.invoice._discount_amount ? Number(invoiceStore.invoice._discount_amount) : 0,
-        base_total: invoiceStore.invoice.base_total || 0,
-        custom_ant_opening: store.openingShift.name,
-        apply_discount_on: store.posProfileData.apply_discount_on,
-    })});
-}
-
-
-
-onMounted(() => {
-    emitter.on('fetchSearchResource', (params) => {
-        searchResource.fetch(params)
-    });
-
-    emitter.on('calctotal', () => {
-        calculateAmountTotal();
-    });
-    
-    emitter.on('remove_invoice', (include_customer) => {
-        remove_invoice(include_customer);
-    });
-})
-
-</script> 
+</script>

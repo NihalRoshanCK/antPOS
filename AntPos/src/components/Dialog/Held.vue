@@ -1,73 +1,39 @@
 <template>
-    <Dialog :options="{ size: '3xl' }" v-model="dialogVisible"  class="rounded-b">
-        <template #body-title>
-            <p class="text-3xl">Select Invoice</p>
-        </template>
+    <Dialog :options="{ title: 'Held sales', size: 'xl' }" v-model="dialogVisible">
         <template #body-content>
-            <div class="w-full h-[60vh] bg-surface-white rounded-2xl p-3 shadow-2xl flex flex-col gap-4">
-                <TextInput type="text" v-model="searchQuery" placeholder="Search">
-                    <template #prefix>
-                        <FeatherIcon class="w-4" name="search" />
-                    </template>
-                </TextInput>
-                <div class="flex justify-evenly bg-surface-gray-7 text-ink-white rounded-md p-3 h-[8%]">
-                    <div class="w-[10%]"></div>
-                    <p class="w-[30%]">Name</p>
-                    <p class="w-[30%]">Customer</p>
-                    <p class="w-[30%]">Amount</p>
-                </div>
-                <div class="h-[82%] overflow-y-scroll scrollbar-hide">
-                    <div v-for="invoice in filteredInvoices" :key="invoice.name" class="flex flex-col">
-                        <div class="flex justify-evenly rounded bg-surface-blue-1 text-ink-gray-8 p-2.5 my-2">
-                            <div class="w-[10%]">
-                                <input type="radio" name="selectedInvoice" :value="invoice.name"
-                                    class="text-ink-gray-9 hover:text-ink-gray-9" v-model="selectedInvoice" />
-                            </div>
-                            <p class="w-[30%]">{{ invoice.name }}</p>
-                            <p class="w-[30%]">{{ invoice.customer }}</p>
-                            <p class="w-[30%]">{{ invoice.grand_total }}</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="flex justify-between items-center mt-4">
-                    <div class="flex gap-2">
-                        <Button
-                            v-for="size in [20, 100, 500, 2500]"
-                            :key="size"
-                            :variant="selectedPageLength === size ? 'solid' : 'ghost'"
-                            @click="setPageLength(size)"
-                            :ref_for="true"
-                            :loading="invoices.loading"
-                            :disabled="invoices.loading"
-                            :link="null"
-                        >
-                            {{ size }}
-                        </Button>
-
-                    </div>
-                    <Button 
-                        @click="invoices.next()" 
-                        variant="solid"
-                        :loading="invoices.loading"
-                        :disabled="invoices.loading"
-                    
-                    >
-                        Load more
-                    </Button>
-                </div>
-            </div>
+            <InvoicePicker
+                v-model="selectedInvoice"
+                v-model:search="searchQuery"
+                :invoices="invoices.data || []"
+                :loading="invoices.loading"
+                :has-more="invoices.hasNextPage"
+                empty-text="No held sales. Use “Hold sale” in the cart to park one here."
+                aria-label="Held sales"
+                @confirm="(name) => { selectedInvoice = name; submitInvoice() }"
+                @load-more="invoices.next()"
+            />
         </template>
         <template #actions>
-            <div class="">
-                <Button variant="solid" @click="submitInvoice">Select</Button>
-                <Button class="ml-2" @click="handleDialogClose">Close</Button>
+            <div class="flex flex-row-reverse gap-2">
+                <Button
+                    variant="solid"
+                    size="md"
+                    class="flex-1 sm:flex-none"
+                    :disabled="!selectedInvoice"
+                    :loading="loadingSelection"
+                    @click="submitInvoice"
+                >
+                    Open sale
+                </Button>
+                <Button size="md" class="flex-1 sm:flex-none" @click="handleDialogClose">Cancel</Button>
             </div>
         </template>
     </Dialog>
 </template>
 
 <script setup>
-import { Dialog, Button, createListResource, createResource, TextInput, FeatherIcon } from 'frappe-ui';
+import { Dialog, Button, createListResource, createResource } from 'frappe-ui';
+import InvoicePicker from '@/components/pos/InvoicePicker.vue';
 import { ref, computed, watch } from 'vue';
 import { createToast } from '@/utils';
 import { usePosProfileStore } from '@/stores/posProfile';
@@ -194,15 +160,19 @@ let get_value = createResource({
     }
 })
 
+function heldFilters() {
+    const filters = { docstatus: 0, pos_profile: store.posProfileData.name };
+    if (permissionStore.salesInvoiceCanOnlyOwn) filters.owner = user.name;
+    return filters;
+}
+
+const loadingSelection = computed(() => Boolean(salesInvoice.loading || get_value.loading));
+
 const invoices = createListResource({
     doctype: 'Sales Invoice',
-    fields: ['name', 'customer', 'grand_total'],
+    fields: ['name', 'customer', 'grand_total', 'posting_date'],
     orderBy: 'creation desc',
-    filters: { 
-        docstatus: 0, 
-        pos_profile: store.posProfileData.name,
-        owner: permissionStore.salesInvoiceCanOnlyOwn ? user.name : undefined,
-    },
+    filters: heldFilters(),
     orFilters: [],
     pageLength: 20,
     auto: true
@@ -221,10 +191,9 @@ const filteredInvoices = computed(() => {
 
 watch(searchQuery, (newQuery) => {
   invoices.update({
-    filters: {
-        docstatus: 0, 
-        pos_profile: store.posProfileData.name,
-    },
+    // Must keep every base filter: this used to rebuild them without `owner`,
+    // so a cashier limited to their own drafts saw everyone's once they searched.
+    filters: heldFilters(),
     orFilters: newQuery
       ? [
           ['name', 'like', `%${newQuery}%`],

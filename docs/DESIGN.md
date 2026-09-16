@@ -6,7 +6,7 @@ mock-up:
 | | Before | After |
 |---|---|---|
 | Desktop | `images/before-desktop.png` | `images/pos-desktop.png`, `images/pos-desktop-empty.png` |
-| Mobile | `images/before-mobile.png` | `images/pos-mobile.png`, `images/pos-mobile-empty.png` |
+| Mobile | `images/before-mobile.png` | `images/mobile-items.png`, `images/mobile-cart.png`, `images/mobile-held.png`, `images/mobile-payments.png` |
 | Sidebar | | `images/sidebar-expanded.png`, `images/sidebar-menu.png`, `images/sidebar-collapsed.png` |
 
 ## Principle: stay inside frappe-ui
@@ -67,11 +67,46 @@ Reference: `images/pos-desktop-dark.png`, `images/theme-switcher.png`.
 
 - **`layouts/DesktopLayout.vue`**: two white cards on the grey page, the scan
   pane (30%, 280–380px) and the cart.
-- **`layouts/MobileLayout.vue`**: stacked with no card frames. Scan on top, cart
-  lines as cards, totals and actions at the bottom.
+- **`layouts/MobileLayout.vue`**: one screen at a time (below).
 
-Both use the same components. `ItemSelector` and `ItemDetail` take a `compact`
-prop for the mobile variant.
+Both use the same components. `ItemSelector`, `ItemDetail` and `Invoice` take a
+`compact` prop for the mobile variant.
+
+Totals are recalculated by `composables/useInvoiceRecalc.js`, called once from
+`pages/Pos.vue`. It watches the cart lines, so a line added from the mobile
+item grid (where no cart line component is mounted) still gets server totals.
+Its emitter listeners are removed on unmount.
+
+### Mobile structure
+
+There is no sidebar below 1024px. The app shell is a phone app:
+
+- **Top bar** (`mobile/MobileTopBar.vue`): the screen title and the profile or
+  customer. The cart and payment screens show a back arrow, and the bar shows
+  the sale state (Not saved, Draft, Return).
+- **Bottom tab bar** (`mobile/MobileTabBar.vue`): Sell, Held, Payments and More.
+  It is hidden on the cart and payment screens, which have their own action
+  bar.
+- **More** (`mobile/MoreSheet.vue`, a `BottomSheet`): the user and shift, and
+  the actions that used to be in the sidebar menu: Return an invoice, Close
+  shift, Theme, Settings, Go to desk and Log out.
+
+On the Sell tab, `stores/mobile.js` picks the screen:
+
+1. **Items**: customer, search and the item grid. A cart bar at the bottom
+   shows units and total, and opens the cart.
+2. **Cart**: line cards with a 44px stepper, totals, Held, Return, Hold, Print,
+   and Pay.
+3. **Payment**: full screen. Back returns to the cart and leaves the draft
+   editable.
+
+Emptying the cart returns to Items. Opening a held sale or a return goes
+straight to Cart.
+
+The Held and Return dialogs share `pos/InvoicePicker.vue`: search, one card
+per invoice (number, customer, date, amount), load more, and double-click to
+open. The Payments page stacks on mobile, and Record payment is pinned to the
+bottom.
 
 ### Shell
 

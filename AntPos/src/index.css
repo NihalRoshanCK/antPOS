@@ -50,6 +50,13 @@
   background-clip: content-box;
 }
 
+/* Cart badge nudge when an item is added from the list on a phone. */
+@keyframes pos-pop {
+  0% { transform: scale(0.6); }
+  60% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
