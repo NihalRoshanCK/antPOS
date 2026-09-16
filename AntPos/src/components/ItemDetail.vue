@@ -1,193 +1,130 @@
 <template>
-    <div class="md:w-7/12 w-full h-full flex flex-col gap-2" >
-        <div class="h-[80%] w-full rounded-lg shadow-2xl px-2 pt-2">
-            <div class="flex gap-4 h-[5%]">
-               <Customer v-model:customer="invoiceStore.invoiceCustomer" />
-                <Button
-                    class="w-1/12"
-                    @click="loadComponent('CustomerForm');"
-                    :variant="'solid'"
-                    :ref_for="true"
-                    theme="gray"
-                    size="sm"
-                    label="Button"
-                    :loading="false"
-                    :loadingText="null"
-                    :disabled="false"
-                    :link="null"
-                >
-                    <FeatherIcon
-                    class="w-4 cursor-pointer"
-                    name="plus"
-                    @click="loadComponent('CustomerForm');"
-                    />
-                </Button>
+    <section class="flex-1 flex flex-col min-w-0 min-h-0 bg-white">
+
+        <CustomerBar
+            v-model:customer="invoiceStore.invoiceCustomer"
+            @create="loadComponent('CustomerForm')"
+        />
+
+        <!-- Return mode is destructive and easy to miss; say so plainly. -->
+        <p v-if="invoiceStore.invoice.is_return"
+           class="shrink-0 bg-amber-50 border-b border-amber-200 text-pos-warn text-[13px] px-4 py-2">
+            Return &mdash; quantities are negative and this will credit the customer.
+        </p>
+
+        <!-- Cart column header. Desktop only: on mobile each line is a card. -->
+        <div class="hidden lg:grid shrink-0 grid-cols-[1fr_84px_96px_112px_32px] gap-3 px-4 py-2
+                    border-b border-pos-line text-[11px] font-semibold text-pos-ink3">
+            <div>Item</div>
+            <div class="text-right">Qty</div>
+            <div class="text-right">Rate</div>
+            <div class="text-right">Amount</div>
+            <div><span class="sr-only">Remove</span></div>
+        </div>
+
+        <div class="flex-1 overflow-y-auto pos-scroll min-h-0"
+             :class="invoiceStore.items.length ? 'lg:bg-white bg-pos-page' : ''">
+            <div v-if="!invoiceStore.items.length" class="px-6 py-16 text-center">
+                <p class="text-[14px] text-pos-ink2">No items yet</p>
+                <p class="text-[13px] text-pos-ink3 mt-1">
+                    {{ invoiceStore.invoiceCustomer?.name ? 'Scan a barcode to start the sale.' : 'Choose a customer, then scan a barcode.' }}
+                </p>
             </div>
-            <div class="py-2  h-[93%] overflow-y-scroll scrollbar-hide flex flex-col items-center w-full ">
-                <div class="mb-2 w-full flex flex-col items-center">
-                    <div class="flex bg-gray-200 w-full py-2 px-3 justify-between rounded text-center ">
-                        <div class="w-[18.4%]">
-                            Item Code
-                        </div>
-                        <div  class="w-[18.4%]">
-                            QTY
-                        </div>
-                        <div  class="w-[18.4%]">
-                            UOM
-                        </div>
-                        <div  class="w-[18.4%]">
-                            Rate
-                        </div>
-                        <div  class="w-[18.4%]">
-                            Amount
-                        </div>
-                        <div class="w-[8%]">
-                            Remove
-                        </div>
-                    </div>
-                </div>
-                <div v-for="(item, key) in invoiceStore.items" :key="item.custom_id" class="flex flex-col justify-between mb-2 w-full ">
-                    <Item :items="item" :index="key"  />                   
-                </div>
+
+            <div v-else class="lg:space-y-0 space-y-2 lg:p-0 p-3">
+                <Item
+                    v-for="(item, key) in invoiceStore.items"
+                    :key="item.custom_id"
+                    :items="item"
+                    :index="key"
+                />
             </div>
         </div>
 
-        <div class="h-[20%] flex shadow-2xl rounded">
-            <div class=" w-[60%] grid grid-cols-2 gap-4 p-4 h-full">
-                <FormControl
-                    :type="'number'"
-                    :ref_for="true"
-                    size="sm"
-                    variant="subtle"
-                    placeholder="0.00"
-                    :disabled="true"
-                    label="Total Qty"
-                    v-model="invoiceStore.invoice.total_qty"
-                />
-                <FormControl
-                    v-if="store.posProfileData?.custom_use_percentage_discount"
-                    :type="'number'"
-                    :ref_for="true"
-                    size="sm"
-                    variant="subtle"
-                    placeholder="0.00"
-                    :disabled="!store.posProfileData?.allow_discount_change"
-                    label="Additional Discount (%)"
-                    v-model="invoiceStore.invoice._additional_discount_percentage"
-                />
-                <FormControl
-                    v-else
-                    :type="'number'"
-                    :ref_for="true"
-                    size="sm"
-                    variant="subtle"
-                    placeholder="0.00"
-                    :disabled="!store.posProfileData?.allow_discount_change"
-                    :label="`Additional Discount (${store.posProfileData?.currency})`"
-                    v-model="invoiceStore.invoice._discount_amount"
-                    :value="Number(invoiceStore.invoice._discount_amount).toFixed(2)"
-                    />
-                <FormControl
-                    :type="'number'"
-                    :ref_for="true"
-                    size="sm"
-                    variant="subtle"
-                    placeholder="0.00"
-                    :disabled="true"
-                    label="Net Total"
-                    :class="''"
-                    :value="Number(invoiceStore.invoice.net_total).toFixed(2)"
-                    v-model="invoiceStore.invoice.net_total"
-                />
-                <FormControl
-                    :type="'number'"
-                    :ref_for="true"
-                    size="sm"
-                    variant="subtle"
-                    placeholder="0.00"
-                    :disabled="true"
-                    label="Total"
-                    :class="''"
-                    :value="Number(invoiceStore.invoice.grand_total).toFixed(2)"
-                    v-model="invoiceStore.invoice.grand_total"
-                />
+        <!-- The only total-level field the cashier edits. Kept adjacent to the
+             readout so cause and effect are visible together. -->
+        <div v-if="invoiceStore.items.length && store.posProfileData?.allow_discount_change"
+             class="shrink-0 border-t border-pos-line bg-white px-4 py-2 flex items-center gap-3">
+            <label for="pos-discount" class="text-[12px] text-pos-ink2 shrink-0">
+                {{ usePercentDiscount ? 'Discount %' : `Discount (${store.posProfileData?.currency || ''})` }}
+            </label>
+            <input
+                id="pos-discount"
+                v-if="usePercentDiscount"
+                v-model="invoiceStore.invoice._additional_discount_percentage"
+                type="number"
+                inputmode="decimal"
+                placeholder="0"
+                class="num ml-auto w-28 h-9 px-2.5 rounded-md bg-pos-page border border-pos-line
+                       text-[14px] text-right focus:outline-none focus:border-pos-ink focus:bg-white"
+            />
+            <input
+                id="pos-discount"
+                v-else
+                v-model="invoiceStore.invoice._discount_amount"
+                type="number"
+                inputmode="decimal"
+                placeholder="0.00"
+                class="num ml-auto w-28 h-9 px-2.5 rounded-md bg-pos-page border border-pos-line
+                       text-[14px] text-right focus:outline-none focus:border-pos-ink focus:bg-white"
+            />
+        </div>
 
-            </div>
-            <div class=" w-[40%] h-full grid grid-cols-2 gap-2 p-4">
-                <Button
-                    :ref_for="true"
-                    label="Button"
-                    :loading="false"
-                    :loadingText="null"
-                    :disabled="false"
-                    :link="null"
-                    theme="blue"
-                    @click="loadComponent('Held')"
-                >
-                    HELD
-                </Button>
-                <Button
-                    :ref_for="true"
-                    label="Button"
-                    :loading="false"
-                    :loadingText="null"
-                    :disabled="false"
-                    :link="null"
-                    theme="red"
-                    @click="loadComponent('Return')"            
-                >
-                    RETURN
-                </Button>
+        <TotalsReadout />
+
+        <!-- Actions. Pay is the widest target and sits furthest right (or, on
+             mobile, fills the thumb zone). -->
+        <div class="shrink-0 bg-white border-t border-pos-line p-3
+                    flex items-center gap-2 overflow-x-auto pos-scroll"
+             style="padding-bottom: calc(0.75rem + env(safe-area-inset-bottom))">
+
+            <Button variant="outline" theme="gray" class="!h-12 !px-4 shrink-0"
+                    @click="loadComponent('Held')">
+                Held
+            </Button>
+            <Button variant="outline" theme="gray" class="!h-12 !px-4 shrink-0 !text-pos-ret"
+                    @click="loadComponent('Return')">
+                Return
+            </Button>
+
+            <div class="ml-auto flex items-center gap-2 shrink-0">
                 <Button
                     v-if="permissionStore.salesInvoiceCanCreate"
-                    :ref_for="true"
-                    label="Button"
-                    :loading="false"
-                    :loadingText="null"
-                    :disabled="false"
-                    :link="null"
-                    :variant="'solid'"
-                    theme="gray"
-                    @click="sales_invoice.fetch({ action:'Save', status:'save_new' })"
+                    variant="outline" theme="gray" class="!h-12 !px-4"
+                    @click="sales_invoice.fetch({ action: 'Save', status: 'save_new' })"
                 >
-                    SAVE/NEW
-                </Button>
-                <Button
-                    v-if="permissionStore.salesInvoiceCanSubmit"
-                    :ref_for="true"
-                    label="Button"
-                    :loading="false"
-                    :loadingText="null"
-                    :disabled="false"
-                    :link="null"
-                    theme="green"
-                    @click="sales_invoice.fetch({ action:'Save', status:'pay' })"
-                >
-                    PAY
+                    Hold this sale
                 </Button>
                 <Button
                     v-if="permissionStore.salesInvoiceCanPrint && permissionStore.salesInvoiceCanCreate"
-                    :ref_for="true"
-                    label="Button"
-                    :loading="false"
-                    :loadingText="null"
-                    :disabled="false"
-                    :link="null"
-                    :variant="'solid'"
-                    theme="gray"
-                    @click="sales_invoice.fetch({ action:'Save', status:'print' })"
+                    variant="outline" theme="gray" class="!h-12 !px-4 hidden sm:inline-flex"
+                    @click="sales_invoice.fetch({ action: 'Save', status: 'print' })"
                 >
-                SAVE & PRINT
+                    Save &amp; print
                 </Button>
+                <button
+                    v-if="permissionStore.salesInvoiceCanSubmit"
+                    type="button"
+                    class="h-12 px-6 lg:px-7 rounded-lg bg-pos-pay hover:bg-pos-pay-hover text-white
+                           text-[15px] font-semibold flex items-baseline gap-2
+                           focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-pos-pay
+                           disabled:opacity-40 disabled:cursor-not-allowed"
+                    :disabled="!invoiceStore.items.length"
+                    @click="sales_invoice.fetch({ action: 'Save', status: 'pay' })"
+                >
+                    Pay
+                    <span class="num text-[17px]">{{ payableTotal }}</span>
+                </button>
             </div>
         </div>
-    </div>
+    </section>
 </template>
 
 <script setup>
-import Customer from '@/components/Customer.vue';
-import { Button, FeatherIcon, FormControl, createResource, debounce} from 'frappe-ui';
-import { inject , watch } from 'vue';
+import { Button, createResource, debounce } from 'frappe-ui';
+import { inject, watch, computed } from 'vue';
+import CustomerBar from '@/components/pos/CustomerBar.vue';
+import TotalsReadout from '@/components/pos/TotalsReadout.vue';
 import { createToast, showToast } from '@/utils';
 import { usePosProfileStore } from '@/stores/posProfile';
 import { usePermissionStore } from '@/stores/permission';
@@ -299,6 +236,15 @@ const calculateDiscount = () => {
 };
 
 const debouncedDiscount = debounce(calculateDiscount, 300);
+
+const usePercentDiscount = computed(
+    () => Boolean(store.posProfileData?.custom_use_percentage_discount)
+);
+
+const payableTotal = computed(() => {
+    const invoice = invoiceStore.invoice || {};
+    return Number(invoice.rounded_total || invoice.grand_total || 0).toFixed(2);
+});
 
 watch(
     () => invoiceStore.invoice._discount_amount,

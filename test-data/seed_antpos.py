@@ -44,10 +44,10 @@ ITEM_BATCH = "ANTPOS-BATCH"
 ITEM_SERIAL = "ANTPOS-SERIAL"
 ITEM_BATCH_SERIAL = "ANTPOS-BATCH-SERIAL"
 
-BARCODE_PLAIN = "1000000000017"
-BARCODE_BATCH = "1000000000024"
-BARCODE_SERIAL = "1000000000031"
-BARCODE_BATCH_SERIAL = "1000000000048"
+BARCODE_PLAIN = "1000000000016"
+BARCODE_BATCH = "1000000000023"
+BARCODE_SERIAL = "1000000000030"
+BARCODE_BATCH_SERIAL = "1000000000047"
 
 BATCH_A = "ANTPOS-BATCH-A"
 BATCH_B = "ANTPOS-BATCH-B"
@@ -114,6 +114,35 @@ def _account(company, account_type, fallback_name=None):
             "Account", {"company": company, "name": ["like", f"{fallback_name}%"]}, "name"
         )
     return None
+
+
+def _ensure_account(company, account_type, account_name):
+    """A leaf account of `account_type`, created if the chart has only a group.
+
+    The standard ERPNext chart ships "Bank Accounts" as a group with no leaf
+    under it, so a Bank mode of payment has nothing to point at on a fresh site.
+    """
+    if account := _account(company, account_type):
+        return account
+
+    parent = frappe.db.get_value(
+        "Account", {"company": company, "account_type": account_type, "is_group": 1}, "name"
+    )
+    if not parent:
+        return None
+
+    doc = frappe.get_doc(
+        {
+            "doctype": "Account",
+            "account_name": account_name,
+            "parent_account": parent,
+            "company": company,
+            "account_type": account_type,
+            "is_group": 0,
+        }
+    )
+    doc.insert(ignore_permissions=True)
+    return doc.name
 
 
 # ------------------------------------------------------------------ masters --
@@ -203,7 +232,7 @@ def create_mode_of_payment(name, company, account_type="Cash"):
     account for the company is exactly the case that used to fall back to
     whichever company sorted first.
     """
-    account = _account(company, account_type, "Cash" if account_type == "Cash" else None)
+    account = _ensure_account(company, account_type, f"AntPOS {account_type}")
 
     if frappe.db.exists("Mode of Payment", name):
         doc = frappe.get_doc("Mode of Payment", name)
@@ -344,12 +373,15 @@ def receive_stock(company, warehouse):
 
     create_batch(BATCH_A, ITEM_BATCH, expiry_date=add_days(today(), 365))
     create_batch(BATCH_B, ITEM_BATCH, expiry_date=add_days(today(), 730))
-    # Expired on purpose: get_batches_list must exclude it.
-    create_batch(BATCH_EXPIRED, ITEM_BATCH, expiry_date=add_days(today(), -1))
+    # Expired on purpose: get_batches_list must exclude it. ERPNext refuses a
+    # receipt into an already-expired batch, so stock it while still valid and
+    # backdate the expiry afterwards.
+    create_batch(BATCH_EXPIRED, ITEM_BATCH, expiry_date=add_days(today(), 365))
 
     _receive(company, warehouse, ITEM_BATCH, qty=40, batch_no=BATCH_A)
     _receive(company, warehouse, ITEM_BATCH, qty=25, batch_no=BATCH_B)
     _receive(company, warehouse, ITEM_BATCH, qty=10, batch_no=BATCH_EXPIRED)
+    frappe.db.set_value("Batch", BATCH_EXPIRED, "expiry_date", add_days(today(), -1))
 
     _receive(
         company, warehouse, ITEM_SERIAL,
@@ -521,6 +553,7 @@ def teardown():
         ("Batch", {"batch_id": ["like", "ANTPOS-%"]}),
         ("Customer", {"name": ["in", [CUSTOMER, SECOND_CUSTOMER]]}),
         ("Mode of Payment", {"name": ["in", [MODE_CASH, MODE_CARD]]}),
+        ("Account", {"account_name": ["like", "AntPOS %"]}),
         ("Customer Group", {"name": CUSTOMER_GROUP}),
         ("Territory", {"name": TERRITORY}),
         ("Item Group", {"name": ITEM_GROUP}),
@@ -595,6 +628,9 @@ def main():
     if not os.path.isdir(os.path.join("sites", site)):
         sys.exit(f"No such site: sites/{site}\nRun this from the bench root.")
 
+    # frappe resolves site config, logs and the bench path relative to cwd,
+    # the same way `bench` does -- from inside sites/
+    os.chdir("sites")
     frappe.init(site=site)
     frappe.connect()
     frappe.set_user("Administrator")

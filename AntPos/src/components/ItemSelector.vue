@@ -1,38 +1,65 @@
 <template>
-    <div class="md:w-5/12  w-full shadow-2xl pt-2 px-2 rounded">
-        <div>
-            <div>
-                <FormControl
-                    type="text"
-                    v-model="debounceSearch"
-                    placeholder="Search Items"
-                    size="sm"
-                    variant="subtle"
-                    @keyup.enter="fetchSearchResource"
-                    :disabled="invoiceStore.invoice.is_return"
+    <section
+        :class="[
+            'flex flex-col min-h-0 bg-white',
+            compact
+                ? 'shrink-0 border-b border-pos-line'
+                : 'w-[30%] min-w-[280px] max-w-[380px] shrink-0 border-r border-pos-line',
+        ]"
+    >
+        <div class="p-3" :class="compact ? '' : 'border-b border-pos-line'">
+            <FormControl
+                ref="searchInput"
+                type="text"
+                v-model="debounceSearch"
+                :placeholder="compact ? 'Scan or search' : 'Scan barcode or search items'"
+                :size="compact ? 'md' : 'md'"
+                variant="subtle"
+                @keyup.enter="fetchSearchResource"
+                :disabled="invoiceStore.invoice.is_return"
+            >
+                <template #prefix>
+                    <FeatherIcon class="w-4 text-pos-ink3" name="search" />
+                </template>
+            </FormControl>
+        </div>
+
+        <!-- Desktop only: the pane is otherwise empty, which is most of what the
+             cashier looks at between scans. -->
+        <div v-if="!compact" class="flex-1 overflow-y-auto pos-scroll min-h-0">
+            <template v-if="recentScans.length">
+                <p class="px-3 py-2 text-[11px] font-semibold text-pos-ink3 border-b border-pos-line">
+                    Recent scans
+                </p>
+                <button
+                    v-for="scan in recentScans"
+                    :key="scan.key"
+                    type="button"
+                    class="w-full text-left px-3 py-2.5 border-b border-pos-line hover:bg-pos-page focus:outline-none focus-visible:bg-pos-page flex items-baseline gap-3"
+                    @click="rescan(scan)"
                 >
-                    <template #prefix>
-                        <FeatherIcon class="w-4" name="search" />
-                    </template>
-                </FormControl>
-                <div>
-                    <div v-if="items.length === 0" class="text-center text-gray-500">
-                        No items found. Try searching again.
-                    </div>
-                    <div v-else>
-                        <div class="flex justify-between items-center border-b pb-4">
-                            <div class="flex justify-between w-full">
-                                <span class="text-lg font-medium mr-4">{{ items.item_code }}</span>
-                                <span class="text-sm text-gray-500">Qty: 1</span>
-                                <span class="text-sm text-gray-500">Price: {{ items.rate }}</span>
-                                <span class="text-lg font-semibold ml-4">{{ items.serial_no }}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                    <span class="text-[14px] font-medium flex-1 truncate">{{ scan.item_name }}</span>
+                    <span class="text-[12px] text-pos-ink3 num shrink-0">{{ scan.item_code }}</span>
+                    <span class="text-[14px] num font-medium shrink-0">{{ Number(scan.rate || 0).toFixed(2) }}</span>
+                </button>
+            </template>
+
+            <div class="px-6 py-10 text-center">
+                <svg class="mx-auto text-pos-line2" width="34" height="34" viewBox="0 0 24 24"
+                     fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                    <path d="M3 5v14M7 5v14M11 5v14M15 5v14M19 5v14" />
+                </svg>
+                <p class="text-[13px] text-pos-ink2 mt-3 leading-relaxed">
+                    Scan a barcode, or type an item code,<br />serial or batch number.
+                </p>
+                <p class="text-[12px] text-pos-ink3 mt-2">
+                    Press
+                    <kbd class="px-1.5 py-0.5 rounded border border-pos-line bg-pos-page font-sans">Enter</kbd>
+                    to add
+                </p>
             </div>
         </div>
-    </div>
+    </section>
 </template>
 
 <script setup>
@@ -44,10 +71,38 @@ import { usePosProfileStore } from '@/stores/posProfile';
 import emitter from '@/utils/emitter';
 import { useInvoiceStore } from '@/stores/pos';
 
+defineProps({
+    // Mobile stacks the scan box above the cart, so the panel chrome and the
+    // recent-scan list are dropped -- there is no room for either.
+    compact: { type: Boolean, default: false },
+});
+
 const store = usePosProfileStore();
 const debounceSearch = ref('');
-const items = ref([]);
 const invoiceStore = useInvoiceStore()
+
+// A short history so the pane is useful between scans. Kept in memory only:
+// it is a convenience, not a record.
+const RECENT_LIMIT = 8;
+const recentScans = ref([]);
+
+const rememberScan = (item) => {
+    if (!item?.item_code) return;
+    const entry = {
+        key: item.item_code,
+        item_code: item.item_code,
+        item_name: item.item_name || item.item_code,
+        rate: item.price_list_rate ?? item.rate,
+    };
+    recentScans.value = [entry, ...recentScans.value.filter((s) => s.key !== entry.key)]
+        .slice(0, RECENT_LIMIT);
+};
+
+const rescan = (scan) => {
+    if (invoiceStore.invoice.is_return) return;
+    debounceSearch.value = scan.item_code;
+    fetchSearchResource();
+};
 
 const remove_invoice = ( include_customer = false ) => {
     invoiceStore.unmountAndRefresh(include_customer)
@@ -118,6 +173,7 @@ const addItemsResource = createResource({
     },
     onSuccess(data) {
         addItem(data);
+        rememberScan(data);
     },
     transform(data){
         if (data.selected_serial_no && data.selected_serial_no.length > 0 ){

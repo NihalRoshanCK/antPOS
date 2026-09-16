@@ -1,30 +1,77 @@
 <template>
-    <div>
-        <div :class="['flex bg-gray-200 w-full py-2 px-3 justify-between hover:cursor-pointer text-center' ,items.custom_open ? 'rounded-t-2xl' : 'rounded']">
-            <div class="flex items-center h-[100%] rounded hover:bg-gray-300" @click="items.custom_open = !items.custom_open">
-                <FeatherIcon :name="items.custom_open ? 'chevron-up' : 'chevron-down'" class="w-5 h-5" />
+    <article
+        :class="[
+            'lg:border-b lg:border-pos-line lg:rounded-none',
+            'border rounded-xl lg:bg-transparent bg-white',
+            items.custom_open ? 'border-pos-ink2 lg:bg-pos-page' : 'border-pos-line',
+        ]"
+    >
+        <!-- Desktop: a real grid, so Qty/Rate/Amount line up down the column. -->
+        <div class="hidden lg:grid grid-cols-[1fr_84px_96px_112px_32px] gap-3 px-4 py-3 items-center">
+            <button
+                type="button"
+                class="min-w-0 text-left flex items-center gap-2 focus:outline-none focus-visible:underline"
+                :aria-expanded="Boolean(items.custom_open)"
+                @click="items.custom_open = !items.custom_open"
+            >
+                <FeatherIcon
+                    :name="items.custom_open ? 'chevron-down' : 'chevron-right'"
+                    class="w-4 h-4 shrink-0 text-pos-ink3"
+                />
+                <span class="min-w-0">
+                    <span class="block text-[14px] font-medium truncate">{{ items.item_name || items.item_code }}</span>
+                    <span class="block text-[12px] text-pos-ink3 num truncate">{{ lineMeta }}</span>
+                </span>
+            </button>
+            <div class="text-right num text-[14px]">{{ items.qty }}</div>
+            <div class="text-right num text-[14px]">{{ Number(items.rate || 0).toFixed(2) }}</div>
+            <div class="text-right num text-[14px] font-semibold">{{ Number(items.amount || 0).toFixed(2) }}</div>
+            <button
+                type="button"
+                class="justify-self-end text-pos-ink3 hover:text-pos-ret focus:outline-none focus-visible:text-pos-ret"
+                :aria-label="`Remove ${items.item_code}`"
+                @click="invoiceStore.items.splice(index, 1)"
+            >
+                <FeatherIcon name="trash-2" class="w-4 h-4" />
+            </button>
+        </div>
+
+        <!-- Mobile: a card with a stepper. Columns do not fit, and the qty
+             control has to be thumb-sized. -->
+        <div class="lg:hidden p-3">
+            <div class="flex items-start gap-3">
+                <button
+                    type="button"
+                    class="flex-1 min-w-0 text-left focus:outline-none"
+                    :aria-expanded="Boolean(items.custom_open)"
+                    @click="items.custom_open = !items.custom_open"
+                >
+                    <span class="block text-[15px] font-medium leading-snug">{{ items.item_name || items.item_code }}</span>
+                    <span class="block text-[12px] text-pos-ink3 num mt-0.5 truncate">{{ lineMeta }}</span>
+                </button>
+                <span class="text-[16px] font-semibold num shrink-0">{{ Number(items.amount || 0).toFixed(2) }}</span>
             </div>
-            <div class="w-[18.4%]">
-                {{ items.item_code }} 
-            </div>
-            <div class="w-[18.4%]">
-                {{ items.qty }}
-            </div>
-            <div class="w-[18.4%]">
-                {{ items.uom }}
-            </div>
-            <div class="w-[18.4%]">
-                {{ Number(items.rate).toFixed(2) }}
-            </div>
-            <div class="w-[18.4%]">
-                {{ items.amount ? items.amount.toFixed(2) : '0.00' }}
-            </div>
-            <div class="w-[8%] flex items-center justify-center">
-                <FeatherIcon name="trash-2" class="w-5 h-5 rounded hover:bg-red-400 fill-red-700" @click="invoiceStore.items.splice(index, 1)" />
+            <div class="flex items-center gap-2 mt-3">
+                <div class="flex items-center border border-pos-line rounded-lg overflow-hidden bg-white">
+                    <button type="button" class="w-11 h-11 grid place-items-center text-pos-ink2 active:bg-pos-page"
+                            aria-label="Decrease quantity" @click="step(-1)">
+                        <FeatherIcon name="minus" class="w-4 h-4" />
+                    </button>
+                    <span class="w-12 text-center num text-[16px] font-medium">{{ items.qty }}</span>
+                    <button type="button" class="w-11 h-11 grid place-items-center text-pos-ink2 active:bg-pos-page"
+                            aria-label="Increase quantity" @click="step(1)">
+                        <FeatherIcon name="plus" class="w-4 h-4" />
+                    </button>
+                </div>
+                <span class="text-[13px] text-pos-ink3 num">&times; {{ Number(items.rate || 0).toFixed(2) }}</span>
+                <button type="button" class="ml-auto w-11 h-11 grid place-items-center text-pos-ink3 active:text-pos-ret"
+                        :aria-label="`Remove ${items.item_code}`" @click="invoiceStore.items.splice(index, 1)">
+                    <FeatherIcon name="trash-2" class="w-4 h-4" />
+                </button>
             </div>
         </div>
-        <div v-if="items.custom_open" class="flex flex-col bg-gray-200 w-full py-1 px-3 rounded-b-2xl justify-between">
-            <div class="grid grid-cols-3 w-full gap-4">
+        <div v-if="items.custom_open" class="border-t border-pos-line px-3 lg:px-4 pb-3 pt-1">
+            <div class="grid grid-cols-2 lg:grid-cols-3 w-full gap-x-4 gap-y-1">
                 <div class="p-2">
                     <FormControl
                         type="text"
@@ -241,7 +288,7 @@
                 </div>
             </div>
         </div>
-    </div>
+    </article>
 </template>
 <script setup>
 import { FeatherIcon, FormControl, Autocomplete, DatePicker, dayjsLocal, createResource, createListResource,debounce } from 'frappe-ui';
@@ -269,6 +316,34 @@ const props = defineProps({
 const SERIAL_NO_PAGE_LENGTH = 500;
 
 const serialNoQty = computed(() => props.items?.serial_no_options?.length || 0);
+
+// One quiet line under the item name carrying whatever identifies this line:
+// code, UOM, batch, expiry, serial. Beats five separate read-only fields.
+const lineMeta = computed(() => {
+    const item = props.items || {};
+    const parts = [item.item_code];
+
+    if (item.uom && item.uom !== item.item_code) parts.push(item.uom);
+    if (item.batch_no) parts.push(`Batch ${item.batch_no}`);
+    if (item.expiry_date) parts.push(`exp ${item.expiry_date}`);
+
+    const serials = (item.selected_serial_no || []).map((s) => s.value ?? s);
+    if (serials.length === 1) parts.push(`SN ${serials[0]}`);
+    else if (serials.length > 1) parts.push(`${serials.length} serials`);
+
+    return parts.filter(Boolean).join(' \u00b7 ');
+});
+
+const step = (delta) => {
+    const next = Number(props.items.qty || 0) + delta;
+    // Returns carry negative quantities; never let a stepper cross zero.
+    if (invoiceStore.invoice.is_return) {
+        if (next > -1) return;
+    } else if (next < 1) {
+        return;
+    }
+    props.items.qty = next;
+};
 
 const get_batch = createResource({
     url: 'ant_pos.ant_pos.api.item.get_batches_list',

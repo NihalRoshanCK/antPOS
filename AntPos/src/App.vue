@@ -1,16 +1,18 @@
 <template>
   <div>
     <FrappeUIProvider>
-      <div class="w-screen h-screen flex select-none ">
+      <div class="w-screen h-screen flex overflow-hidden select-none bg-pos-page">
         <div v-if="currentComponent">
           <component :is="currentComponent" @switchComponent="loadComponent" />
         </div>
-        <Sidebar :class="w-full" />
-        <div class="w-full h-full">
+        <Sidebar />
+        <!-- min-w-0 / min-h-0 let the panes inside actually scroll; the previous
+             h-[94%] left a 6% gap and clipped the action bar at some heights. -->
+        <div class="flex-1 flex flex-col min-w-0 min-h-0">
           <Navbar />
-          <div class="w-[calc(100%-var(--sidebar-width))]  h-[94%]">
+          <main class="flex-1 min-h-0 overflow-hidden">
             <router-view />
-          </div>
+          </main>
         </div>
       </div>
     </FrappeUIProvider>

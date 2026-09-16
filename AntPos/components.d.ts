@@ -11,6 +11,7 @@ declare module 'vue' {
     Autocomplete: typeof import('./src/components/custom_components/Autocomplete.vue')['default']
     CloseShift: typeof import('./src/components/Dialog/CloseShift.vue')['default']
     Customer: typeof import('./src/components/Customer.vue')['default']
+    CustomerBar: typeof import('./src/components/pos/CustomerBar.vue')['default']
     CustomerForm: typeof import('./src/components/Dialog/CustomerForm.vue')['default']
     Held: typeof import('./src/components/Dialog/Held.vue')['default']
     ImageUploader: typeof import('./src/components/Controls/ImageUploader.vue')['default']
@@ -26,5 +27,6 @@ declare module 'vue' {
     RouterView: typeof import('vue-router')['RouterView']
     Settings: typeof import('./src/components/Dialog/Settings.vue')['default']
     Sidebar: typeof import('./src/components/Sidebar.vue')['default']
+    TotalsReadout: typeof import('./src/components/pos/TotalsReadout.vue')['default']
   }
 }
