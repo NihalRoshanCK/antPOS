@@ -35,7 +35,7 @@
                         <FormControl
                             type="text"
                             class="w-1/2"
-                            v-model="settings.doc.brand_name"
+                            v-model="brandName"
                             :label="'Brand Name'"
                         />
                         </div>
@@ -124,11 +124,18 @@
 <script setup>
 import { Dialog, Button, FeatherIcon ,FormControl, Badge, ErrorMessage } from 'frappe-ui';
 import ImageUploader from '@/components/Controls/ImageUploader.vue'
-import {ref} from 'vue';
-import { getSettings } from '@/stores/settings'
+import { computed, ref } from 'vue';
+import { decodeEntities, getSettings } from '@/stores/settings'
 
 const dialogVisible = ref(true);
 const { setting: settings, setupBrand } = getSettings()
+
+// Frappe stores the name HTML-escaped; edit the plain text (it is escaped
+// again on save).
+const brandName = computed({
+    get: () => decodeEntities(settings.doc?.brand_name || ''),
+    set: (value) => { settings.doc.brand_name = value },
+})
 
 function updateSettings() {
     settings.save.submit(null, {

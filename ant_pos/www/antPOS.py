@@ -2,6 +2,8 @@
 # GNU GPLv3 License. See license.txt
 
 
+import html
+
 import frappe
 from frappe.utils import cint, get_system_timezone
 
@@ -14,7 +16,16 @@ def get_context():
 	# Rendered onto <html> so the page paints in the right theme before any JS
 	# runs, the same way the desk does.
 	context.theme_mode = context.boot.desk_theme.lower()
+	# The tab title shows the brand before the app loads.
+	context.brand_name = get_brand_name()
 	return context
+
+
+def get_brand_name():
+	# Frappe stores Data fields HTML-escaped ("Tom &amp; Jerry"); the template
+	# escapes once itself, so hand it the plain text.
+	value = frappe.db.get_single_value("AntPOS Settings", "brand_name", cache=True) or ""
+	return html.unescape(value).strip()
 
 
 def get_desk_theme():

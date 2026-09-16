@@ -6,7 +6,9 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, viewport-fit=cover maximum-scale=1.0, user-scalable=no"
     />
-    <title>antPOS</title>
+    <!-- Brand from antPOS Settings, rendered by www/antPOS.py; the app
+         keeps it in sync after load (App.vue). -->
+    <title>{{ (brand_name or 'antPOS') | e }}</title>
     <script>
       // Resolve the theme before first paint. The server writes the user's
       // choice into data-theme-mode; "automatic" follows the OS. Outside
@@ -26,7 +28,7 @@
     </script>
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-title" content="antPOS" />
+    <meta name="apple-mobile-web-app-title" content="{{ (brand_name or 'antPOS') | e }}" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="theme-color" content="#ffffff" />
     <!-- Static file from public/; the build prefixes it with the asset path. -->

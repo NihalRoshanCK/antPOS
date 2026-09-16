@@ -93,8 +93,13 @@ onUnmounted(() => {
   window.removeEventListener('focus', refreshProfile);
 });
 
+// Browser tab: "<page> · <brand>", following antPOS Settings.
+const PAGE_TITLES = { Pos: 'Point of sale', Payments: 'Payments', Login: 'Log in' };
 usePageMeta(() => {
+  const brandName = brand.name?.trim() || 'antPOS';
+  const page = PAGE_TITLES[route.name];
   return {
+    title: page ? `${page} · ${brandName}` : brandName,
     icon: brand.favicon ? brand.favicon : '/assets/ant_pos/antPOS.png',
   }
 })

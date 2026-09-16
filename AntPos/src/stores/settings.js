@@ -11,8 +11,12 @@ const brand = reactive({})
 // never loaded.
 let setting = null
 
+// Reads the document resource first: after Settings saves, only `setting.doc`
+// holds the new values (the fetch callback that fills `settings` does not
+// run again), so the brand used to stay stale until a reload.
 function setupBrand() {
-  brand.name = settings.value?.brand_name
+  if (setting?.doc) settings.value = setting.doc
+  brand.name = decodeEntities(settings.value?.brand_name)
   brand.logo = settings.value?.brand_logo
   brand.favicon = settings.value?.favicon
 }
@@ -30,6 +34,14 @@ function ensureResource() {
     })
   }
   return setting
+}
+
+// Frappe stores Data fields HTML-escaped ("Tom &amp; Jerry"). Vue escapes
+// on render, so decode first or the entities show up literally.
+export function decodeEntities(value) {
+  if (!value || !value.includes('&')) return value
+  const doc = new DOMParser().parseFromString(value, 'text/html')
+  return doc.documentElement.textContent
 }
 
 export function getSettings() {
