@@ -1,6 +1,9 @@
 # Changelog
 
-## Unreleased
+## 0.2.0 — 2026-09-17
+
+Run `bench --site <site> migrate` after upgrading; see
+[Upgrading to 0.2.0](docs/DEPLOYMENT.md#upgrading-to-020).
 
 ### Added
 
@@ -8,15 +11,62 @@
   most moving items first. Tap to add; typing in the scan box filters it; on
   phones it opens as a sheet. New *antPOS Item List* settings on POS Profile
   set how many items load, how many most-moving items show and over what
-  period, and whether and how long the list is cached. The cache is cleared when
-  an Item, Item Price or the POS Profile changes, or from the list's Refresh
-  button.
+  period, and whether and how long the list is cached.
+- **Forms built from layouts.** The New customer dialog and the cart line
+  details come from the server; System Managers rearrange them in place
+  (tabs, sections, columns, field settings) with a preview.
+- **Settings:** Profile (name, contact, language, time zone, password),
+  Preferences (theme), POS profile and Brand. The brand name and icon are used
+  for the browser tab.
 - Light, dark and automatic themes, shared with the desk's `desk_theme`.
+- Resizable panes on desktop; a phone layout with a bottom tab bar.
+- Installable as an app (PWA) without web server configuration.
+- An antPOS workspace in the desk and a tile on `/apps` for POS users.
 
 ### Changed
 
-- frappe-ui 0.1.177 → 0.1.278, with a sidebar matching its current design.
-- Toasts appear at the top right instead of over the Pay button.
+- Signing in uses Frappe's login page, which returns to the POS; an expired
+  session is sent there too. The app's own login page is removed.
+- Items are priced from the POS Profile's price list (it was always
+  *Standard Selling*), including customer-specific prices.
+- The POS Profile's *Disable Rounded Total* now applies to the invoice.
+- Paying more than the total is always allowed and recorded as change.
+  *Allow Partial Payments* now governs paying part of a credit sale.
+- Printing opens the print dialog in the page, so popup blockers no longer
+  stop it.
+- The Sale / Sales order choice moved from the header into the cart.
+- frappe-ui 0.1.177 → 0.1.278.
+
+### Security
+
+- The installer no longer takes permissions away from ERPNext's roles; a patch
+  repairs sites installed with 0.1.0. POS roles are read-only on masters.
+- Shifts: only the cashier (or a System or Sales Manager) can open or close
+  one, on a POS Profile that lists them; `create_opening` ignores anything but
+  the company, profile and opening amounts.
+- `scan_barcode` and `items` check Item, Customer and POS Profile access.
+- Removed unused whitelisted methods, one of them open to guests.
+
+### Fixed
+
+- Shifts containing a return could not be closed.
+- With rounding disabled every sale was refused; overpaying was refused when
+  partial payments were off.
+- Recording a payment on the Payments page always failed ("Target Exchange
+  Rate is mandatory").
+- Double taps on Pay, Hold sale, Save & print, Submit or Record payment could
+  create duplicate documents.
+- A missing serial number showed a message but did not stop the save.
+- Opening `/antPOS/payments` directly bounced the user away.
+- Failures opening a shift or loading permissions were silent.
+- Stale totals after edits, amount discounts, and quick-entry required fields.
+
+### Internal
+
+- Ruff (Frappe's settings), prettier and eslint, with pre-commit hooks and a
+  CI lint job; the code base is formatted.
+- Clearing the item list cache no longer scans Redis keys.
+- Tests: 93, covering the fixes above.
 
 ## 0.1.0
 

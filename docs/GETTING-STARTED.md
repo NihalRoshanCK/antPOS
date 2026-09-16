@@ -11,7 +11,7 @@ A complete walkthrough from an empty bench to a printed invoice.
 
 | | |
 |---|---|
-| Frappe | v15 |
+| Frappe | v15 (15.111 or later, as ERPNext requires) |
 | ERPNext | v15 — **required**, `hooks.py` declares it and the API imports from it |
 | Python | 3.10+ |
 | Node | 18+ (20 recommended) |
@@ -91,11 +91,12 @@ Required:
 | Company | |
 | Warehouse | scopes all stock, batch and serial lookups |
 | Currency | |
-| Selling Price List | antPOS prices against `Standard Selling` |
+| Selling Price List | items are priced from this list (Selling Settings' default if empty) |
 | Cost Center | |
+| Disable Rounded Total | the invoice is not rounded; the cashier collects the grand total |
 | Write Off Account / Cost Center / Limit | ERPNext requires these |
 | **Payments** | one row per mode; tick *Default* for the one that should pre-fill |
-| **Applicable for Users** | **the cashier must be listed here** |
+| **Applicable for Users** | **the cashier must be listed here** (System Managers may use any profile) |
 | Customer Groups | limits the customer dropdown |
 
 > **Applicable for Users is not optional.** The app tile only appears for users
@@ -111,12 +112,12 @@ These are custom fields added by the app and control real behaviour:
 
 | Field | Effect |
 |---|---|
-| `Allow Credit` | permit submitting with paid amount below the total |
-| `Allow Partial Payments` | permit paid amount above the total |
+| `Allow Credit` | permit submitting with less paid than the total; the rest is left outstanding |
+| `Allow Partial Payments` | with credit allowed, permit paying part of the total; without it a credit sale is paid in full or not at all |
 | `New items on new line` | scanning the same item twice adds a second line instead of incrementing qty |
 | `Use Percentage Discount` | discount entry is a percentage rather than an amount |
 | `Allow Item Name in Item Search` | search matches `item_name`, not just codes and barcodes |
-| `Allow Create Sales Order` | expose the Sales Order toggle in the navbar |
+| `Allow Create Sales Order` | show the Sale / Sales order choice above the cart |
 | `Default Sales Order` | create a Sales Order alongside the invoice |
 
 #### Item list
@@ -217,15 +218,18 @@ actually tracked.
 **Pay** moves to the payment screen. Amounts pre-fill on the default mode; click
 a mode's button to move the full amount onto it, or type split amounts.
 
-Whether you may under- or over-pay depends on *Allow Credit* and *Allow Partial
-Payments*.
+Paying more than the total is always allowed; the difference is shown as change
+to give and recorded on the invoice. Paying less depends on *Allow Credit* and
+*Allow Partial Payments* (see 3.4).
 
 `[screenshot: payment screen with a split across two modes]`
 
 ### 5.5 Submit and print
 
 **Submit** writes and submits the Sales Invoice. **Submit & Print** also opens
-the print view using the profile's print format and letterhead.
+the browser's print dialog for it, using the profile's print format and
+letterhead. Printing happens in the page itself, so popup blockers do not stop
+it.
 
 `[screenshot: printed invoice]`
 
@@ -247,9 +251,11 @@ the print view using the profile's print format and letterhead.
 (float + everything taken during the shift) and a field for what you actually
 counted. The difference is calculated for you.
 
-Submitting creates an **Ant Closing Shift** listing every invoice and payment in
-the shift, and marks the opening shift *Closed*. Cancelling the closing entry
-reopens the shift.
+Submitting creates an **Ant Closing Shift** listing every invoice (returns
+included) and payment in the shift, and marks the opening shift *Closed*.
+Cashiers can only open and close their own shifts; System and Sales Managers
+can act for anyone. Cancelling the closing entry reopens the shift, unless the
+cashier has opened a newer one.
 
 `[screenshot: Close Shift reconciliation]`
 
@@ -265,8 +271,10 @@ reopens the shift.
 | Payment fails on submit | the Mode of Payment has no *Accounts* row for this company |
 | Batch dropdown is empty | no batch of that item has stock in the profile's warehouse, or every batch has expired |
 | "Serial No … not available in warehouse" | the serial exists but is not Active in that warehouse |
-| Print window does not open | the POS Profile has no *Print Format* |
-| No offline mode / cannot install as an app | the nginx header in [DEPLOYMENT.md](DEPLOYMENT.md) is missing |
+| Print dialog shows the wrong layout | the POS Profile has no *Print Format*, so the doctype's default is used |
+| Cannot install as an app | the site is not on HTTPS (or `localhost`); see [DEPLOYMENT.md](DEPLOYMENT.md) |
+| "Only open a shift for yourself" / "not a user of POS Profile" | the shift is for another user, or the cashier is not in *Applicable for Users* |
+| Sales refused with "Credit is not allowed" | less was entered than the total and the profile does not allow credit |
 
 ---
 

@@ -50,3 +50,17 @@ What the worker does:
 sole predicates of the shift-close and payments queries. On a large site the
 patch may take a few minutes; run `bench --site <site> migrate` during a quiet
 window.
+
+## Upgrading to 0.2.0
+
+Run `bench --site <site> migrate`. It applies
+`ant_pos.patches.v0_1_0.restore_standard_permissions`, which repairs sites
+installed with 0.1.0: that installer added the POS roles' permissions in a way
+that made Frappe ignore every other role's permissions on the same doctypes
+(Sales Invoice, Customer, Item and more). The patch restores those, leaves
+doctypes an administrator has customised alone, and re-applies the POS roles'
+permissions, now read-only on masters.
+
+After upgrading, check that every cashier is listed in *Applicable for Users*
+on their POS Profile: shifts can only be opened on such a profile (System
+Managers excepted).

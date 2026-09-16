@@ -6,54 +6,49 @@
 
 ## 🚀 Features
 
-- ✅ **Supports All Frappe Versions**  
-  Developed to be compatible with all Frappe and ERPNext versions.
+- 🧾 **Standard Sales Invoices**
+  Sales, returns and payments are ordinary ERPNext documents; antPOS adds its
+  own opening and closing shifts instead of POS Invoices and POS Closing.
 
-- 🧩 **Built with Frappe UI**  
-  Uses vanilla Frappe UI components for a seamless and efficient interface.
+- 🛒 **Fast checkout**
+  Barcode, serial and batch scanning, an item list with the most moving items,
+  discounts, split payments, change, credit sales and optional Sales Orders.
 
-- 🧾 **Direct Sales Invoice Creation**  
-  Creates standard **Sales Invoices** instead of POS Invoices, avoiding dependency on POS Closing.
+- 🧩 **Built with Frappe UI**
+  Light, dark and automatic themes shared with the desk; resizable panes on
+  desktop and a phone layout with a bottom tab bar.
 
-- ⚙️ **Dynamic Field Configuration**  
-  Configure fields dynamically and display them directly in the POS interface.
+- ⚙️ **Forms you can change from the POS**
+  System Managers edit the New customer dialog and the cart line details in
+  place, without code.
 
-- 🔌 **Frappe API Integration**  
-  Utilizes built-in Frappe APIs for real-time updates, validation, and error handling.
+- 📱 **Installable app (PWA)**
+  Installs from the browser on desktop, Android and iOS.
 
-- 📱 **Mobile Compatibility (Upcoming)**  
-  Future updates will include **Ionic integration** for a mobile-friendly experience.
+- 🔐 **Scoped access**
+  POS Billing and POS Cash roles, POS Profile users, and cashiers who can only
+  work in their own shifts.
+
+---
+
+## ✅ Requirements
+
+- Frappe and ERPNext **v15**
+- Python 3.10+, Node 18+ (20 recommended)
 
 ---
 
 ## 🛠️ Installation
 
-Follow these steps to install Ant-POS on your ERPNext setup:
-
 ```bash
-# Step 1: Navigate to your Frappe bench directory
 cd ~/frappe-bench
-```
-
-```bash
-# Step 2: Clone the Ant-POS app from GitHub
 bench get-app ant_pos https://github.com/anthertech/antPOS.git
-```
-
-```bash
-# Step 3: Install the Ant-POS app on your site (replace 'yoursite.com' with your actual site name)
 bench --site yoursite.com install-app ant_pos
+bench --site yoursite.com migrate
+bench build --app ant_pos
 ```
 
-```bash
-# Step 4: Migrate your site (replace 'yoursite.com' with your actual site name)
-bench --site yoursite.com migrate 
-```
-
-```bash
-# Step 5: Build site assets (recommended after installing a new app)
-bench --site yoursite.com build
-```
+Then open `https://yoursite.com/antPOS`.
 
 ---
 
@@ -79,22 +74,27 @@ batch+serial tracking. See [test-data/README.md](test-data/README.md).
 | | |
 |---|---|
 | [Getting Started](docs/GETTING-STARTED.md) | install, configure, first sale, troubleshooting |
-| [Deployment](docs/DEPLOYMENT.md) | the nginx header the PWA needs, asset and index notes |
+| [Deployment](docs/DEPLOYMENT.md) | PWA, assets and upgrade notes |
 | [Test data](test-data/README.md) | local demo data and a manual QA checklist |
-| [CHANGELOG](CHANGELOG.md) | what changed in 0.1.0 |
+| [Design](docs/DESIGN.md) | how the screens are built and why |
+| [CHANGELOG](CHANGELOG.md) | what changed in each release |
 
 ---
 
-## 🔮 Future Enhancements
+## 🧑‍💻 Development
 
-- 📱 **Mobile-Friendly Interface**  
-  Integration with **Ionic** to deliver a sleek mobile experience.
+```bash
+cd apps/ant_pos/AntPos
+yarn install
+yarn dev            # Vite dev server
+yarn lint           # eslint
+yarn format         # prettier
+cd .. && ruff check . && ruff format .
+bench --site yoursite.com run-tests --app ant_pos
+```
 
-- 🛠 **Advanced Customization**  
-  More settings for deeper customization of the POS workflow.
-
-- ⚡ **Performance Improvements**  
-  Optimized database queries and background processes for faster checkouts.
+`pre-commit install` runs the same checks on every commit
+(`.pre-commit-config.yaml`).
 
 ---
 

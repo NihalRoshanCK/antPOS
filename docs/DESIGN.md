@@ -324,5 +324,6 @@ what to do next.
 
 - **The item list is not paginated.** It loads up to the profile's *Items to
   Load* (max 500) and relies on search beyond that.
-- **Payments, dialogs (Held, Return, Close Shift, Customer form) and the login
-  page were not restyled.** They still use the original markup.
+- **Close Shift was not restyled.** It still uses the original markup.
+- antPOS has no login page of its own: signing in (and back in after a session
+  ends) goes through Frappe's `/login`, which returns to the POS afterwards.
