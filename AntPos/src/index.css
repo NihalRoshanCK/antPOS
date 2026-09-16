@@ -1,2 +1,4 @@
-@import './assets/Inter/inter.css';
+/* frappe-ui ships Inter (variable + static fallbacks) via its own style.css, so
+   the app must not import a second copy: doing so duplicated all 18 @font-face
+   declarations and deployed 5.2 MB of redundant font files. */
 @import 'frappe-ui/src/style.css';

@@ -27,33 +27,43 @@ export default defineConfig({
       devOptions: {
         enabled: true,
       },
+      // The service worker is served from /assets/ant_pos/antPOS/, so by default
+      // its scope cannot reach /antPOS and it never controls the app. Claiming a
+      // wider scope requires the `Service-Worker-Allowed: /antPOS/` response
+      // header -- see docs/DEPLOYMENT.md.
+      scope: '/antPOS/',
       manifest: {
         name: 'antPOS',
         short_name: 'antPOS',
-        start_url: '/antPOS',
+        // start_url must live inside scope or the manifest is rejected and the
+        // app cannot be installed. It previously pointed at /antPOS while scope
+        // defaulted to /assets/ant_pos/antPOS/. Note the trailing slash: with
+        // scope '/antPOS/', a start_url of '/antPOS' is outside scope.
+        scope: '/antPOS/',
+        start_url: '/antPOS/',
         display: 'standalone',
         description: 'POS system powered by Frappe',
         icons: [
           {
-            src: '/assets/antPOS/manifest/manifest-icon-192.maskable.png',
+            src: '/assets/ant_pos/manifest/manifest-icon-192.png',
             sizes: '192x192',
             type: 'image/png',
             purpose: 'any',
           },
           {
-            src: '/assets/antPOS/manifest/manifest-icon-192.maskable.png',
+            src: '/assets/ant_pos/manifest/manifest-icon-192.png',
             sizes: '192x192',
             type: 'image/png',
             purpose: 'maskable',
           },
           {
-            src: '/assets/antPOS/manifest/manifest-icon-512.maskable.png',
+            src: '/assets/ant_pos/manifest/manifest-icon-512.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any',
           },
           {
-            src: '/assets/antPOS/manifest/manifest-icon-512.maskable.png',
+            src: '/assets/ant_pos/manifest/manifest-icon-512.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'maskable',
@@ -76,6 +86,24 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),
+    },
+  },
+  build: {
+    // Vendor code changes far less often than app code; splitting it means a
+    // release only invalidates the app chunk instead of all 2.1 MB.
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return
+          if (/[\\/]node_modules[\\/](vue|vue-router|pinia|@vue)[\\/]/.test(id)) {
+            return 'vendor-vue'
+          }
+          if (/[\\/]node_modules[\\/](frappe-ui|@headlessui|@vueuse)[\\/]/.test(id)) {
+            return 'vendor-ui'
+          }
+          return 'vendor'
+        },
+      },
     },
   },
   optimizeDeps: {
