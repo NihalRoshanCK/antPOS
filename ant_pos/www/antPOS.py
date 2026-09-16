@@ -4,7 +4,6 @@
 
 import frappe
 from frappe.utils import cint, get_system_timezone
-from frappe.utils.telemetry import capture
 
 no_cache = 1
 

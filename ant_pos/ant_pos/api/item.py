@@ -3,8 +3,6 @@ from frappe import _
 import json
 from typing import Dict, Any
 from erpnext.stock.get_item_details import get_item_details  
-from frappe.utils import flt
-from datetime import datetime
 from erpnext.stock.doctype.batch.batch import get_batches
 
 BarcodeScanResult = dict[str, str | None]

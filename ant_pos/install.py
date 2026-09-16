@@ -1,5 +1,4 @@
 import frappe
-from frappe.core.page.permission_manager.permission_manager import add, update
 
 def before_install():
     create_roles_and_permissions()

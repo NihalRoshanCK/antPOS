@@ -140,7 +140,13 @@ const createCustomer = createResource ({
       handleDialogClose();
     },
     onError(err) {
-      console.error('Error:', err);
+      // This used to only console.error, so a failed customer creation looked
+      // like nothing had happened.
+      showToast(
+        'error',
+        Array.isArray(err?.messages) ? err.messages[0] : err?.messages || 'Could not create customer',
+        'x-circle'
+      );
     },
   });
   

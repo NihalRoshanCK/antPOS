@@ -1,6 +1,5 @@
 import frappe
 from frappe import _
-from ant_pos.ant_pos.doctype.ant_opening_shift.ant_opening_shift import AntOpeningShift
 
 @frappe.whitelist()
 def get_openingshift():
