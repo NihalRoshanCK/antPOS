@@ -1,7 +1,15 @@
 /* frappe-ui ships Inter (variable + static fallbacks) via its own style.css, so
    the app must not import a second copy: doing so duplicated all 18 @font-face
    declarations and deployed 5.2 MB of redundant font files. */
-@import 'frappe-ui/src/style.css';
+@import 'frappe-ui/style.css';
+
+/* frappe-ui 0.1.278 no longer sets a base text colour, so anything without its
+   own colour class inherited the browser's black -- invisible in dark mode. */
+@layer base {
+  body {
+    @apply bg-surface-gray-1 text-ink-gray-9;
+  }
+}
 
 /* Money and identifiers use tabular lining figures so columns align and digits
    stop shifting as totals recalculate on every keystroke. */

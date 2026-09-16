@@ -6,7 +6,7 @@
     <Button
       variant="subtle"
       theme="gray"
-      size="lg"
+      size="md"
       icon="plus"
       class="shrink-0"
       label="New customer"

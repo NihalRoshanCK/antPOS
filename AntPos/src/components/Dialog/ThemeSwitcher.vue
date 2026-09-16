@@ -72,14 +72,12 @@ async function choose(next, index) {
   cards.value[index]?.focus()
   try {
     await setTheme(next)
-    toast.create({ title: 'Theme changed', position: 'top-center', timeout: 3 })
+    toast.success('Theme changed', { duration: 3 })
   } catch {
-    toast.create({
-      title: 'Theme applied here only',
-      message: 'It could not be saved to your account, so the desk keeps its own setting.',
-      position: 'top-center',
-      timeout: 6,
-    })
+    toast.warning(
+      'Theme applied here only. It could not be saved to your account, so the desk keeps its own setting.',
+      { duration: 6 },
+    )
   }
 }
 

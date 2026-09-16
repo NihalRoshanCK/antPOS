@@ -20,6 +20,23 @@ An earlier pass invented a separate palette with a dark "readout" panel. On the
 live app it clashed with the frappe shell and turned an idle screen into a black
 slab reading 0.00. It was removed; do not reintroduce a private palette.
 
+## frappe-ui version
+
+The app is on **frappe-ui 0.1.278** (pinned in both `package.json` files).
+Things that changed on the way up from 0.1.177 and matter here:
+
+- Imports are limited to the package's exports. The Tailwind preset is
+  `frappe-ui/tailwind` and the stylesheet `frappe-ui/style.css`.
+- `toast.create` takes `{ message, type, duration, icon: Component }`; `title`,
+  `timeout`, `position` and icon names are gone. `utils/index.js`
+  (`createToast`, `showToast`) translates the old call shape.
+- The stylesheet no longer sets a base text colour; `index.css` does.
+- Don't give frappe-ui its own Rollup chunk: it and the general vendor chunk
+  import each other and the app fails at startup ("Cannot access … before
+  initialization").
+- The customer picker uses frappe-ui's `Autocomplete`. The app's old copy of
+  that component was removed.
+
 ## Themes
 
 Light, dark and automatic, working the same way as the Frappe desk
@@ -63,13 +80,12 @@ prop for the mobile variant.
   that turns white and raised while open; items are ghost buttons, the active
   one white with a light shadow (`bg-surface-selected`); labels fade out on
   collapse and the rail shows tooltips; a `panel-right-open` control at the
-  bottom toggles and remembers the state. It is ported into
-  `components/Sidebar.vue` and `components/SidebarLink.vue` rather than
-  imported, because the installed frappe-ui (0.1.177) has an older revision of
-  the component and upgrading frappe-ui affects every component the app uses.
-  Below 1024px the rail is forced and the toggle is hidden, because the POS
-  switches to its stacked layout there and a 240px sidebar leaves too little
-  room. frappe-ui only forces the rail below 640px.
+  bottom toggles and remembers the state. It lives in
+  `components/Sidebar.vue` and `components/SidebarLink.vue` as a port of the
+  stock component: below 1024px the rail is forced and the toggle hidden,
+  because the POS switches to its stacked layout there and a 240px sidebar
+  leaves too little room. The stock `<Sidebar>` only forces the rail below
+  640px and keeps its toggle visible when forced.
 - **Navbar**: white, 48px, page title, sale-state badge, profile badge.
 
 Heights used to be percentages of flex containers (`h-[94%]`, `h-[80%]`,

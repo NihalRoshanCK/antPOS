@@ -8,7 +8,6 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
-    Autocomplete: typeof import('./src/components/custom_components/Autocomplete.vue')['default']
     CloseShift: typeof import('./src/components/Dialog/CloseShift.vue')['default']
     Customer: typeof import('./src/components/Customer.vue')['default']
     CustomerBar: typeof import('./src/components/pos/CustomerBar.vue')['default']

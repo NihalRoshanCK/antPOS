@@ -1,19 +1,51 @@
 <template>
   <div class="w-full">
+    <!-- body-classes pins the list to the field's width: reka-ui only sets
+         the trigger width as a minimum, so long labels widened the list past
+         the field on phones. Rows already truncate. -->
     <Autocomplete
       :options="computedOptions"
       v-model="selectedCustomer"
-      placeholder="Select Customer"
+      placeholder="Select customer"
+      body-classes="w-[var(--reka-popover-trigger-width)]"
       @update:query="onQuery"
-    />
+    >
+      <!-- frappe-ui's default trigger is 28px; this matches the 32px search
+           box and New customer button beside it. -->
+      <template #target="{ togglePopover, isOpen }">
+        <button
+          type="button"
+          class="flex h-8 w-full items-center justify-between gap-2 rounded border border-transparent bg-surface-gray-2 px-2.5 text-base transition-colors hover:bg-surface-gray-3 focus:border-outline-gray-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-outline-gray-3"
+          :class="{ 'bg-surface-gray-3': isOpen }"
+          :aria-expanded="isOpen"
+          aria-haspopup="listbox"
+          @click="togglePopover()"
+        >
+          <span class="flex min-w-0 items-center gap-2">
+            <LucideUser class="h-4 w-4 shrink-0 text-ink-gray-5" />
+            <span v-if="selectedCustomer" class="truncate text-ink-gray-8">{{ selectedCustomer.label }}</span>
+            <span v-else class="truncate text-ink-gray-4">Select customer</span>
+          </span>
+          <LucideChevronDown class="h-4 w-4 shrink-0 text-ink-gray-5" />
+        </button>
+      </template>
+      <!-- On narrow screens the group would truncate the phone number, which
+           matters more to the cashier. -->
+      <template #item-suffix="{ option }">
+        <span v-if="option?.description" class="hidden text-sm text-ink-gray-5 sm:inline">
+          {{ option.description }}
+        </span>
+      </template>
+    </Autocomplete>
   </div>
 </template>
 
 <script setup>
 import { computed, onMounted, onUnmounted, watch, defineProps } from 'vue';
 import emitter from '@/utils/emitter';
-import Autocomplete from '@/components/custom_components/Autocomplete.vue';
-import { createListResource, debounce } from 'frappe-ui';
+import { Autocomplete, createListResource, debounce } from 'frappe-ui';
+import LucideUser from '~icons/lucide/user';
+import LucideChevronDown from '~icons/lucide/chevron-down';
 import { createToast } from '@/utils';
 import { usePosProfileStore } from '@/stores/posProfile';
 import { useInvoiceStore } from '@/stores/pos';
@@ -40,8 +72,13 @@ const customerGroups = computed(
   () => posProfileStore.posProfileData?.customer_groups?.map((item) => item.customer_group) || []
 );
 
+// frappe-ui's Autocomplete filters the fetched options again on label and value
+// only. The server search also matches mobile numbers, so the number goes into
+// the label -- otherwise a phone-number search would be filtered back out. It
+// also lets the cashier confirm they picked the right person.
 const toOption = (item) => ({
-  label: item.name || 'Unnamed',
+  label: item.mobile_no ? `${item.name} · ${item.mobile_no}` : item.name || 'Unnamed',
+  description: item.customer_group,
   value: item.name,
   name: item.name,
   mobile_no: item.mobile_no || '',

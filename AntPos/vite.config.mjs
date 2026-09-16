@@ -93,16 +93,19 @@ export default defineConfig({
   },
   build: {
     // Vendor code changes far less often than app code; splitting it means a
-    // release only invalidates the app chunk instead of all 2.1 MB.
+    // release only invalidates the app chunk instead of all 2 MB.
+    //
+    // Only Vue core is split out: it depends on nothing else. frappe-ui must stay
+    // in the same chunk as its own dependencies -- with frappe-ui 0.1.278 a
+    // separate frappe-ui chunk and the general vendor chunk import each other,
+    // and the app crashed at startup with "Cannot access '...' before
+    // initialization".
     rollupOptions: {
       output: {
         manualChunks(id) {
           if (!id.includes('node_modules')) return
           if (/[\\/]node_modules[\\/](vue|vue-router|pinia|@vue)[\\/]/.test(id)) {
             return 'vendor-vue'
-          }
-          if (/[\\/]node_modules[\\/](frappe-ui|@headlessui|@vueuse)[\\/]/.test(id)) {
-            return 'vendor-ui'
           }
           return 'vendor'
         },

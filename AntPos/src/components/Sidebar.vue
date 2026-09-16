@@ -1,9 +1,10 @@
 <template>
-  <!-- Mirrors frappe-ui 0.1.278's Sidebar (header dropdown, ghost-button items,
-       bg-surface-selected active state, fading labels, panel-right-open toggle).
-       Ported rather than imported: the installed frappe-ui is 0.1.177, whose
-       Sidebar is an older revision, and upgrading frappe-ui touches every
-       component this app uses. -->
+  <!-- Same markup as frappe-ui 0.1.278's Sidebar (header dropdown, ghost-button
+       items, bg-surface-selected active state, fading labels, panel-right-open
+       toggle). Kept as a port rather than using <Sidebar> directly because the
+       stock component only forces the icon rail below 640px and keeps showing
+       its collapse button when the rail is forced; the POS needs the rail
+       below 1024px, with no toggle there. -->
   <aside
     class="flex h-full flex-shrink-0 flex-col overflow-y-auto overflow-x-hidden border-r border-outline-gray-1 bg-surface-menu-bar p-2 transition-all duration-300 ease-in-out"
     :class="shouldCollapse ? 'w-12' : 'w-60'"
