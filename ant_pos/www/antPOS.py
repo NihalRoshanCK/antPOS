@@ -3,6 +3,7 @@
 
 
 import html
+from urllib.parse import urlencode
 
 import frappe
 from frappe.utils import cint, get_system_timezone
@@ -11,6 +12,13 @@ no_cache = 1
 
 
 def get_context():
+	if frappe.session.user == "Guest":
+		# Sign in on Frappe's login page, then come back here.
+		frappe.local.flags.redirect_location = "/login?" + urlencode(
+			{"redirect-to": frappe.local.request.full_path.rstrip("?")}
+		)
+		raise frappe.Redirect(302)
+
 	context = frappe._dict()
 	context.boot = get_boot()
 	# Rendered onto <html> so the page paints in the right theme before any JS

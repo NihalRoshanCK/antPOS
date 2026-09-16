@@ -1,7 +1,7 @@
 # Copyright (c) 2024, Anther Technologies Pvt. Ltd. and Contributors
 # See license.txt
 
-from contextlib import nullcontext
+from contextlib import contextmanager, nullcontext
 from unittest.mock import patch
 
 import frappe
@@ -126,8 +126,13 @@ class TestShiftOwnership(FrappeTestCase):
 		doc.update({"cashier": cashier, "company": "Company A", "pos_profile": "Till 1"})
 		return doc
 
+	@contextmanager
 	def profile(self, company="Company A", disabled=0):
-		return patch("frappe.db.get_value", return_value=frappe._dict(company=company, disabled=disabled))
+		with (
+			patch("frappe.db.get_value", return_value=frappe._dict(company=company, disabled=disabled)),
+			patch("frappe.get_roles", return_value=["All"]),
+		):
+			yield
 
 	def test_cashier_cannot_open_a_shift_for_someone_else(self):
 		with (
@@ -172,8 +177,14 @@ class TestShiftOwnership(FrappeTestCase):
 		with self.profile(), patch(f"{MODULE}.profile_users", return_value=[CASHIER]):
 			doc.validate_pos_profile()
 
-	def test_profile_without_users_is_open_to_all(self):
+	def test_profile_without_users_is_closed_to_cashiers(self):
 		doc = self.shift()
+		with self.profile(), patch(f"{MODULE}.profile_users", return_value=[]):
+			with self.assertRaises(frappe.PermissionError):
+				doc.validate_pos_profile()
+
+	def test_system_manager_may_use_any_profile(self):
+		doc = self.shift(cashier="Administrator")
 		with self.profile(), patch(f"{MODULE}.profile_users", return_value=[]):
 			doc.validate_pos_profile()
 

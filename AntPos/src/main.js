@@ -7,11 +7,10 @@ import translationPlugin from './translation'
 import { useDynamicComponent } from './utils/Dialog';
 import { handleStaleBuild, isStaleBuildError } from './utils/staleBuild';
 import mitt from 'mitt';
+import { withLoginRedirect } from './utils/login';
 
 import {
   Button,
-  Card,
-  Input,
   setConfig,
   frappeRequest,
   resourcesPlugin,
@@ -24,15 +23,13 @@ const emitter = mitt();
 
 const pinia = createPinia()
 
-setConfig('resourceFetcher', frappeRequest)
+setConfig('resourceFetcher', withLoginRedirect(frappeRequest))
 
 app.use(router)
 app.use(resourcesPlugin)
 app.use(translationPlugin)
 
 app.component('Button', Button)
-app.component('Card', Card)
-app.component('Input', Input)
 
 app.use(pinia)
 

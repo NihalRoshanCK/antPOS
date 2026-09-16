@@ -63,3 +63,27 @@ class TestItemScanProjection(FrappeTestCase):
 		for field in ITEM_SCAN_FIELDS:
 			source = field.split(" as ")[0].strip()
 			self.assertIn(source, meta_fields, f"Item has no field {source}")
+
+
+class TestItemApiPermissions(FrappeTestCase):
+	def tearDown(self):
+		frappe.set_user("Administrator")
+
+	def test_scan_needs_item_read(self):
+		from ant_pos.ant_pos.api.item import scan_barcode
+
+		frappe.set_user("Guest")
+		with self.assertRaises(frappe.PermissionError):
+			scan_barcode("anything", False)
+
+	def test_items_checks_the_pos_profile(self):
+		from unittest.mock import patch
+
+		from ant_pos.ant_pos.api.item import items
+
+		with (
+			patch("frappe.has_permission", return_value=True),
+			patch("frappe.get_list", return_value=[]),
+		):
+			with self.assertRaises(frappe.PermissionError):
+				items("Someone Else's Till", '{"item": {}}', "Any Customer")

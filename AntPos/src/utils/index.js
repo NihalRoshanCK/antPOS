@@ -17,6 +17,12 @@ function toastType({ type, title, icon } = {}) {
     return 'info'
 }
 
+// The first readable message of a failed request.
+export function errorMessage(error, fallback = 'Something went wrong.') {
+    const messages = error?.messages
+    return (Array.isArray(messages) ? messages[0] : messages) || error?.message || fallback
+}
+
 export function createToast(options = {}) {
     const type = toastType(options)
     // A title that only names the status ("error", "success") adds nothing.

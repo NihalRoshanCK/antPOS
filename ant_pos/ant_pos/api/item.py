@@ -6,6 +6,8 @@ from typing import Dict, Any
 from erpnext.setup.utils import get_exchange_rate
 from erpnext.stock.get_item_details import get_item_details
 
+from ant_pos.ant_pos.api.item_list import _get_permitted_profile
+
 BarcodeScanResult = dict[str, str | None]
 
 # Explicit projection for the scan payload. Never use ["*"] here: the Item table
@@ -84,6 +86,8 @@ def _update_item_info(scan_result: dict[str, str | None]) -> dict[str, str | Non
 @frappe.whitelist()
 def scan_barcode(search_value: str, search_itemname:bool) -> Dict[str, Any]:
     """Scans barcode, serial no, batch no, or item code and returns item details with HTTP status codes."""
+    # Checked before the cache, which is shared between users.
+    frappe.has_permission("Item", "read", throw=True)
 
     def set_cache(data: Dict[str, Any]):
         """Stores barcode scan data in cache for 2 minutes."""
@@ -188,7 +192,9 @@ def items(pos_profile, search_value, customer):
     except json.JSONDecodeError:
         frappe.throw(_("Invalid search value format"))
 
-    pos_profile_doc = frappe.get_doc('POS Profile', pos_profile)
+    frappe.has_permission("Item", "read", throw=True)
+    frappe.has_permission("Customer", "read", doc=customer, throw=True)
+    pos_profile_doc = _get_permitted_profile(pos_profile)
 
 
     item = search_values.get("item", {})

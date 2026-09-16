@@ -17,14 +17,16 @@ def is_shift_manager(user=None):
 
 
 def profile_users(pos_profile):
-	"""Users listed on a POS Profile. An empty list means anyone may use it,
-	as in ERPNext's own POS."""
 	return frappe.get_all("POS Profile User", filters={"parent": pos_profile}, pluck="user")
 
 
 def can_use_profile(pos_profile, user=None):
-	users = profile_users(pos_profile)
-	return not users or (user or frappe.session.user) in users
+	"""The same rule as the POS Profile list (posprofile_user_query_conditions):
+	System Managers may use any profile, everyone else only those listing them."""
+	user = user or frappe.session.user
+	if user == "Administrator" or "System Manager" in frappe.get_roles(user):
+		return True
+	return user in profile_users(pos_profile)
 
 
 class AntOpeningShift(Document):

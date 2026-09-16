@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { createResource } from 'frappe-ui'
+import { createToast, errorMessage } from '@/utils'
 
 export const usePermissionStore = defineStore('permissionStore', () => {
     const salesInvoiceCanSubmit = ref(false)
@@ -49,8 +50,12 @@ export const usePermissionStore = defineStore('permissionStore', () => {
                 isSystemManager.value = Boolean(data.is_system_manager)
             }
         },
-        onError(err) {
-            console.error('Error fetching permissions', err)
+        onError(error) {
+            createToast({
+                title: 'Could not load your permissions',
+                message: errorMessage(error),
+                type: 'error',
+            })
         },
     })
 
@@ -58,8 +63,18 @@ export const usePermissionStore = defineStore('permissionStore', () => {
         return permissionResource.reload()
     }
 
+    let loaded = null
     function fetchPermissions() {
-        return permissionResource.fetch()
+        loaded = permissionResource.fetch().catch((error) => {
+            loaded = null
+            throw error
+        })
+        return loaded
+    }
+    // Resolves once the permissions are known (fetching them if needed), so
+    // callers never act on the all-false defaults.
+    function ready() {
+        return loaded || fetchPermissions()
     }
 
     return {
@@ -67,6 +82,6 @@ export const usePermissionStore = defineStore('permissionStore', () => {
         paymentEntryCanSubmit, paymentEntryCanCreate, paymentEntryCanPrint,paymentEntryCanOnlyOwn,
         salesOrderCanSubmit, salesOrderCanCreate, salesOrderCanPrint,salesOrderCanOnlyOwn,
         canManageLayouts, isSystemManager,
-        refresh, fetchPermissions
+        refresh, fetchPermissions, ready
     }
 })

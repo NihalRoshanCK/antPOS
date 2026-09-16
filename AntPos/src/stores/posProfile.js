@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { createResource } from 'frappe-ui'
+import { createToast, errorMessage } from '@/utils'
 
 export const usePosProfileStore = defineStore('posProfile', () => {
 
@@ -19,8 +20,14 @@ export const usePosProfileStore = defineStore('posProfile', () => {
                 hasNoData.value = false
             }else{
                 hasNoData.value = true
-
             }
+        },
+        onError(error) {
+            createToast({
+                title: 'Could not load your shift',
+                message: errorMessage(error),
+                type: 'error',
+            })
         },
     })
 

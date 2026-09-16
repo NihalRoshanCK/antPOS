@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { createResource } from 'frappe-ui'
 import { userResource } from '@/stores/user'
-import router from '@/router'
+import { loginUrl } from '@/utils/login'
 import { ref, computed } from 'vue'
 import { usePosProfileStore } from '@/stores/posProfile'
 import { usePermissionStore } from '@/stores/permission';
@@ -25,36 +25,17 @@ export const useSessionStore = defineStore('antpos-session', () => {
 
   function initializeSession() {    
     if (isLoggedIn.value) {
-      permissionStore.fetchPermissions()
-      posProfileStore.fetchPosProfile()
+      // Failures are reported by the stores themselves.
+      permissionStore.fetchPermissions().catch(() => {})
+      posProfileStore.fetchPosProfile().catch(() => {})
     }
   }
-  const login = createResource({
-    url: 'login',
-    makeParams({ email, password }) {
-      return {
-        usr: email,
-        pwd: password,
-      }
-    },
-    onError() {
-      throw new Error('Invalid email or password')
-    },
-    onSuccess() {
-      userResource.reload()
-      user.value = sessionUser()
-      initializeSession()
-      login.reset()
-      router.replace({ path: '/' })
-    },
-  })
-
   const logout = createResource({
     url: 'logout',
     onSuccess() {
       userResource.reset()
       user.value = null
-      window.location.href = '/login?redirect-to=/antPOS'
+      window.location.href = loginUrl('/antPOS')
     },
   })
 
@@ -62,7 +43,6 @@ export const useSessionStore = defineStore('antpos-session', () => {
   return {
     user,
     isLoggedIn,
-    login,
     logout,
   }
 })
