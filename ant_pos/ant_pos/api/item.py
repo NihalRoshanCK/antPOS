@@ -3,7 +3,8 @@ from frappe import _
 from frappe.utils import flt
 import json
 from typing import Dict, Any
-from erpnext.stock.get_item_details import get_item_details  
+from erpnext.setup.utils import get_exchange_rate
+from erpnext.stock.get_item_details import get_item_details
 
 BarcodeScanResult = dict[str, str | None]
 
@@ -232,13 +233,27 @@ def items(pos_profile, search_value, customer):
                 pos_profile_doc.warehouse, selected_batch_no
             ))
     company = frappe.db.get_value('Company', pos_profile_doc.company, ['default_currency', 'name'], as_dict=True)
+    price_list = pos_profile_doc.selling_price_list or frappe.db.get_single_value(
+        "Selling Settings", "selling_price_list"
+    )
+    price_list_currency = (
+        frappe.db.get_value("Price List", price_list, "currency") if price_list else None
+    ) or company.default_currency
+    plc_conversion_rate = (
+        1
+        if price_list_currency == company.default_currency
+        else get_exchange_rate(price_list_currency, company.default_currency)
+    )
     item_args = {
         "item_code": item_code,
         "barcode": search_values.get("barcode"),
         "customer": customer,
         "currency": company.default_currency,
-        "price_list": "Standard Selling",
-        "price_list_currency": company.default_currency,
+        "price_list": price_list,
+        "price_list_currency": price_list_currency,
+        "plc_conversion_rate": plc_conversion_rate,
+        "conversion_rate": 1,
+        "qty": 1,
         "company": company.name,
         "ignore_pricing_rule": pos_profile_doc.ignore_pricing_rule,
         "doctype": "Sales Invoice",
