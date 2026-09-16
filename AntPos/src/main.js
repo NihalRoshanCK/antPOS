@@ -52,16 +52,27 @@ window.addEventListener('vite:preloadError', () => handleStaleBuild())
 router.onError((error) => {
   if (isStaleBuildError(error)) handleStaleBuild()
 })
-// Offline shell. The worker lives under /assets/ant_pos/antPOS/, so claiming the
-// /antPOS/ scope needs the Service-Worker-Allowed header (docs/DEPLOYMENT.md).
-// Without it the browser refuses the registration; the app works normally, it
-// just has no offline shell, so there is nothing to surface to the cashier.
+// Service worker: makes antPOS installable and lets the installed app open
+// without a network. Frappe serves it at /antPOS/sw.js (ant_pos/pwa.py) so it
+// can control the app. If registration fails the app still works normally, so
+// there is nothing to surface to the cashier.
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
+    // Earlier releases registered the worker from /assets/ant_pos/antPOS/sw.js
+    // with scope '/antPOS/'. That narrower scope would keep winning over the new
+    // one, and it served the unrendered page, so drop it.
+    navigator.serviceWorker.getRegistrations().then((registrations) => {
+      for (const registration of registrations) {
+        const worker = registration.active || registration.waiting || registration.installing
+        if (worker && new URL(worker.scriptURL).pathname !== '/antPOS/sw.js') {
+          registration.unregister()
+        }
+      }
+    })
     navigator.serviceWorker
-      .register('/assets/ant_pos/antPOS/sw.js', { scope: '/antPOS/' })
+      .register('/antPOS/sw.js', { scope: '/antPOS' })
       .catch((error) => {
-        console.info('antPOS: offline mode unavailable -', error.message)
+        console.info('antPOS: service worker unavailable -', error.message)
       })
   })
 }

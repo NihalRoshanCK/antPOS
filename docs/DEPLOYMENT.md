@@ -1,43 +1,38 @@
 # antPOS deployment notes
 
-## Service worker scope (required for offline / installable PWA)
+## PWA (installable app)
 
-The app is routed at `/antPOS`, but its service worker is a build artifact served
-from `/assets/ant_pos/antPOS/sw.js`. A service worker may only control pages at
-or below its own directory, so by default this worker's scope is
-`/assets/ant_pos/antPOS/` and **it never controls the app**. That is why offline
-mode has never worked.
+antPOS installs as an app from the browser: Chrome/Edge show an install button
+in the address bar, Android offers "Install app", and on iOS use Share → Add to
+Home Screen. The installed app opens at `/antPOS` in its own window. Installing
+requires HTTPS (or `localhost`).
 
-`vite.config.mjs` now registers the worker with `scope: '/antPOS/'`. The browser
-only honours a wider-than-default scope when the worker's own response carries
-the `Service-Worker-Allowed` header, so add this to the site's nginx config:
+No web server configuration is needed. The build writes the service worker to
+`/assets/ant_pos/antPOS/sw.js`, but a worker only controls pages below its own
+directory, so Frappe also serves that file at `/antPOS/sw.js` with a
+`Service-Worker-Allowed: /antPOS` header (`ant_pos/pwa.py`, wired up through
+`website_route_rules` and `page_renderer` in `hooks.py`). An nginx
+`location = /assets/ant_pos/antPOS/sw.js` block from older notes is no longer
+used and can be removed.
 
-```nginx
-location = /assets/ant_pos/antPOS/sw.js {
-    add_header Service-Worker-Allowed "/antPOS/";
-    add_header Cache-Control "no-cache";
-    alias /home/frappe/frappe-bench/sites/assets/ant_pos/antPOS/sw.js;
-}
-```
+What the worker does:
 
-Place it **before** the general `location /assets` block. Adjust the bench path.
-
-Without this header the registration fails with:
-
-> The path of the provided scope ('/antPOS/') is not under the max scope allowed
-> ('/assets/ant_pos/antPOS/')
-
-The app still works normally — you simply get no offline shell and no install
-prompt. Nothing else depends on the worker.
+- Precaches the built JS/CSS so the app loads fast and survives a restart.
+- Always fetches the `/antPOS` page from the server. The built `index.html` is an
+  unrendered Jinja template, so it is never served from cache. The last page the
+  server returned is kept only so the installed app still opens when the
+  network is down.
+- Never caches `/api/` calls. Selling needs the server; there is no offline
+  sales queue.
+- Updates itself: after a new build, the next load picks up the new worker.
 
 ### Verifying
 
 1. Load `/antPOS`, open DevTools → Application → Service Workers. The worker
-   should be listed with scope `/antPOS/` and status "activated and is running".
+   should be `/antPOS/sw.js`, scope `/antPOS`, "activated and is running".
 2. Application → Manifest should show no errors and offer "Install".
-3. `scope` is `/antPOS/` and `start_url` is `/antPOS/` — note the trailing
-   slash on both. A `start_url` of `/antPOS` is *outside* scope `/antPOS/` and
-   Chrome rejects the whole manifest.
+3. `curl -I https://<site>/antPOS/sw.js` should return
+   `Content-Type: application/javascript` and `Service-Worker-Allowed: /antPOS`.
 
 ## Assets
 

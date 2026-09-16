@@ -24,63 +24,55 @@ export default defineConfig({
     vueJsx(),
     VitePWA({
       registerType: 'autoUpdate',
-      // Registered by hand in src/main.js so a missing Service-Worker-Allowed
-      // header degrades quietly instead of throwing on every page load.
+      // Registered by hand in src/main.js.
       injectRegister: false,
       devOptions: {
         enabled: true,
       },
-      // The service worker is served from /assets/ant_pos/antPOS/, so by default
-      // its scope cannot reach /antPOS and it never controls the app. Claiming a
-      // wider scope requires the `Service-Worker-Allowed: /antPOS/` response
-      // header -- see docs/DEPLOYMENT.md.
-      scope: '/antPOS/',
-      manifest: {
-        name: 'antPOS',
-        short_name: 'antPOS',
-        // start_url must live inside scope or the manifest is rejected and the
-        // app cannot be installed. It previously pointed at /antPOS while scope
-        // defaulted to /assets/ant_pos/antPOS/. Note the trailing slash: with
-        // scope '/antPOS/', a start_url of '/antPOS' is outside scope.
-        scope: '/antPOS/',
-        start_url: '/antPOS/',
-        display: 'standalone',
-        description: 'POS system powered by Frappe',
-        icons: [
-          {
-            src: '/assets/ant_pos/manifest/manifest-icon-192.png',
-            sizes: '192x192',
-            type: 'image/png',
-            purpose: 'any',
-          },
-          {
-            src: '/assets/ant_pos/manifest/manifest-icon-192.png',
-            sizes: '192x192',
-            type: 'image/png',
-            purpose: 'maskable',
-          },
-          {
-            src: '/assets/ant_pos/manifest/manifest-icon-512.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'any',
-          },
-          {
-            src: '/assets/ant_pos/manifest/manifest-icon-512.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'maskable',
-          },
-        ],
-      },
+      // The build writes sw.js to /assets/ant_pos/antPOS/, but the app runs at
+      // /antPOS, which a worker served from there can never control. Frappe
+      // serves the same file at /antPOS/sw.js with a Service-Worker-Allowed
+      // header instead (ant_pos/pwa.py), so no web server config is needed.
+      // No trailing slash: '/antPOS/' would leave /antPOS itself uncontrolled.
+      scope: '/antPOS',
+      // The manifest is a static file (public/manifest.webmanifest), linked from
+      // index.html. A generated one would be precached by a relative URL, which
+      // from /antPOS/sw.js resolves to /antPOS/manifest.webmanifest -- the POS page.
+      manifest: false,
       workbox: {
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+        // The worker runs from /antPOS/sw.js, not from the build folder, so
+        // anything it loads by relative URL would miss. Inline the Workbox
+        // runtime and give precached files their real absolute URLs.
+        inlineWorkboxRuntime: true,
+        modifyURLPrefix: { '': '/assets/ant_pos/antPOS/' },
+        // The built index.html is the unrendered Jinja template: served as-is it
+        // has no boot data or CSRF token and the app cannot start. Pages always
+        // come from the server instead (see runtimeCaching below).
+        globIgnores: ['**/node_modules/**/*', 'index.html'],
+        navigateFallback: null,
         runtimeCaching: [
           {
             urlPattern: ({ url }) =>
               url.origin === self.location.origin &&
               url.pathname.startsWith('/api/'),
             handler: 'NetworkOnly',
+          },
+          {
+            // Always ask the server for the page. The last copy is kept only so
+            // the installed app still opens when the network is down; it is
+            // never used while the server answers, so its CSRF token stays
+            // current.
+            urlPattern: ({ request, url }) =>
+              request.mode === 'navigate' &&
+              url.origin === self.location.origin &&
+              (url.pathname === '/antPOS' || url.pathname.startsWith('/antPOS/')),
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'antpos-pages',
+              expiration: { maxEntries: 1 },
+              cacheableResponse: { statuses: [200] },
+            },
           },
         ],
       },
