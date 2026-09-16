@@ -112,9 +112,7 @@ before_uninstall = "ant_pos.install.before_uninstall"
 # -----------
 # Permissions evaluated in scripted ways
 
-permission_query_conditions = {
-	"POS Profile": "ant_pos.ant_pos.api.posprofile_user_query_conditions"
-}
+permission_query_conditions = {"POS Profile": "ant_pos.ant_pos.api.posprofile_user_query_conditions"}
 #
 # has_permission = {
 # 	"Event": "frappe.desk.doctype.event.event.has_permission",
@@ -138,8 +136,8 @@ doc_events = {
 		# accounts this fills in.
 		"before_validate": "ant_pos.ant_pos.api.payment_entry.validate",
 	},
-    "Sales Invoice":{
-        "before_save":"ant_pos.ant_pos.api.sales_invoice.before_save_sales_invoice",
+	"Sales Invoice": {
+		"before_save": "ant_pos.ant_pos.api.sales_invoice.before_save_sales_invoice",
 	},
 	# The POS item list is cached per POS Profile; drop it when anything it shows
 	# changes. Stock levels are deliberately not hooked (every sale would clear
@@ -257,5 +255,5 @@ website_route_rules = [
 page_renderer = ["ant_pos.pwa.ServiceWorkerPage"]
 
 fixtures = [
-       {"dt": "Custom Field", "filters": [["module", "=", "Ant-Pos"]], "prefix": "Ant-Pos_custom_fields"},
+	{"dt": "Custom Field", "filters": [["module", "=", "Ant-Pos"]], "prefix": "Ant-Pos_custom_fields"},
 ]

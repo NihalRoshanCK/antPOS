@@ -1,6 +1,6 @@
 import frappe
-from frappe import _
 from erpnext.accounts.party import get_party_account
+from frappe import _
 
 
 def get_mode_of_payment_account(mode_of_payment: str, company: str) -> str | None:
@@ -30,24 +30,15 @@ def validate(doc, method=None):
 	if not doc.paid_to:
 		doc.paid_to = get_mode_of_payment_account(doc.mode_of_payment, doc.company)
 
-	if (
-		not doc.paid_from
-		and doc.payment_type == "Receive"
-		and doc.party_type == "Customer"
-		and doc.party
-	):
+	if not doc.paid_from and doc.payment_type == "Receive" and doc.party_type == "Customer" and doc.party:
 		doc.paid_from = get_party_account("Customer", doc.party, doc.company)
 
 	# The original read the currency of paid_from and stored it against paid_to.
 	if not doc.paid_to_account_currency and doc.paid_to:
-		doc.paid_to_account_currency = frappe.db.get_value(
-			"Account", doc.paid_to, "account_currency"
-		)
+		doc.paid_to_account_currency = frappe.db.get_value("Account", doc.paid_to, "account_currency")
 
 	if not doc.paid_from_account_currency and doc.paid_from:
-		doc.paid_from_account_currency = frappe.db.get_value(
-			"Account", doc.paid_from, "account_currency"
-		)
+		doc.paid_from_account_currency = frappe.db.get_value("Account", doc.paid_from, "account_currency")
 
 	# ERPNext requires a reference date whenever a reference number is present.
 	if doc.reference_no and not doc.reference_date:
@@ -60,8 +51,9 @@ def get_payments(shift):
 	frappe.has_permission("Ant Opening Shift", "read", throw=True)
 
 	# Query 1: Payment Entry Reference
-	payment_entry = frappe.db.sql("""
-        SELECT 
+	payment_entry = frappe.db.sql(
+		"""
+        SELECT
             pe.mode_of_payment,
             SUM(per.allocated_amount) AS total
         FROM `tabPayment Entry Reference` per
@@ -71,10 +63,14 @@ def get_payments(shift):
           AND pe.docstatus = 1
           AND si.custom_ant_opening = %s
         GROUP BY pe.mode_of_payment
-    """, (shift,), as_dict=True)
+    """,
+		(shift,),
+		as_dict=True,
+	)
 
 	# Query 2: Sales Invoice Payment
-	sales_payment = frappe.db.sql("""
+	sales_payment = frappe.db.sql(
+		"""
         SELECT
             p.mode_of_payment,
             SUM(p.amount) AS total
@@ -83,7 +79,10 @@ def get_payments(shift):
         WHERE si.custom_ant_opening = %s
           AND si.docstatus = 1
         GROUP BY p.mode_of_payment
-    """, (shift,), as_dict=True)
+    """,
+		(shift,),
+		as_dict=True,
+	)
 
 	# Merge and calculate totals
 	result_map = {}
@@ -96,12 +95,8 @@ def get_payments(shift):
 		mop = payment["mode_of_payment"]
 		result_map[mop] = result_map.get(mop, 0) + float(payment["total"] or 0)
 
-	result_list = [
-		{"mode_of_payment": mop, "total": total} for mop, total in result_map.items()
-	]
+	result_list = [{"mode_of_payment": mop, "total": total} for mop, total in result_map.items()]
 
-	result_list.append(
-		{"mode_of_payment": "Total", "total": sum(result_map.values())}
-	)
+	result_list.append({"mode_of_payment": "Total", "total": sum(result_map.values())})
 
 	return result_list

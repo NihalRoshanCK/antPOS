@@ -60,7 +60,9 @@ class TestFormLayout(FrappeTestCase):
 		self.assertEqual(layout["tabs"][0]["sections"][0]["label"], "Main")
 
 	def test_required_field_without_default_cannot_be_hidden(self):
-		self.save_layout("Customer", "Quick Entry", [{"columns": [[{"fieldname": "customer_name", "hidden": 1}]]}])
+		self.save_layout(
+			"Customer", "Quick Entry", [{"columns": [[{"fieldname": "customer_name", "hidden": 1}]]}]
+		)
 		self.assertEqual(fields_of(get_form_layout("Customer", "Quick Entry"))["customer_name"]["hidden"], 0)
 
 	def test_read_only_override_never_unlocks(self):
@@ -125,7 +127,10 @@ class TestFormLayout(FrappeTestCase):
 			"Quick Entry",
 			[
 				{"label": "Main", "sections": [{"label": "A", "columns": [["customer_name"]]}]},
-				{"label": "More", "sections": [{"label": "B", "collapsible": 1, "columns": [["tax_id"], []]}]},
+				{
+					"label": "More",
+					"sections": [{"label": "B", "collapsible": 1, "columns": [["tax_id"], []]}],
+				},
 			],
 		)
 		tabs = get_form_layout("Customer", "Quick Entry")["tabs"]

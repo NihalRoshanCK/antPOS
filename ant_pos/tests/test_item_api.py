@@ -34,12 +34,14 @@ class TestItemScanProjection(FrappeTestCase):
 	"""scan_barcode used frappe.db.get_value("Item", ..., ["*"]), which handed
 	every cashier the item's valuation and purchase rates."""
 
-	FORBIDDEN = {
-		"valuation_rate",
-		"last_purchase_rate",
-		"standard_rate",
-		"is_purchase_item",
-	}
+	FORBIDDEN = frozenset(
+		{
+			"valuation_rate",
+			"last_purchase_rate",
+			"standard_rate",
+			"is_purchase_item",
+		}
+	)
 
 	def test_projection_excludes_cost_fields(self):
 		requested = {f.split(" as ")[0].strip() for f in ITEM_SCAN_FIELDS}

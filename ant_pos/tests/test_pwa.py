@@ -19,8 +19,9 @@ class TestServiceWorkerRoute(FrappeTestCase):
 		return get_response()
 
 	def test_serves_worker_at_app_path(self):
-		with patch("ant_pos.pwa.os.path.isfile", return_value=True), patch(
-			"builtins.open", mock_open(read_data=b"// worker")
+		with (
+			patch("ant_pos.pwa.os.path.isfile", return_value=True),
+			patch("builtins.open", mock_open(read_data=b"// worker")),
 		):
 			response = self.get("/antPOS/sw.js")
 

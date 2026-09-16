@@ -23,9 +23,7 @@ def get_users():
 	that genuinely can read User (System Manager and friends) still get the list.
 	"""
 	if not frappe.has_permission("User", "read"):
-		user = frappe.db.get_value(
-			"User", frappe.session.user, USER_FIELDS, as_dict=True
-		)
+		user = frappe.db.get_value("User", frappe.session.user, USER_FIELDS, as_dict=True)
 		if not user:
 			return []
 		user.session_user = True

@@ -19,7 +19,9 @@ def as_user(test, user):
 
 
 def opening(**values):
-	return frappe._dict({"name": "SHIFT-1", "docstatus": 1, "status": "Open", "cashier": "cashier-a@example.com", **values})
+	return frappe._dict(
+		{"name": "SHIFT-1", "docstatus": 1, "status": "Open", "cashier": "cashier-a@example.com", **values}
+	)
 
 
 class TestAntClosingShift(FrappeTestCase):
@@ -110,7 +112,9 @@ class TestClosingOwnership(FrappeTestCase):
 				doc.validate_opening_shift(opening())
 
 	def test_cancel_does_not_reopen_next_to_a_newer_shift(self):
-		doc = frappe.get_doc({"doctype": "Ant Closing Shift", "name": "CLOSE-1", "ant_opening_shift": "SHIFT-1"})
+		doc = frappe.get_doc(
+			{"doctype": "Ant Closing Shift", "name": "CLOSE-1", "ant_opening_shift": "SHIFT-1"}
+		)
 		linked = frappe._dict(cashier="cashier-a@example.com", ant_closing_shift_detail="CLOSE-1")
 		with (
 			patch("frappe.db.get_value", return_value=linked),
@@ -122,7 +126,9 @@ class TestClosingOwnership(FrappeTestCase):
 		set_value.assert_not_called()
 
 	def test_cancel_reopens_only_its_own_shift(self):
-		doc = frappe.get_doc({"doctype": "Ant Closing Shift", "name": "CLOSE-1", "ant_opening_shift": "SHIFT-1"})
+		doc = frappe.get_doc(
+			{"doctype": "Ant Closing Shift", "name": "CLOSE-1", "ant_opening_shift": "SHIFT-1"}
+		)
 		with patch("frappe.db.set_value") as set_value:
 			other = frappe._dict(cashier="cashier-a@example.com", ant_closing_shift_detail="CLOSE-9")
 			with patch("frappe.db.get_value", return_value=other):
@@ -130,6 +136,9 @@ class TestClosingOwnership(FrappeTestCase):
 			set_value.assert_not_called()
 
 			linked = frappe._dict(cashier="cashier-a@example.com", ant_closing_shift_detail="CLOSE-1")
-			with patch("frappe.db.get_value", return_value=linked), patch("frappe.db.exists", return_value=None):
+			with (
+				patch("frappe.db.get_value", return_value=linked),
+				patch("frappe.db.exists", return_value=None),
+			):
 				doc.on_cancel()
 			set_value.assert_called_once()

@@ -135,7 +135,9 @@ def _get_permitted_profile(pos_profile: str):
 	# get_list applies ant_pos's permission_query_conditions, so a cashier only
 	# reaches profiles they are listed on.
 	if not frappe.get_list("POS Profile", filters={"name": pos_profile}, limit=1):
-		frappe.throw(_("You do not have access to POS Profile {0}").format(pos_profile), frappe.PermissionError)
+		frappe.throw(
+			_("You do not have access to POS Profile {0}").format(pos_profile), frappe.PermissionError
+		)
 	return frappe.get_cached_doc("POS Profile", pos_profile)
 
 

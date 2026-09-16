@@ -54,7 +54,12 @@ DEFAULT_LAYOUTS = {
 	("Customer", QUICK_ENTRY): [
 		{
 			"columns": [
-				["customer_name", {"fieldname": "customer_type", "default": "Individual"}, "mobile_no", "email_id"],
+				[
+					"customer_name",
+					{"fieldname": "customer_type", "default": "Individual"},
+					"mobile_no",
+					"email_id",
+				],
 				["customer_group", "territory", "gender"],
 			]
 		}
@@ -245,7 +250,9 @@ def reset_form_layout(doctype: str, type: str) -> dict:
 
 
 @frappe.whitelist(methods=["POST"])
-def preview_form_layout(doctype: str, type: str, layout: str | list, parent_doctype: str | None = None) -> dict:
+def preview_form_layout(
+	doctype: str, type: str, layout: str | list, parent_doctype: str | None = None
+) -> dict:
 	"""Resolve an unsaved layout exactly as get_form_layout would."""
 	frappe.only_for("System Manager")
 	_check_editable(doctype, type)

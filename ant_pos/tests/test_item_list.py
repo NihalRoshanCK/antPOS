@@ -25,7 +25,9 @@ class TestItemListSettings(FrappeTestCase):
 				custom_most_moving_days=9999,
 			)
 		)
-		self.assertEqual((s.limit, s.cache_minutes, s.most_moving_count, s.most_moving_days), (500, 1, 0, 365))
+		self.assertEqual(
+			(s.limit, s.cache_minutes, s.most_moving_count, s.most_moving_days), (500, 1, 0, 365)
+		)
 
 	def test_zero_is_respected_where_allowed(self):
 		s = item_list.get_list_settings(frappe._dict(custom_show_item_list=0, custom_cache_item_list=0))
@@ -62,7 +64,11 @@ class TestItemListCache(FrappeTestCase):
 	def test_hooks_clear_the_cache_on_changes(self):
 		events = frappe.get_hooks("doc_events")
 		target = "ant_pos.ant_pos.api.item_list.clear_item_list_cache"
-		for doctype, event in (("Item", "on_update"), ("Item Price", "on_update"), ("POS Profile", "on_update")):
+		for doctype, event in (
+			("Item", "on_update"),
+			("Item Price", "on_update"),
+			("POS Profile", "on_update"),
+		):
 			self.assertIn(target, events.get(doctype, {}).get(event, []), f"{doctype}.{event}")
 
 
@@ -111,7 +117,15 @@ class TestItemListEndpoint(FrappeTestCase):
 		rows = item_list.get_item_list(self.profile_name)["items"]
 		if not rows:
 			self.skipTest("profile lists no items")
-		for key in ("item_code", "item_name", "stock_uom", "has_batch_no", "has_serial_no", "rate", "actual_qty"):
+		for key in (
+			"item_code",
+			"item_name",
+			"stock_uom",
+			"has_batch_no",
+			"has_serial_no",
+			"rate",
+			"actual_qty",
+		):
 			self.assertIn(key, rows[0])
 
 	def test_most_moving_counts_sales_only(self):
@@ -136,7 +150,14 @@ class TestItemListEndpoint(FrappeTestCase):
 				(name, item_code, warehouse, actual_qty, voucher_type, voucher_no,
 				 posting_date, is_cancelled, docstatus, company)
 				VALUES (%s, %s, %s, %s, %s, 'TEST-ITEM-LIST', CURDATE(), 0, 1, %s)""",
-				(frappe.generate_hash(length=10), item_code, profile.warehouse, -qty, voucher_type, profile.company),
+				(
+					frappe.generate_hash(length=10),
+					item_code,
+					profile.warehouse,
+					-qty,
+					voucher_type,
+					profile.company,
+				),
 			)
 
 		movement(sold, 5, "Sales Invoice")

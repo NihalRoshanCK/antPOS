@@ -9,10 +9,9 @@ configuration.
 
 import os
 
-from werkzeug.wrappers import Response
-
 import frappe
 from frappe.website.page_renderers.base_renderer import BaseRenderer
+from werkzeug.wrappers import Response
 
 # website_route_rules maps /antPOS/sw.js to this endpoint.
 SERVICE_WORKER_ENDPOINT = "antpos-service-worker"

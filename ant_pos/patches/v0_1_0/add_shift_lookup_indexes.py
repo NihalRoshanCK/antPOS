@@ -26,6 +26,4 @@ def execute():
 			frappe.db.add_index(doctype, [fieldname])
 		except Exception:
 			# Index already present, or the column type cannot take one.
-			frappe.log_error(
-				frappe.get_traceback(), f"ant_pos: could not index {doctype}.{fieldname}"
-			)
+			frappe.log_error(frappe.get_traceback(), f"ant_pos: could not index {doctype}.{fieldname}")

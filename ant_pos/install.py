@@ -26,7 +26,11 @@ S = "select"
 # the POS never edits items, groups or tax setup.
 PERMISSIONS = [
 	# POS Cash: sells, takes payments, closes shifts.
-	("Sales Invoice", "POS Cash", {R, S, "write", "create", "submit", "cancel", "amend", "print", "report", "if_owner"}),
+	(
+		"Sales Invoice",
+		"POS Cash",
+		{R, S, "write", "create", "submit", "cancel", "amend", "print", "report", "if_owner"},
+	),
 	("Sales Order", "POS Cash", {R, S, "write", "create", "submit", "print", "report"}),
 	("Payment Entry", "POS Cash", {R, S, "write", "create", "submit"}),
 	("Customer", "POS Cash", {R, S, "write", "create"}),
@@ -95,7 +99,9 @@ def before_uninstall():
 def create_roles():
 	for role in POS_ROLES:
 		if not frappe.db.exists("Role", role):
-			frappe.get_doc({"doctype": "Role", "role_name": role, "desk_access": 0}).insert(ignore_permissions=True)
+			frappe.get_doc({"doctype": "Role", "role_name": role, "desk_access": 0}).insert(
+				ignore_permissions=True
+			)
 
 
 def apply_permissions():
@@ -162,12 +168,23 @@ def restore_standard_permissions():
 				continue
 			exists = frappe.db.exists(
 				"Custom DocPerm",
-				{"parent": doctype, "role": perm.role, "permlevel": perm.permlevel, "if_owner": perm.if_owner},
+				{
+					"parent": doctype,
+					"role": perm.role,
+					"permlevel": perm.permlevel,
+					"if_owner": perm.if_owner,
+				},
 			)
 			if exists:
 				continue
 			row = frappe.new_doc("Custom DocPerm")
-			row.update({k: v for k, v in perm.items() if k not in ("name", "creation", "modified", "owner", "modified_by")})
+			row.update(
+				{
+					k: v
+					for k, v in perm.items()
+					if k not in ("name", "creation", "modified", "owner", "modified_by")
+				}
+			)
 			row.insert(ignore_permissions=True)
 	frappe.clear_cache()
 
@@ -188,6 +205,8 @@ def _custom_matches_standard(doctype):
 		return (p.role, p.permlevel, p.if_owner, *(p.get(r) or 0 for r in RIGHTS))
 
 	fields = ["role", "permlevel", "if_owner", *RIGHTS]
-	custom = sorted(key(p) for p in frappe.get_all("Custom DocPerm", filters={"parent": doctype}, fields=fields))
+	custom = sorted(
+		key(p) for p in frappe.get_all("Custom DocPerm", filters={"parent": doctype}, fields=fields)
+	)
 	standard = sorted(key(p) for p in frappe.get_all("DocPerm", filters={"parent": doctype}, fields=fields))
 	return custom == standard

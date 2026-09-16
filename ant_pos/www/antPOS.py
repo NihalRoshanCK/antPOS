@@ -56,8 +56,6 @@ def get_desk_theme():
 	return theme if theme in ("Light", "Dark", "Automatic") else "Light"
 
 
-
-
 def get_boot():
 	return frappe._dict(
 		{

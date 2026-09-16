@@ -41,9 +41,18 @@ class TestUserProfile(FrappeTestCase):
 	def test_update_only_touches_allowed_fields(self):
 		before = frappe.db.get_value("User", TEST_USER, ["enabled", "user_type"], as_dict=True)
 		update_profile(
-			json.dumps({"first_name": " Renamed ", "mobile_no": "9000000999", "enabled": 0, "user_type": "System User"})
+			json.dumps(
+				{
+					"first_name": " Renamed ",
+					"mobile_no": "9000000999",
+					"enabled": 0,
+					"user_type": "System User",
+				}
+			)
 		)
-		user = frappe.db.get_value("User", TEST_USER, ["first_name", "mobile_no", "enabled", "user_type"], as_dict=True)
+		user = frappe.db.get_value(
+			"User", TEST_USER, ["first_name", "mobile_no", "enabled", "user_type"], as_dict=True
+		)
 		self.assertEqual(user.first_name, "Renamed")
 		self.assertEqual(user.mobile_no, "9000000999")
 		self.assertEqual(user.enabled, before.enabled)

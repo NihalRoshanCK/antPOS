@@ -53,7 +53,9 @@ class TestInstallPermissions(FrappeTestCase):
 			install.apply_permissions()
 		with patch.object(install, "PERMISSIONS", [(DOCTYPE, "POS Cash", {"read"})]):
 			install.apply_permissions()
-		rows = frappe.get_all("Custom DocPerm", filters={"parent": DOCTYPE, "role": "POS Cash"}, fields=["read", "write"])
+		rows = frappe.get_all(
+			"Custom DocPerm", filters={"parent": DOCTYPE, "role": "POS Cash"}, fields=["read", "write"]
+		)
 		self.assertEqual(len(rows), 1)
 		self.assertEqual((rows[0].read, rows[0].write), (1, 0))
 

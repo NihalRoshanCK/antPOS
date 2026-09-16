@@ -39,9 +39,7 @@ def _session_user():
 def get_profile() -> dict:
 	user = _session_user()
 	profile = frappe.db.get_value("User", user, PROFILE_FIELDS, as_dict=True) or {}
-	profile["roles"] = sorted(
-		r for r in frappe.get_roles(user) if r not in ("All", "Guest", "Desk User")
-	)
+	profile["roles"] = sorted(r for r in frappe.get_roles(user) if r not in ("All", "Guest", "Desk User"))
 	return profile
 
 

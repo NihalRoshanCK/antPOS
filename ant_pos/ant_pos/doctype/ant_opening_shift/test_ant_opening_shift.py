@@ -72,9 +72,7 @@ class TestAntOpeningShift(FrappeTestCase):
 		doc.validate()
 
 		self.assertEqual(frappe.utils.getdate(doc.posting_date), frappe.utils.getdate(yesterday))
-		self.assertEqual(
-			frappe.utils.getdate(doc.period_start_date), frappe.utils.getdate(yesterday)
-		)
+		self.assertEqual(frappe.utils.getdate(doc.period_start_date), frappe.utils.getdate(yesterday))
 
 	def test_period_end_before_start_is_rejected(self):
 		"""This check was guarded on posting_date and so never ran on a new doc."""
@@ -98,7 +96,9 @@ class TestAntOpeningShift(FrappeTestCase):
 
 	def test_duplicate_check_ignores_self(self):
 		"""An existing doc must not trip its own open-shift check on re-validate."""
-		doc = frappe.get_doc({"doctype": "Ant Opening Shift", "name": "ANT-OPEN-TEST-0001", "cashier": CASHIER})
+		doc = frappe.get_doc(
+			{"doctype": "Ant Opening Shift", "name": "ANT-OPEN-TEST-0001", "cashier": CASHIER}
+		)
 		self.assertFalse(doc.is_new())
 
 		with patch("frappe.db.exists", return_value=None) as exists:

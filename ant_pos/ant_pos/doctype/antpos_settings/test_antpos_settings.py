@@ -11,9 +11,7 @@ class TestAntPOSSettings(FrappeTestCase):
 
 	def test_write_is_restricted(self):
 		"""POS roles may read branding but must not be able to rewrite it."""
-		write_roles = {
-			p.role for p in frappe.get_meta("AntPOS Settings").permissions if p.write
-		}
+		write_roles = {p.role for p in frappe.get_meta("AntPOS Settings").permissions if p.write}
 
 		self.assertNotIn("POS Cash", write_roles)
 		self.assertNotIn("POS Billing", write_roles)
