@@ -107,8 +107,8 @@
                     :class="invoiceStore.items.length
                         ? 'bg-surface-green-3 text-ink-white active:bg-green-800'
                         : 'bg-surface-gray-2 text-ink-gray-4'"
-                    :disabled="!invoiceStore.items.length"
-                    @click="sales_invoice.fetch({ action: 'Save', status: 'pay' })"
+                    :disabled="!invoiceStore.items.length || sales_invoice.loading"
+                    @click="saveDraft('pay')"
                 >
                     Pay <span class="num">{{ payableTotal }}</span>
                 </button>
@@ -129,16 +129,16 @@
                     <Button
                         v-if="permissionStore.salesInvoiceCanCreate"
                         variant="outline" theme="gray" size="lg"
-                        :disabled="!invoiceStore.items.length"
-                        @click="sales_invoice.fetch({ action: 'Save', status: 'save_new' })"
+                        :disabled="!invoiceStore.items.length || sales_invoice.loading"
+                        @click="saveDraft('save_new')"
                     >
                         Hold sale
                     </Button>
                     <Button
                         v-if="permissionStore.salesInvoiceCanPrint && permissionStore.salesInvoiceCanCreate"
                         variant="solid" theme="gray" size="lg"
-                        :disabled="!invoiceStore.items.length"
-                        @click="sales_invoice.fetch({ action: 'Save', status: 'print' })"
+                        :disabled="!invoiceStore.items.length || sales_invoice.loading"
+                        @click="saveDraft('print')"
                     >
                         <template #prefix><FeatherIcon name="printer" class="h-4 w-4" /></template>
                         Save &amp; print
@@ -152,8 +152,8 @@
                         :class="invoiceStore.items.length
                             ? 'bg-surface-green-3 text-ink-white hover:bg-green-700 active:bg-green-800'
                             : 'bg-surface-gray-2 text-ink-gray-4'"
-                        :disabled="!invoiceStore.items.length"
-                        @click="sales_invoice.fetch({ action: 'Save', status: 'pay' })"
+                        :disabled="!invoiceStore.items.length || sales_invoice.loading"
+                        @click="saveDraft('pay')"
                     >
                         Pay <span class="num">{{ payableTotal }}</span>
                     </button>
@@ -195,17 +195,6 @@ let status = '';
 let sales_invoice = createResource({
     url: 'frappe.desk.form.save.savedocs',
     makeParams(params) {
-        invoiceStore.items.forEach((item) => {                
-            if (item.has_serial_no && item.selected_serial_no.length !== item.qty) {
-                createToast({
-                    title: 'error',
-                    message: 'Serial number is required',
-                    iconClasses: 'bg-surface-red-5 text-ink-white rounded-md p-px',
-                    position: 'top-center',
-                    timeout: 5,
-                });
-            }
-        });
         status = params.status
         return {
             doc: JSON.stringify({
@@ -216,6 +205,8 @@ let sales_invoice = createResource({
                 company: store.posProfileData.company,
                 conversion_rate: 1,
                 selling_price_list: store.posProfileData.selling_price_list,
+                // ERPNext's own POS copies this from the profile; the invoice has no other source.
+                disable_rounded_total: store.posProfileData.disable_rounded_total ? 1 : 0,
                 items: invoiceStore.items,
                 customer: invoiceStore.invoiceCustomer?.name,
                 update_stock: 1,
@@ -252,6 +243,28 @@ let sales_invoice = createResource({
     },
 });
    
+// Every draft save goes through here: one request at a time, so a double tap
+// on Pay, Hold sale or Save & print cannot create two invoices.
+const saveDraft = (nextStatus) => {
+    if (sales_invoice.loading || !invoiceStore.items.length) return;
+    // Return lines come from the original invoice; ERPNext checks their serials.
+    const missingSerials = !invoiceStore.invoice.is_return && invoiceStore.items.find(
+        (item) => item.has_serial_no && (item.selected_serial_no || []).length !== Math.abs(Number(item.qty))
+    );
+    if (missingSerials) {
+        createToast({
+            title: 'Serial numbers needed',
+            message: `Select ${Math.abs(Number(missingSerials.qty))} serial number(s) for ${missingSerials.item_name || missingSerials.item_code}.`,
+            icon: 'x-circle',
+            iconClasses: 'bg-surface-red-5 text-ink-white rounded-md p-px',
+            position: 'top-center',
+            timeout: 5,
+        });
+        return;
+    }
+    sales_invoice.fetch({ action: 'Save', status: nextStatus });
+};
+
 // Payment rows are sent with zero amounts. The cart's own total can still be
 // the value from before the last scan was recalculated, and saving it here put
 // a stale amount on the default mode. The payment panel fills the default mode
@@ -270,15 +283,15 @@ const getAdvances = () => {
 const { canEdit: canEditDiscount, byPercent: usePercentDiscount } = useDiscountMode();
 
 const mobileActions = computed(() => {
-    const empty = !invoiceStore.items.length;
+    const busy = !invoiceStore.items.length || sales_invoice.loading;
     const list = [];
     if (permissionStore.salesInvoiceCanCreate) {
-        list.push({ label: 'Hold sale', icon: 'pause', disabled: empty, class: 'bg-surface-white border border-outline-gray-2 text-ink-gray-8',
-            run: () => sales_invoice.fetch({ action: 'Save', status: 'save_new' }) });
+        list.push({ label: 'Hold sale', icon: 'pause', disabled: busy, class: 'bg-surface-white border border-outline-gray-2 text-ink-gray-8',
+            run: () => saveDraft('save_new') });
     }
     if (permissionStore.salesInvoiceCanPrint && permissionStore.salesInvoiceCanCreate) {
-        list.push({ label: 'Save & print', icon: 'printer', disabled: empty, class: 'bg-surface-gray-7 text-ink-white',
-            run: () => sales_invoice.fetch({ action: 'Save', status: 'print' }) });
+        list.push({ label: 'Save & print', icon: 'printer', disabled: busy, class: 'bg-surface-gray-7 text-ink-white',
+            run: () => saveDraft('print') });
     }
     return list;
 });

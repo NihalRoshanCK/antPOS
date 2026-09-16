@@ -134,7 +134,9 @@ permission_query_conditions = {
 
 doc_events = {
 	"Payment Entry": {
-		"validate": "ant_pos.ant_pos.api.payment_entry.validate",
+		# Before ERPNext's validate, which works out exchange rates from the
+		# accounts this fills in.
+		"before_validate": "ant_pos.ant_pos.api.payment_entry.validate",
 	},
     "Sales Invoice":{
         "before_save":"ant_pos.ant_pos.api.sales_invoice.before_save_sales_invoice",

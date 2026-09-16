@@ -164,7 +164,7 @@ const store = usePosProfileStore();
 const invoiceStore = useInvoiceStore()
 const addPayments = () => {
     const inv = invoiceStore.invoice
-    const due = Number(inv.rounded_total || inv.grand_total || 0)
+    const due = amountDue(inv)
     if (!Array.isArray(inv.payments)) inv.payments = []
 
     const allowed = (store.posProfileData?.payments || []).filter(
@@ -196,19 +196,19 @@ const addPayments = () => {
     changePaymentAmount()
 }
 
+// ERPNext leaves rounded_total at 0 when rounding is disabled, so the amount
+// owed is the rounded total if there is one and the grand total otherwise.
+const amountDue = (inv) => Number(inv.rounded_total || inv.grand_total || 0)
+
 const changemode = (index) => {
     invoiceStore.invoice.payments.forEach((element, i) => {
-        if (i === index) {
-            element.amount = invoiceStore.invoice.base_rounded_total
-        } else {
-            element.amount = 0
-        }
+        element.amount = i === index ? toPay.value : 0
     })
-    invoiceStore.invoice.paid_amount = invoiceStore.invoice.base_rounded_total
+    changePaymentAmount()
 }
 
 const money = (value) => Number(value || 0).toFixed(2)
-const toPay = computed(() => Number(invoiceStore.invoice.rounded_total || invoiceStore.invoice.grand_total || 0))
+const toPay = computed(() => amountDue(invoiceStore.invoice))
 const paid = computed(() => Number(invoiceStore.invoice.paid_amount || 0))
 // Positive: change is due. Negative: part of the bill is still unpaid.
 const balance = computed(() => paid.value - toPay.value)
@@ -220,6 +220,10 @@ const summary = computed(() => {
         { label: 'Taxes and charges', value: inv.total_taxes_and_charges },
     ]
     if (Number(inv.discount_amount)) rows.push({ label: 'Discount', value: inv.discount_amount })
+    if (inv.disable_rounded_total) {
+        rows.push({ label: 'Grand total', value: inv.grand_total, strong: true })
+        return rows
+    }
     rows.push({ label: 'Grand total', value: inv.grand_total })
     if (Number(inv.rounding_adjustment)) rows.push({ label: 'Rounding', value: inv.rounding_adjustment })
     rows.push({ label: 'Rounded total', value: inv.rounded_total, strong: true })
@@ -302,13 +306,27 @@ const saveAndSubmit = async (doc) => {
     return true;
 }
 
+// Paying more than is due is fine: the difference is change. Paying less
+// leaves the rest on credit, which the POS Profile has to allow. Without
+// "Allow partial payments" a credit sale must be entirely on credit.
+// Returns are negative on both sides, so sizes are compared.
+const paymentProblem = () => {
+    const profile = store.posProfileData
+    const due = Math.abs(toPay.value)
+    const paidNow = Math.abs(paid.value)
+    if (due - paidNow < 0.005) return null
+    if (!profile.custom_allow_credit) {
+        return `Credit is not allowed. Collect ${money(due - paidNow)} more.`
+    }
+    if (!profile.custom_allow_partial_payments && paidNow >= 0.005) {
+        return 'Partial payments are not allowed. Take the full amount or leave it all on credit.'
+    }
+    return null
+}
+
 const submitInvoice = async (action = null) => {
-    if(!store.posProfileData.custom_allow_credit){
-        if (invoiceStore.invoice.paid_amount< invoiceStore.invoice.rounded_total) return showToast('warning', 'Credit Not Allowed', 'alert-circle', '#ffcc00','#ffffff');
-    }
-    if(!store.posProfileData.custom_allow_partial_payments){
-        if ((invoiceStore.invoice.paid_amount - invoiceStore.invoice.rounded_total) > 0 ) return showToast('warning', 'Partial payment  Not Allowed', 'alert-circle', '#ffcc00','#ffffff');
-    }
+    const problem = paymentProblem()
+    if (problem) return showToast('warning', problem, 'alert-circle', '#ffcc00','#ffffff');
     let invoice = { ...invoiceStore.invoice };
     if (await validatePaymentBeforeSave()) {
         if (asSalesOrder.value) {
@@ -454,8 +472,10 @@ const validatePaymentBeforeSave = async () => {
     })
 
     if (advance > 0) {
-        if (invoiceStore.invoice.paid_amount > invoiceStore.invoice.rounded_total) {
-            showToast('warning', 'Paid amount is greater than rounded total', 'alert-circle', '#ffcc00','#ffffff');
+        // Payments are recorded as Payment Entries against the invoice, and an
+        // entry cannot be allocated more than is outstanding.
+        if (paid.value - toPay.value >= 0.005) {
+            showToast('warning', 'When using customer credit, the amount paid cannot be more than the total', 'alert-circle', '#ffcc00','#ffffff');
             return false;
         }
         invoiceStore.invoice.payments = []

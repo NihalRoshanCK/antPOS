@@ -173,7 +173,7 @@
                         type="button"
                         class="inline-flex h-10 w-full items-center justify-center rounded-md text-lg font-semibold transition-colors focus:outline-none focus-visible:ring focus-visible:ring-outline-green-2 disabled:cursor-not-allowed"
                         :class="hasSelectedInvoice ? 'bg-surface-green-3 text-ink-white hover:bg-green-700' : 'bg-surface-gray-2 text-ink-gray-4'"
-                        :disabled="!hasSelectedInvoice"
+                        :disabled="!hasSelectedInvoice || recording"
                         @click="createpayment"
                     >
                         Record payment
@@ -188,7 +188,7 @@
                 type="button"
                 class="inline-flex h-12 w-full items-center justify-center rounded-md text-lg font-semibold transition-colors focus:outline-none focus-visible:ring focus-visible:ring-outline-green-2 disabled:cursor-not-allowed"
                 :class="hasSelectedInvoice ? 'bg-surface-green-3 text-ink-white active:bg-green-800' : 'bg-surface-gray-2 text-ink-gray-4'"
-                :disabled="!hasSelectedInvoice"
+                :disabled="!hasSelectedInvoice || recording"
                 @click="createpayment"
             >
                 Record payment
@@ -200,7 +200,7 @@
 <script setup>
 
 import { Button, createListResource, TextInput, FormControl, FeatherIcon, createResource, TabButtons } from 'frappe-ui';
-import { ref, computed, watch, onBeforeMount, onMounted } from 'vue';
+import { ref, computed, watch, onBeforeMount, onMounted, onUnmounted } from 'vue';
 import Customer from '@/components/Customer.vue';
 import PaneResizer from '@/components/PaneResizer.vue';
 import { useBreakpoint } from '@/composables/useBreakpoint';
@@ -341,69 +341,86 @@ const now = () => {
     return `${year}-${month}-${day}`;
 };
 
-const createpayment = async () => {
-    if (currentTab.value === 'credit'){
-        const sortedModes = [...modes.value].sort((a, b) => b.amount - a.amount);
-        const selectedInvoices = filteredInvoices.value.filter(inv => inv.selected);
-        let i = 0;
-        while (i < sortedModes.length) {
-            const currentMode = sortedModes[i];
-            let totalToSpend = currentMode.amount;
-            const invoiceDetails = [];
-            for (let invoice of selectedInvoices) {
-                if (totalToSpend <= 0) break;
-                if (invoice.outstanding_amount <= 0) continue;
-                const allocated = Math.min(totalToSpend, invoice.outstanding_amount);
-                invoice.outstanding_amount -= allocated;
-                totalToSpend -= allocated;
-                
-                invoiceDetails.push({
-                    reference_doctype: "Sales Invoice",
-                    reference_name: invoice.name,
-                    allocated_amount: allocated,
-                    outstanding_amount: invoice.outstanding_amount
-                });
-            }
-            if ((currentMode.amount - totalToSpend) > 0 && invoiceDetails.length > 0) {
-                await save.fetch({
-                    action: 'Submit',
-                    references: invoiceDetails,
-                    mode: currentMode.mode_of_payment,
-                    amount: currentMode.amount - totalToSpend
-                });
-            }    
-            i++;
-        }
-        clearPayments();
-    } else {
-        const totalAmount = modes.value.reduce((sum, mode) => sum + (mode.amount || 0), 0);
-        if (totalAmount > 0) {
-            for (const mode of modes.value) {
-                if (mode.amount > 0) {
-                    await save.fetch({
-                        action: 'Submit',
-                        references: [],
-                        mode: mode.mode_of_payment,
-                        amount: mode.amount || 0
-                    });
-                }
-            }
-            clearPayments();
-        } else {
-            createToast({
-                title: 'Error',
-                message: 'Please enter a valid amount for the payment method.',
-                icon: 'x-circle',
-                iconClasses: 'bg-surface-red-5 text-ink-white rounded-md p-px',
-                position: 'top-center',
-                timeout: 5,
+// One recording at a time: a second tap while entries are being submitted
+// would record the same payment twice.
+const recording = ref(false);
+
+const recordError = (message) => createToast({
+    title: 'Error',
+    message,
+    icon: 'x-circle',
+    iconClasses: 'bg-surface-red-5 text-ink-white rounded-md p-px',
+    position: 'top-center',
+    timeout: 5,
+});
+
+// Splits each payment method's amount across the selected invoices, oldest
+// first. Works on a copy of the outstanding amounts: the list is only changed
+// by reloading it from the server once the entries are saved.
+const planCreditPayments = () => {
+    const remaining = new Map(
+        (invoices.data || []).filter((inv) => inv.selected).map((inv) => [inv.name, Number(inv.outstanding_amount) || 0])
+    );
+    const plan = [];
+    for (const mode of [...modes.value].sort((a, b) => b.amount - a.amount)) {
+        let left = Number(mode.amount) || 0;
+        const references = [];
+        for (const [name, outstanding] of remaining) {
+            if (left <= 0) break;
+            if (outstanding <= 0) continue;
+            const allocated = Math.min(left, outstanding);
+            remaining.set(name, outstanding - allocated);
+            left -= allocated;
+            references.push({
+                reference_doctype: 'Sales Invoice',
+                reference_name: name,
+                allocated_amount: allocated,
+                outstanding_amount: outstanding,
             });
         }
+        const amount = (Number(mode.amount) || 0) - left;
+        if (amount > 0 && references.length) {
+            plan.push({ mode: mode.mode_of_payment, amount, references });
+        }
     }
+    return plan;
 };
 
+const planOnAccountPayments = () =>
+    modes.value
+        .filter((mode) => Number(mode.amount) > 0)
+        .map((mode) => ({ mode: mode.mode_of_payment, amount: Number(mode.amount), references: [] }));
 
-    
+const createpayment = async () => {
+    if (recording.value) return;
+    const plan = currentTab.value === 'credit' ? planCreditPayments() : planOnAccountPayments();
+    if (!plan.length) {
+        return recordError(
+            currentTab.value === 'credit'
+                ? 'Enter an amount and select at least one invoice with an outstanding balance.'
+                : 'Please enter a valid amount for the payment method.'
+        );
+    }
+
+    recording.value = true;
+    let recorded = 0;
+    try {
+        for (const entry of plan) {
+            await save.fetch({ action: 'Submit', ...entry });
+            recorded++;
+        }
+    } catch {
+        // save's onError has shown the reason. Entries already submitted stay
+        // recorded; say so, then show what is still outstanding.
+        if (recorded) recordError(`${recorded} of ${plan.length} payments were recorded before the error.`);
+    } finally {
+        recording.value = false;
+    }
+    // After a failure with nothing recorded, the entries stay on screen to
+    // retry. Otherwise the list is refreshed from the server.
+    if (recorded) clearPayments();
+};
+
 let save = createResource({
     url: 'frappe.desk.form.save.savedocs',
     makeParams(params) {
@@ -489,12 +506,9 @@ watch(searchQuery, (newQuery) => {
   invoices.reload();
 });
 
-onMounted(()=>{
-    emitter.on('clear', (params) => {
-            clearPayments(params)
-        });
-
-})
+const onClear = (params) => clearPayments(params);
+onMounted(() => emitter.on('clear', onClear));
+onUnmounted(() => emitter.off('clear', onClear));
 
 onBeforeMount(() => {
     addPayments();

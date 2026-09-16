@@ -84,6 +84,8 @@ export function useInvoiceRecalc() {
         pos_profile: store.posProfileData.name,
         company: store.posProfileData.company,
         selling_price_list: store.posProfileData.selling_price_list,
+        // ERPNext's own POS copies this from the profile; the invoice has no other source.
+        disable_rounded_total: store.posProfileData.disable_rounded_total ? 1 : 0,
         items: invoiceStore.items,
         customer: invoiceStore.invoiceCustomer?.name,
         update_stock: 1,
