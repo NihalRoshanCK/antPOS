@@ -107,11 +107,18 @@ class TestItemListEndpoint(FrappeTestCase):
 	def test_most_moving_counts_sales_only(self):
 		profile = frappe.get_doc("POS Profile", self.profile_name)
 		settings = item_list.get_list_settings(profile)
-		settings.most_moving_count = 5
+		settings.most_moving_count = 50
 		rows = item_list._query_items(profile, settings, limit=2)
 		if len(rows) < 2:
 			self.skipTest("needs two listed items")
 		sold, issued = rows[0].item_code, rows[1].item_code
+
+		# Compare against what the site has already sold, so real sales of
+		# these items do not affect the result.
+		def moved():
+			return {r.item_code: r.moved_qty for r in item_list._most_moving(profile, settings)}
+
+		before = moved()
 
 		def movement(item_code, qty, voucher_type):
 			frappe.db.sql(
@@ -125,9 +132,9 @@ class TestItemListEndpoint(FrappeTestCase):
 		movement(sold, 5, "Sales Invoice")
 		movement(issued, 500, "Stock Entry")  # internal issue: not a sale
 
-		moving = [r.item_code for r in item_list._most_moving(profile, settings)]
-		self.assertIn(sold, moving)
-		self.assertNotIn(issued, moving)
+		after = moved()
+		self.assertEqual(after.get(sold, 0), before.get(sold, 0) + 5)
+		self.assertEqual(after.get(issued, 0), before.get(issued, 0))
 
 		settings.most_moving_count = 0
 		self.assertEqual(item_list._most_moving(profile, settings), [])

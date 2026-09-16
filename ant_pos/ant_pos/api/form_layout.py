@@ -153,10 +153,26 @@ def create_from_quick_entry(doctype: str, doc: str | dict) -> dict:
 	data = {"doctype": doctype}
 	for field in fields:
 		value = values.get(field["fieldname"])
+		if isinstance(value, str):
+			value = value.strip()
 		if value in (None, "") and field.get("default") not in (None, ""):
 			value = field["default"]
 		if value not in (None, ""):
 			data[field["fieldname"]] = value
+
+	# Check required fields here: ERPNext names a Customer before Frappe's own
+	# mandatory check runs, so a missing name crashed with an AttributeError.
+	missing = [
+		field["label"]
+		for field in fields
+		if field["reqd"] and not field["hidden"] and data.get(field["fieldname"]) in (None, "")
+	]
+	if missing:
+		frappe.throw(
+			_("Please fill in: {0}").format(", ".join(missing)),
+			frappe.MandatoryError,
+			title=_("Missing values"),
+		)
 
 	_apply_create_defaults(doctype, data)
 

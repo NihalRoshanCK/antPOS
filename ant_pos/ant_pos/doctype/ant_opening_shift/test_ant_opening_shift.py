@@ -1,6 +1,8 @@
 # Copyright (c) 2024, Anther Technologies Pvt. Ltd. and Contributors
 # See license.txt
 
+from unittest.mock import patch
+
 import frappe
 from frappe.tests.utils import FrappeTestCase
 
@@ -24,11 +26,16 @@ def make_opening_shift(**kwargs):
 	return doc
 
 
+# A cashier with no shifts: tests must not depend on whether the site's own
+# users (e.g. Administrator) have a shift open.
+CASHIER = "antpos-shift-test@example.com"
+
+
 class TestAntOpeningShift(FrappeTestCase):
 	def test_posting_date_defaults_to_today(self):
 		"""posting_date is mandatory and was previously stamped unconditionally."""
 		doc = frappe.new_doc("Ant Opening Shift")
-		doc.cashier = frappe.session.user
+		doc.cashier = CASHIER
 		doc.period_start_date = frappe.utils.today()
 		doc.validate()
 
@@ -39,7 +46,7 @@ class TestAntOpeningShift(FrappeTestCase):
 		yesterday = frappe.utils.add_days(frappe.utils.today(), -1)
 
 		doc = frappe.new_doc("Ant Opening Shift")
-		doc.cashier = frappe.session.user
+		doc.cashier = CASHIER
 		doc.set_posting_date = 1
 		doc.posting_date = yesterday
 		doc.period_start_date = yesterday
@@ -53,7 +60,7 @@ class TestAntOpeningShift(FrappeTestCase):
 	def test_period_end_before_start_is_rejected(self):
 		"""This check was guarded on posting_date and so never ran on a new doc."""
 		doc = frappe.new_doc("Ant Opening Shift")
-		doc.cashier = frappe.session.user
+		doc.cashier = CASHIER
 		doc.set_posting_date = 1
 		doc.period_start_date = frappe.utils.today()
 		doc.period_end_date = frappe.utils.add_days(frappe.utils.today(), -2)
@@ -63,7 +70,7 @@ class TestAntOpeningShift(FrappeTestCase):
 
 	def test_period_end_after_start_is_accepted(self):
 		doc = frappe.new_doc("Ant Opening Shift")
-		doc.cashier = frappe.session.user
+		doc.cashier = CASHIER
 		doc.set_posting_date = 1
 		doc.period_start_date = frappe.utils.today()
 		doc.period_end_date = frappe.utils.add_days(frappe.utils.today(), 1)
@@ -72,10 +79,23 @@ class TestAntOpeningShift(FrappeTestCase):
 
 	def test_duplicate_check_ignores_self(self):
 		"""An existing doc must not trip its own open-shift check on re-validate."""
-		doc = frappe.new_doc("Ant Opening Shift")
-		doc.cashier = frappe.session.user
-		doc.name = "ANT-OPEN-TEST-0001"
-		doc.docstatus = 1
-
-		# is_new() is False once a name is set, so the query must exclude it.
+		doc = frappe.get_doc({"doctype": "Ant Opening Shift", "name": "ANT-OPEN-TEST-0001", "cashier": CASHIER})
 		self.assertFalse(doc.is_new())
+
+		with patch("frappe.db.exists", return_value=None) as exists:
+			doc.get_openingshift_for_user(CASHIER)
+		filters = exists.call_args.args[1]
+		self.assertEqual(filters["name"], ["!=", "ANT-OPEN-TEST-0001"])
+
+	def test_duplicate_check_on_new_doc_looks_at_all_open_shifts(self):
+		doc = frappe.new_doc("Ant Opening Shift")
+		with patch("frappe.db.exists", return_value=None) as exists:
+			doc.get_openingshift_for_user(CASHIER)
+		self.assertNotIn("name", exists.call_args.args[1])
+
+	def test_second_open_shift_is_refused(self):
+		doc = frappe.new_doc("Ant Opening Shift")
+		doc.cashier = CASHIER
+		with patch("frappe.db.exists", return_value="ANT-OPEN-EXISTING"):
+			with self.assertRaises(frappe.ValidationError):
+				doc.validate()

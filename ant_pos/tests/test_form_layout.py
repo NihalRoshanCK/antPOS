@@ -144,6 +144,11 @@ class TestFormLayout(FrappeTestCase):
 		self.assertFalse(doc.get("is_frozen"))
 		self.assertFalse(doc.get("disabled"))
 
+	def test_quick_entry_reports_missing_required_fields(self):
+		# ERPNext's Customer.autoname used to crash on a missing name.
+		with self.assertRaises(frappe.MandatoryError):
+			create_from_quick_entry("Customer", json.dumps({"customer_name": "   "}))
+
 	def test_quick_entry_is_limited_to_known_doctypes(self):
 		with self.assertRaises(frappe.PermissionError):
 			create_from_quick_entry("Item", "{}")
