@@ -1,5 +1,5 @@
 <template>
-  <!-- Modelled on Frappe CRM's FieldLayoutEditor: tabs, sections and columns
+  <!-- Tabs, sections and columns
        are dragged in place; fields are added from each column. -->
   <div class="flex flex-col gap-5">
     <!-- Tabs -->

@@ -1,6 +1,6 @@
 <template>
   <!-- A miniature of the POS in one scheme: sidebar, top bar, two panels and
-       the green Pay button. Fixed colours (as in Frappe CRM's theme cards):
+       the green Pay button. Fixed colours:
        theme tokens would follow the page's own theme instead. -->
   <div class="flex h-full" :style="{ background: c.page }">
     <div

@@ -1,5 +1,5 @@
 <template>
-  <!-- A drag handle between two panes, like Frappe CRM's Resizer: drag to
+  <!-- A drag handle between two panes: drag to
        change the width of the pane beside it; double-click (or Enter)
        restores the default. The width is remembered on this device. -->
   <div
@@ -126,7 +126,7 @@ function start(event) {
 function move(event) {
   const delta = event.clientX - startX
   let next = props.side === 'left' ? startWidth + delta : startWidth - delta
-  // Snap back to the default when close to it, as CRM does.
+  // Snap back to the default when close to it.
   const d = defaultWidth()
   if (Math.abs(next - d) < SNAP) next = d
   width.value = clamp(next)

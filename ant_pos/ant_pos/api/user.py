@@ -69,7 +69,7 @@ def update_profile(profile: str | dict) -> dict:
 @frappe.whitelist(methods=["POST"])
 @rate_limit(limit=5, seconds=300)
 def change_password(old_password: str, new_password: str) -> str:
-	"""Change the session user's password (same checks as Frappe CRM)."""
+	"""Change the session user's password."""
 	user = _session_user()
 
 	tracker = LoginAttemptTracker(user)
@@ -90,7 +90,7 @@ def change_password(old_password: str, new_password: str) -> str:
 	from frappe.core.doctype.user.user import test_password_strength
 
 	# Follows the site's password policy. With the policy off Frappe returns
-	# no result at all; treating that as "too weak" (as CRM does) would
+	# no result at all; treating that as "too weak" would
 	# reject every password.
 	result = test_password_strength(new_password) or {}
 	feedback = result.get("feedback") or {}

@@ -1,6 +1,5 @@
 <template>
-  <!-- One page of the Settings dialog, laid out like Frappe CRM's
-       SettingsLayoutBase: title and description, actions on the right. -->
+  <!-- One page of the Settings dialog: title and description, actions on the right. -->
   <div class="flex h-full w-full flex-col text-ink-gray-8">
     <div
       class="flex items-start justify-between gap-4 px-5 pb-4 pt-6 sm:px-8 sm:pt-8"

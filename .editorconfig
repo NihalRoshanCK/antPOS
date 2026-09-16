@@ -1,5 +1,5 @@
-# Frappe's conventions for Python and doctype JSON; the AntPos frontend follows
-# Frappe CRM (prettier: two spaces, no semicolons, single quotes).
+# Frappe's conventions for Python and doctype JSON; the AntPos frontend uses
+# prettier (two spaces, no semicolons, single quotes).
 root = true
 
 [*]

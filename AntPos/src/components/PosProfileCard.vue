@@ -1,6 +1,5 @@
 <template>
-  <!-- The till's POS profile and shift, at the foot of the sidebar (where
-       Frappe CRM keeps its status cards). Opens a menu with the details and
+  <!-- The till's POS profile and shift, at the foot of the sidebar. Opens a menu with the details and
        Close shift. -->
   <Dropdown
     v-if="profile"

@@ -1,5 +1,4 @@
-# Frappe CRM's setup, adapted: ruff for Python, and the AntPos frontend's own
-# prettier and eslint (installed with `yarn --cwd AntPos install`).
+# ruff for Python, and the AntPos frontend's own prettier and eslint (installed with `yarn --cwd AntPos install`).
 exclude: "node_modules|.git|ant_pos/public/antPOS|ant_pos/www/antPOS.html"
 default_stages: [pre-commit]
 fail_fast: false

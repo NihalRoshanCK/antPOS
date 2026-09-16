@@ -1,5 +1,5 @@
 <template>
-  <!-- Laid out like Frappe CRM's AppSidebar: brand and user menu on top, the
+  <!-- Brand and user menu on top, the
        pages, and at the foot the till's POS profile and the collapse toggle. -->
   <aside
     class="relative flex h-full flex-shrink-0 flex-col justify-between border-r border-outline-gray-1 bg-surface-menu-bar transition-all duration-300 ease-in-out"
@@ -159,7 +159,7 @@ const links = computed(() => {
   return list
 })
 
-// Frappe's app switcher, as in CRM's "Apps" item: the desk plus every app
+// Frappe's app switcher: the desk plus every app
 // this user may open (the same list as /apps).
 const apps = createResource({
   url: 'frappe.apps.get_apps',

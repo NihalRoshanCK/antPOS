@@ -1,5 +1,5 @@
 <template>
-  <!-- Frappe CRM's Settings: grouped pages on the left, the page on the right.
+  <!-- Settings: grouped pages on the left, the page on the right.
        On a phone the pages are tabs across the top. -->
   <Dialog v-model="open" :options="{ size: '5xl' }">
     <template #body>
@@ -80,7 +80,7 @@ import { Avatar } from 'frappe-ui'
 const open = ref(true)
 const users = usersStore()
 
-// The user's own avatar as the Profile icon, as in Frappe CRM.
+// The user's own avatar as the Profile icon.
 const UserAvatarIcon = {
   render: () => {
     const user = users.getUser() || {}

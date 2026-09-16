@@ -86,7 +86,7 @@ class TestFormLayout(FrappeTestCase):
 		with self.assertRaises(frappe.ValidationError):
 			validate_layout("Customer", [{"columns": [["not_a_field"]]}])
 
-	def test_normalize_reads_old_and_crm_shapes(self):
+	def test_normalize_reads_old_and_tabbed_shapes(self):
 		old = normalize_layout([{"label": "A", "columns": [["customer_name"]]}])
 		self.assertEqual(len(old), 1)
 		self.assertEqual(old[0]["label"], "")
@@ -96,7 +96,7 @@ class TestFormLayout(FrappeTestCase):
 		self.assertTrue(section["opened"])
 		self.assertFalse(section["collapsible"])
 
-		crm = normalize_layout(
+		tabbed = normalize_layout(
 			[
 				{
 					"name": "t1",
@@ -113,11 +113,11 @@ class TestFormLayout(FrappeTestCase):
 				}
 			]
 		)
-		self.assertEqual(crm[0]["name"], "t1")
-		self.assertEqual(crm[0]["label"], "Details")
-		self.assertTrue(crm[0]["sections"][0]["collapsible"])
-		self.assertTrue(crm[0]["sections"][0]["hideBorder"])
-		self.assertEqual(crm[0]["sections"][0]["columns"][0], {"name": "c1", "fields": ["tax_id"]})
+		self.assertEqual(tabbed[0]["name"], "t1")
+		self.assertEqual(tabbed[0]["label"], "Details")
+		self.assertTrue(tabbed[0]["sections"][0]["collapsible"])
+		self.assertTrue(tabbed[0]["sections"][0]["hideBorder"])
+		self.assertEqual(tabbed[0]["sections"][0]["columns"][0], {"name": "c1", "fields": ["tax_id"]})
 		# Same input, same names: dirty checks in the editor stay stable.
 		self.assertEqual(normalize_layout([{"columns": [["x"]]}]), normalize_layout([{"columns": [["x"]]}]))
 

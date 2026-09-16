@@ -5,8 +5,7 @@ here and renders whatever comes back. A layout is stored per (DocType, type)
 in "Antpos Fields Layout"; without one, the defaults below (which match the
 forms the POS always had) are used.
 
-The format is Frappe CRM's (CRM Fields Layout), so the same editor ideas
-apply:
+The format:
 
     [                                        # tabs
       {

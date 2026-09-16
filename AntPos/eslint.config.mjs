@@ -1,4 +1,3 @@
-// Frappe CRM's configuration (apps/crm/frontend), without TypeScript.
 import js from '@eslint/js'
 import pluginVue from 'eslint-plugin-vue'
 import configPrettier from 'eslint-config-prettier'

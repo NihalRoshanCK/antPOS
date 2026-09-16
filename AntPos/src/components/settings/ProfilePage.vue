@@ -21,7 +21,7 @@
     </p>
 
     <div v-else-if="draft" class="flex flex-col gap-6">
-      <!-- Photo, name and email, as in Frappe CRM's profile page. -->
+      <!-- Photo, name and email. -->
       <div class="flex items-center gap-4">
         <FileUploader
           :validate-file="validateImage"

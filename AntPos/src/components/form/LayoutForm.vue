@@ -22,7 +22,7 @@
       >
     </div>
 
-    <!-- Like Frappe CRM's FieldLayout: a tab bar only when the layout has
+    <!-- A tab bar only when the layout has
          labelled tabs; sections separated by a rule unless hidden. -->
     <div
       v-else
@@ -147,7 +147,7 @@ watch(tabs, (list) => {
   if (activeTab.value >= list.length) activeTab.value = 0
 })
 
-// A section with nothing the user can see takes no space (as in CRM).
+// A section with nothing the user can see takes no space.
 function visibleSections(tab) {
   return (tab.sections || []).filter((section) =>
     section.columns.some((column) =>

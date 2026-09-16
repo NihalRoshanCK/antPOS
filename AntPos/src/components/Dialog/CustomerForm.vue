@@ -11,7 +11,7 @@
             New customer
           </h3>
           <div class="flex items-center gap-1">
-            <!-- As in Frappe CRM: admins change this form from the form itself. -->
+            <!-- Admins change this form's layout from the form itself. -->
             <Button
               v-if="permissions.canManageLayouts && isDesktop"
               variant="ghost"
@@ -100,8 +100,7 @@ const permissions = usePermissionStore()
 const { isDesktop } = useBreakpoint()
 const editLayout = ref(false)
 
-// As in Frappe CRM, the form steps aside while its layout is edited; here it
-// comes back afterwards, with whatever was already typed.
+// The form steps aside while its layout is edited and comes back afterwards, with whatever was already typed.
 function openLayoutEditor() {
   dialogVisible.value = false
   editLayout.value = true

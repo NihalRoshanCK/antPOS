@@ -1,5 +1,5 @@
 <template>
-  <!-- Frappe CRM's "Edit Quick Entry Layout" / "Edit Grid Row Fields Layout". -->
+  <!-- Edits the layout of a POS form: the quick entry dialog or a cart line. -->
   <Dialog v-model="show" :options="{ size: '4xl' }">
     <template #body-title>
       <h3

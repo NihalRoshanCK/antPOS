@@ -1,7 +1,7 @@
 // Copyright (c) 2025, Anther Technologies Pvt. Ltd. and contributors
 // For license information, please see license.txt
 
-// Layouts are designed where they are used, as in Frappe CRM: in antPOS, a
+// Layouts are designed where they are used: in antPOS, a
 // System Manager opens the form and clicks the pencil button.
 //   Customer / Quick Entry         -> the "New customer" dialog
 //   Sales Invoice Item / Grid Row  -> a cart line's details

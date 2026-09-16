@@ -1,5 +1,5 @@
 <template>
-  <!-- Frappe CRM's SidebarLink: a quiet row, selected surface when active,
+  <!-- A sidebar page link: a quiet row, selected surface when active,
        label fading out when the sidebar is collapsed (tooltip instead). -->
   <button
     type="button"

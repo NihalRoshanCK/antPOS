@@ -114,8 +114,7 @@ sale into one too. Returns never create an order.
 
 The **New customer** dialog and a cart line's **details** are built from a
 layout the server sends (`ant_pos/api/form_layout.py`), not hard-coded fields.
-The format and the editing flow follow Frappe CRM (`CRM Fields Layout`,
-`QuickEntryModal`, `FieldLayoutEditor`):
+The format and the editing flow:
 
 | Form | Antpos Fields Layout |
 |---|---|
@@ -145,7 +144,7 @@ It opens **Edit … layout** (`components/layout-editor/`):
   default** drops a custom layout. Saved layouts reach the open form at once,
   and other tabs when the cashier returns to them.
 
-The New customer dialog steps aside while its layout is edited (as in CRM)
+The New customer dialog steps aside while its layout is edited
 and comes back afterwards with what was typed. The desk form of Antpos
 Fields Layout only shows the JSON and points to antPOS.
 
@@ -173,7 +172,7 @@ cart line applies its own rules on top of the layout:
 
 ### Resizable panes
 
-As on Frappe CRM's record pages (`Resizer`), the desktop panes can be resized
+The desktop panes can be resized
 by dragging the handle between them (`components/PaneResizer.vue`):
 
 - Point of sale: item list | cart, and payment panel | cart (each has its
@@ -228,7 +227,7 @@ The browser tab shows only the brand name from antPOS Settings, on every
 page.
 
 
-The desktop shell follows Frappe CRM's `AppSidebar` (`components/Sidebar.vue`):
+The desktop shell (`components/Sidebar.vue`):
 
 - **Width:** 220px, or a 48px icon rail when collapsed. The choice is
   remembered per browser.
@@ -237,7 +236,7 @@ The desktop shell follows Frappe CRM's `AppSidebar` (`components/Sidebar.vue`):
   - **Settings**;
   - **Close shift**;
   - **Log out**, after a separator.
-- **Middle:** the pages. `SidebarLink` uses CRM's row styling.
+- **Middle:** the pages (`SidebarLink`).
 - **Foot:** the till's **POS profile card** (`PosProfileCard.vue`) and
   Collapse.
   - The card shows the profile, and a green dot with "Open since …" while a
@@ -246,7 +245,7 @@ The desktop shell follows Frappe CRM's `AppSidebar` (`components/Sidebar.vue`):
   - The profile used to be an outline badge in the header; the header now
     only shows the sale state.
 
-**Settings** (`components/Dialog/Settings.vue`) is laid out like CRM's:
+**Settings** (`components/Dialog/Settings.vue`):
 grouped pages on the left (tabs across the top on a phone).
 
 - *Profile* (everyone, the default page):

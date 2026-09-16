@@ -122,7 +122,7 @@
           :id-prefix="`line-${items.custom_id}`"
           :columns-hint="4"
         />
-        <!-- As in Frappe CRM's grid rows: admins change these fields here. -->
+        <!-- Admins change which fields a cart line shows from here. -->
         <Button
           v-if="permissions.canManageLayouts && isDesktop"
           variant="ghost"
