@@ -1,6 +1,10 @@
 import { reactive } from 'vue';
 import { call } from 'frappe-ui';
 
+// Cart line fields the POS always sets itself; changing them would detach
+// the line from its price, stock or UOM conversion.
+export const LOCKED_LINE_FIELDS = ['item_code', 'uom', 'stock_uom', 'conversion_factor', 'warehouse', 'price_list_rate', 'is_free_item'];
+
 // Layouts for server-driven forms (ant_pos/api/form_layout.py), fetched once
 // per form and shared: every cart line renders the same item layout.
 const cache = new Map();

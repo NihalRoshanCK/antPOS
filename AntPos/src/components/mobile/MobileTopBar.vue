@@ -60,7 +60,7 @@ const inCart = computed(() => onPos.value && !paying.value && mobile.view === 'c
 const title = computed(() => {
   if (paying.value) return invoiceStore.invoice.is_return ? 'Refund' : 'Payment'
   if (inCart.value) return 'Cart'
-  return route.name === 'Payments' ? 'Payments' : 'Point of sale'
+  return { Payments: 'Payments', FormLayouts: 'Form layouts' }[route.name] || 'Point of sale'
 })
 
 const subtitle = computed(() => {

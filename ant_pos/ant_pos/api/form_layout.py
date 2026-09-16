@@ -56,6 +56,24 @@ DEFAULT_LAYOUTS = {
 	],
 }
 
+# The POS forms an admin can design, in the order the editor lists them.
+EDITABLE_FORMS = (
+	{
+		"doctype": "Customer",
+		"type": QUICK_ENTRY,
+		"parent_doctype": None,
+		"title": "New customer",
+		"description": "The dialog a cashier uses to add a customer.",
+	},
+	{
+		"doctype": "Sales Invoice Item",
+		"type": GRID_ROW,
+		"parent_doctype": "Sales Invoice",
+		"title": "Cart line details",
+		"description": "The fields under a cart line when it is expanded.",
+	},
+)
+
 # Doctypes the POS may create through create_from_quick_entry.
 QUICK_ENTRY_DOCTYPES = {"Customer"}
 
@@ -165,6 +183,69 @@ def get_layout_for_editing(doctype: str, type: str, default: int = 0) -> dict:
 	return {"sections": sections, "fields": fields, "has_default": (doctype, type) in DEFAULT_LAYOUTS}
 
 
+@frappe.whitelist()
+def get_editable_forms() -> list:
+	"""The POS forms an admin can design, and whether each is customised."""
+	frappe.only_for("System Manager")
+	saved = {
+		(row.dt, row.type): row.modified
+		for row in frappe.get_all(LAYOUT_DOCTYPE, fields=["dt", "type", "modified"])
+	}
+	return [
+		{
+			**form,
+			"title": _(form["title"]),
+			"description": _(form["description"]),
+			"customised": (form["doctype"], form["type"]) in saved,
+			"modified": saved.get((form["doctype"], form["type"])),
+		}
+		for form in EDITABLE_FORMS
+	]
+
+
+@frappe.whitelist(methods=["POST"])
+def save_form_layout(doctype: str, type: str, layout: str | list) -> dict:
+	"""Store a layout from the POS editor."""
+	frappe.only_for("System Manager")
+	_check_editable(doctype, type)
+	text = layout if isinstance(layout, str) else json.dumps(layout)
+
+	name = frappe.db.get_value(LAYOUT_DOCTYPE, {"dt": doctype, "type": type})
+	doc = frappe.get_doc(LAYOUT_DOCTYPE, name) if name else frappe.new_doc(LAYOUT_DOCTYPE)
+	doc.update({"dt": doctype, "type": type, "layout": text})
+	doc.save()
+	return {"sections": normalize_layout(doc.layout), "modified": doc.modified}
+
+
+@frappe.whitelist(methods=["POST"])
+def reset_form_layout(doctype: str, type: str) -> dict:
+	"""Drop the stored layout, so the POS uses the built-in one again."""
+	frappe.only_for("System Manager")
+	_check_editable(doctype, type)
+	name = frappe.db.get_value(LAYOUT_DOCTYPE, {"dt": doctype, "type": type})
+	if name:
+		frappe.delete_doc(LAYOUT_DOCTYPE, name)
+	return {"sections": normalize_layout(get_default_layout(doctype, type))}
+
+
+@frappe.whitelist(methods=["POST"])
+def preview_form_layout(doctype: str, type: str, layout: str | list, parent_doctype: str | None = None) -> dict:
+	"""Resolve an unsaved layout exactly as get_form_layout would."""
+	frappe.only_for("System Manager")
+	_check_editable(doctype, type)
+	sections = validate_layout(doctype, layout)
+	return {
+		"doctype": doctype,
+		"type": type,
+		"sections": _resolve(doctype, type, parent_doctype, sections=sections),
+	}
+
+
+def _check_editable(doctype, type):
+	if not any(f["doctype"] == doctype and f["type"] == type for f in EDITABLE_FORMS):
+		frappe.throw(_("{0} / {1} is not a POS form").format(doctype, type))
+
+
 def _is_quick_entry_input(doctype, type, fieldname):
 	return type == QUICK_ENTRY and (doctype, fieldname) in QUICK_ENTRY_INPUTS
 
@@ -225,9 +306,10 @@ def validate_layout(doctype: str, layout) -> list:
 	return sections
 
 
-def _resolve(doctype: str, type: str, parent_doctype: str | None = None) -> list:
-	stored = frappe.db.get_value(LAYOUT_DOCTYPE, {"dt": doctype, "type": type}, "layout")
-	sections = normalize_layout(stored) if stored and stored.strip() else []
+def _resolve(doctype: str, type: str, parent_doctype: str | None = None, sections: list | None = None) -> list:
+	if sections is None:
+		stored = frappe.db.get_value(LAYOUT_DOCTYPE, {"dt": doctype, "type": type}, "layout")
+		sections = normalize_layout(stored) if stored and stored.strip() else []
 	if not any(column for section in sections for column in section["columns"]):
 		sections = normalize_layout(get_default_layout(doctype, type))
 

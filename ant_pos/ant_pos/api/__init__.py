@@ -110,6 +110,9 @@ def get_user_permissions():
             "can_print": can_print_global,
         }
 
+    # Form layouts decide what every cashier sees (api/form_layout.py).
+    permissions["can_manage_layouts"] = "System Manager" in user_roles
+
     return permissions
 
 @frappe.whitelist(allow_guest=True)

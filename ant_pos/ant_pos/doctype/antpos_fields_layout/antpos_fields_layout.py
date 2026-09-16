@@ -9,7 +9,24 @@ from frappe.model.document import Document
 from frappe.utils import random_string
 
 class AntposFieldsLayout(Document):
+	def autoname(self):
+		# "<DocType>-<Type>"; a clash with an older record gets a number, so
+		# it can never block saving the layout the POS looks for.
+		from frappe.model.naming import append_number_if_name_exists
+
+		self.name = append_number_if_name_exists(self.doctype, f"{self.dt}-{self.type}")
+
 	def validate(self):
+		# The POS looks a layout up by (DocType, Type): one record each.
+		duplicate = frappe.db.get_value(
+			self.doctype, {"dt": self.dt, "type": self.type, "name": ["!=", self.name]}
+		)
+		if duplicate:
+			frappe.throw(
+				_("{0} / {1} already has a layout: {2}").format(self.dt, self.type, duplicate),
+				frappe.DuplicateEntryError,
+			)
+
 		if not (self.layout or "").strip():
 			return
 		from ant_pos.ant_pos.api.form_layout import validate_layout

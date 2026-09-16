@@ -22,7 +22,9 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Document Type",
-   "options": "DocType"
+   "options": "DocType",
+   "reqd": 1,
+   "set_only_once": 1
   },
   {
    "fieldname": "column_break_post",
@@ -34,7 +36,9 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Type",
-   "options": "Quick Entry\nSide Panel\nData Fields\nGrid Row\nRequired Fields"
+   "options": "Quick Entry\nSide Panel\nData Fields\nGrid Row\nRequired Fields",
+   "reqd": 1,
+   "set_only_once": 1
   },
   {
    "fieldname": "builder_section",
@@ -62,7 +66,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-09-16 23:00:00.000000",
+ "modified": "2026-09-16 23:20:00.000000",
  "modified_by": "Administrator",
  "module": "Ant-Pos",
  "name": "Antpos Fields Layout",

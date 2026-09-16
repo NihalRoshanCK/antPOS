@@ -40,7 +40,7 @@ const { asSalesOrder } = useSaleMode()
 
 const currentRoute = computed(() => router.currentRoute.value.name)
 
-const title = computed(() => ({ Pos: 'Point of sale', Payments: 'Payments' }[currentRoute.value] || currentRoute.value))
+const title = computed(() => ({ Pos: 'Point of sale', Payments: 'Payments', FormLayouts: 'Form layouts' }[currentRoute.value] || currentRoute.value))
 
 const badgeComponent = computed(() => {
   if (invoiceStore.invoice?.is_return) return { label: 'Return', theme: 'orange' };

@@ -128,7 +128,7 @@
 <script setup>
 import { FeatherIcon, Autocomplete, createResource, createListResource,debounce } from 'frappe-ui';
 import LayoutForm from '@/components/form/LayoutForm.vue';
-import { useFormLayout } from '@/utils/formLayout';
+import { LOCKED_LINE_FIELDS, useFormLayout } from '@/utils/formLayout';
 import { watch, defineProps, onMounted, onUnmounted, computed } from 'vue';
 import { showToast } from '@/utils'
 import emitter from '@/utils/emitter';
@@ -142,9 +142,6 @@ const invoiceStore = useInvoiceStore()
 const { canEdit: canEditDiscount, byPercent: discountByPercent } = useDiscountMode()
 const lineLayout = useFormLayout('Sales Invoice Item', 'Grid Row', 'Sales Invoice')
 
-// Changing these on a cart line would detach it from its price, stock or
-// UOM conversion; the POS sets them.
-const LOCKED_LINE_FIELDS = ['item_code', 'uom', 'stock_uom', 'conversion_factor', 'warehouse', 'price_list_rate', 'is_free_item']
 // Edited with their own pickers below the form.
 const PICKER_FIELDS = ['batch_no', 'serial_no', 'serial_and_batch_bundle']
 

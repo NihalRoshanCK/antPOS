@@ -96,3 +96,51 @@ class TestFormLayout(FrappeTestCase):
 	def test_quick_entry_is_limited_to_known_doctypes(self):
 		with self.assertRaises(frappe.PermissionError):
 			create_from_quick_entry("Item", "{}")
+
+
+class TestFormLayoutEditorApi(FrappeTestCase):
+	"""Endpoints behind the /antPOS/layouts editor."""
+
+	def setUp(self):
+		frappe.set_user("Administrator")
+		frappe.db.delete("Antpos Fields Layout", {"dt": ["in", ["Customer", "Sales Invoice Item"]]})
+
+	def tearDown(self):
+		frappe.set_user("Administrator")
+
+	def test_save_preview_and_reset(self):
+		from ant_pos.ant_pos.api.form_layout import (
+			get_editable_forms,
+			preview_form_layout,
+			reset_form_layout,
+			save_form_layout,
+		)
+
+		layout = [{"label": "Main", "columns": [["tax_id"]]}]
+		preview = preview_form_layout("Customer", "Quick Entry", json.dumps(layout))
+		self.assertIn("tax_id", fields_of(preview))
+		# Previewing stores nothing.
+		self.assertFalse(frappe.db.exists("Antpos Fields Layout", {"dt": "Customer", "type": "Quick Entry"}))
+
+		save_form_layout("Customer", "Quick Entry", json.dumps(layout))
+		forms = {f["doctype"]: f for f in get_editable_forms()}
+		self.assertTrue(forms["Customer"]["customised"])
+		self.assertIn("tax_id", fields_of(get_form_layout("Customer", "Quick Entry")))
+
+		reset_form_layout("Customer", "Quick Entry")
+		self.assertNotIn("tax_id", fields_of(get_form_layout("Customer", "Quick Entry")))
+
+	def test_only_pos_forms_can_be_edited(self):
+		from ant_pos.ant_pos.api.form_layout import save_form_layout
+
+		with self.assertRaises(frappe.ValidationError):
+			save_form_layout("Item", "Quick Entry", "[]")
+
+	def test_editor_is_admin_only(self):
+		from ant_pos.ant_pos.api.form_layout import get_editable_forms, save_form_layout
+
+		frappe.set_user("Guest")
+		with self.assertRaises(frappe.PermissionError):
+			get_editable_forms()
+		with self.assertRaises(frappe.PermissionError):
+			save_form_layout("Customer", "Quick Entry", "[]")
