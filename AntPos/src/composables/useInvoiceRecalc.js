@@ -4,6 +4,7 @@ import { createToast } from '@/utils';
 import emitter from '@/utils/emitter';
 import { useInvoiceStore } from '@/stores/pos';
 import { usePosProfileStore } from '@/stores/posProfile';
+import { invoiceDiscountFields } from '@/composables/useDiscountMode';
 
 // Server-side totals for the open sale, owned by the POS page.
 //
@@ -86,8 +87,7 @@ export function useInvoiceRecalc() {
         items: invoiceStore.items,
         customer: invoiceStore.invoiceCustomer?.name,
         update_stock: 1,
-        additional_discount_percentage: invoiceStore.invoice._additional_discount_percentage ? Number(invoiceStore.invoice._additional_discount_percentage) : 0 ,
-        discount_amount: invoiceStore.invoice._discount_amount ? Number(invoiceStore.invoice._discount_amount) : 0,
+        ...invoiceDiscountFields(invoiceStore.invoice, store.posProfileData),
         base_total: invoiceStore.invoice.base_total || 0,
         custom_ant_opening: store.openingShift.name,
         apply_discount_on: store.posProfileData.apply_discount_on,

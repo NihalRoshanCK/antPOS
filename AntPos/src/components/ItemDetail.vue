@@ -55,7 +55,7 @@
         <footer class="shrink-0 border-t border-outline-gray-1 bg-surface-white"
                 style="padding-bottom: env(safe-area-inset-bottom)">
             <div class="space-y-3 px-4 pt-3 pb-3">
-                <div v-if="!paying && invoiceStore.items.length && store.posProfileData?.allow_discount_change"
+                <div v-if="!paying && invoiceStore.items.length && canEditDiscount"
                      class="flex items-center gap-3">
                     <label for="pos-discount" class="text-sm text-ink-gray-6">
                         {{ usePercentDiscount ? 'Additional discount (%)' : `Additional discount (${store.posProfileData?.currency || ''})` }}
@@ -161,12 +161,13 @@
 </template>
 
 <script setup>
-import { Button, FeatherIcon, createResource, debounce } from 'frappe-ui';
-import { inject, watch, computed } from 'vue';
+import { Button, FeatherIcon, createResource } from 'frappe-ui';
+import { inject, computed } from 'vue';
 import CustomerBar from '@/components/pos/CustomerBar.vue';
 import SaleModeBar from '@/components/pos/SaleModeBar.vue';
 import TotalsReadout from '@/components/pos/TotalsReadout.vue';
 import { useCartTotals } from '@/composables/useCartTotals';
+import { useDiscountMode, invoiceDiscountFields } from '@/composables/useDiscountMode';
 import { createToast, showToast } from '@/utils';
 import { usePosProfileStore } from '@/stores/posProfile';
 import { usePermissionStore } from '@/stores/permission';
@@ -215,8 +216,7 @@ let sales_invoice = createResource({
                 items: invoiceStore.items,
                 customer: invoiceStore.invoiceCustomer?.name,
                 update_stock: 1,
-                additional_discount_percentage: Number(invoiceStore.invoice._additional_discount_percentage) || 0,
-                discount_amount: Number(invoiceStore.invoice._discount_amount) || 0,
+                ...invoiceDiscountFields(invoiceStore.invoice, store.posProfileData),
                 base_total: invoiceStore.invoice.base_total && invoiceStore.invoice.base_total,
                 custom_ant_opening: store.openingShift.name,
                 apply_discount_on: store.posProfileData.apply_discount_on,
@@ -262,21 +262,9 @@ const getAdvances = () => {
     return invoiceStore.invoice.advances;
 };
 
-const calculateDiscount = () => {
-    let amount = store.posProfileData?.apply_discount_on === 'Grand Total' ? invoiceStore.invoice.base_grand_total : invoiceStore.invoice.base_net_total;
-
-    if (store.posProfileData?.custom_use_percentage_discount) {
-        invoiceStore.invoice._discount_amount= (( amount + invoiceStore.invoice?.discount_amount ) * 100) / invoiceStore.invoice._additional_discount_percentage;
-    } else {
-        invoiceStore.invoice._additional_discount_percentage = invoiceStore.invoice._discount_amount * (100 / ( amount + invoiceStore.invoice?.discount_amount ));
-    }
-};
-
-const debouncedDiscount = debounce(calculateDiscount, 300);
-
-const usePercentDiscount = computed(
-    () => Boolean(store.posProfileData?.custom_use_percentage_discount)
-);
+// The cart recalculates on its own when either discount field changes (it is
+// part of the cart signature), so nothing needs to be derived here.
+const { canEdit: canEditDiscount, byPercent: usePercentDiscount } = useDiscountMode();
 
 const mobileActions = computed(() => {
     const empty = !invoiceStore.items.length;
@@ -297,29 +285,4 @@ const mobileActions = computed(() => {
 
 const { grand: cartGrand } = useCartTotals();
 const payableTotal = computed(() => Number(cartGrand.value).toFixed(2));
-
-watch(
-    () => invoiceStore.invoice._discount_amount,
-    (newVal,oldVal) => {
-        if (!store.posProfileData?.custom_use_percentage_discount && newVal !== oldVal) {
-            calculateDiscount();
-            emitter.emit('calctotal');
-        }
-    },
-    { flush: 'post' }
-);
-
-watch(
-  [() => invoiceStore.invoice.grand_total, () => invoiceStore.invoice.net_total],
-  (newValues, oldValues) => {
-    const [newGrand, newNet] = newValues;
-    const [oldGrand, oldNet] = oldValues;
-
-    if (newGrand !== oldGrand || newNet !== oldNet) {
-      debouncedDiscount();
-    }
-  }
-);
-
-
 </script>

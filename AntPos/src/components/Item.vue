@@ -77,10 +77,20 @@
                 <FormControl type="number" size="md" variant="subtle" label="Rate"
                     :disabled="!store.posProfileData?.allow_rate_change"
                     v-model="items.rate" />
-                <FormControl type="number" size="md" variant="subtle" label="Discount (%)"
-                    :disabled="store.posProfileData?.allow_discount_change === 0"
+                <!-- The profile picks how a discount is entered; the other
+                     figure is shown, worked out from it. -->
+                <FormControl v-if="canEditDiscount && discountByPercent" type="number" size="md" variant="subtle"
+                    label="Discount (%)" min="0" max="100"
                     v-model="items.discount_percentage" />
-                <div>
+                <div v-else>
+                    <p class="mb-1.5 text-base text-ink-gray-5">Discount (%)</p>
+                    <p class="num flex h-8 items-center text-base text-ink-gray-8">{{ formatPercent(items.discount_percentage) }}</p>
+                </div>
+                <FormControl v-if="canEditDiscount && !discountByPercent" type="number" size="md" variant="subtle"
+                    label="Discount amount" min="0" :max="items.price_list_rate"
+                    :model-value="items.discount_amount"
+                    @update:model-value="(value) => applyLineDiscountAmount(items, value)" />
+                <div v-else>
                     <p class="mb-1.5 text-base text-ink-gray-5">Discount amount</p>
                     <p class="num flex h-8 items-center text-base text-ink-gray-8">{{ Number(items.discount_amount || 0).toFixed(2) }}</p>
                 </div>
@@ -137,9 +147,11 @@ import emitter from '@/utils/emitter';
 import { usePosProfileStore } from '@/stores/posProfile';
 import { useInvoiceStore } from '@/stores/pos';
 import { lineAmount } from '@/composables/useCartTotals';
+import { useDiscountMode, applyLineDiscountAmount } from '@/composables/useDiscountMode';
 
 const store = usePosProfileStore();
 const invoiceStore = useInvoiceStore()
+const { canEdit: canEditDiscount, byPercent: discountByPercent } = useDiscountMode()
 
     
 const props = defineProps({
@@ -350,7 +362,9 @@ watch(
     () => props.items.price_list_rate,
     (newValue, oldValue) => {
         if (props.items.price_list_rate && newValue !== oldValue) {
-            props.items.rate = props.items.price_list_rate -  (props.items.price_list_rate * props.items.discount_percentage)/100;
+            props.items.rate = discountByPercent.value
+                ? props.items.price_list_rate - (props.items.price_list_rate * props.items.discount_percentage) / 100
+                : Math.max(props.items.price_list_rate - (Number(props.items.discount_amount) || 0), 0);
         }
     }
 );
@@ -409,6 +423,9 @@ const adjustSerialNumbers = (newQty) => {
 watch(
     () => props.items.discount_percentage,
     (newValue, oldValue) => {
+        // In amount mode the percentage follows the rate; recomputing the
+        // rate from it would turn a 10.00 discount into 9.99999.
+        if (!discountByPercent.value) return;
         if (Number(newValue) !== Number(oldValue) || !oldValue) {
             discountCalculation();
         }
@@ -439,9 +456,19 @@ watch(
 
 const calculateRateTotal = () => {
     calculateAmountTotal();
-    props.items.discount_amount = props.items.price_list_rate - props.items.rate
+    const price = Number(props.items.price_list_rate) || 0;
+    props.items.discount_amount = roundTo(price - (Number(props.items.rate) || 0), 6);
+    // A rate typed by hand is a discount too; keep the percentage in step
+    // where the amount is what the cashier works with.
+    if (!discountByPercent.value && price) {
+        props.items.discount_percentage = roundTo((props.items.discount_amount / price) * 100, 6);
+    }
     validateInvoice();
 }
+
+const roundTo = (value, places) => Math.round(value * 10 ** places) / 10 ** places;
+
+const formatPercent = (value) => `${Number((Number(value) || 0).toFixed(2))}%`;
 
 onMounted( async () => {
     calculateRateTotal();
