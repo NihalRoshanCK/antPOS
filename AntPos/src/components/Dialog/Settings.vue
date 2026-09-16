@@ -48,7 +48,7 @@
 </template>
 
 <script setup>
-import { computed, markRaw, ref } from 'vue'
+import { computed, h, markRaw, ref } from 'vue'
 import { Dialog } from 'frappe-ui'
 import LucideX from '~icons/lucide/x'
 import LucideSlidersHorizontal from '~icons/lucide/sliders-horizontal'
@@ -56,12 +56,24 @@ import LucideStore from '~icons/lucide/store'
 import LucideSparkles from '~icons/lucide/sparkles'
 import SidebarLink from '@/components/SidebarLink.vue'
 import PreferencesPage from '@/components/settings/PreferencesPage.vue'
+import ProfilePage from '@/components/settings/ProfilePage.vue'
 import PosProfilePage from '@/components/settings/PosProfilePage.vue'
 import BrandPage from '@/components/settings/BrandPage.vue'
 import { usePermissionStore } from '@/stores/permission'
 import { settingsPage } from '@/stores/settings'
+import { usersStore } from '@/stores/users'
+import { Avatar } from 'frappe-ui'
 
 const open = ref(true)
+const users = usersStore()
+
+// The user's own avatar as the Profile icon, as in Frappe CRM.
+const UserAvatarIcon = {
+  render: () => {
+    const user = users.getUser() || {}
+    return h(Avatar, { size: 'xs', image: user.user_image, label: user.full_name || user.name })
+  },
+}
 const permissions = usePermissionStore()
 
 const groups = computed(() => {
@@ -69,6 +81,7 @@ const groups = computed(() => {
     {
       label: 'User configuration',
       items: [
+        { key: 'profile', label: 'Profile', icon: markRaw(UserAvatarIcon), component: markRaw(ProfilePage) },
         { key: 'preferences', label: 'Preferences', icon: markRaw(LucideSlidersHorizontal), component: markRaw(PreferencesPage) },
       ],
     },

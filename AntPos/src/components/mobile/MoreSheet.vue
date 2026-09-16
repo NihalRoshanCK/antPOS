@@ -52,7 +52,6 @@ import { useMobileView } from '@/stores/mobile'
 import { usePosProfileStore } from '@/stores/posProfile'
 import { useSessionStore } from '@/stores/session'
 import { usersStore } from '@/stores/users'
-import { useTheme } from '@/composables/useTheme'
 import { settingsPage } from '@/stores/settings'
 
 const mobile = useMobileView()
@@ -60,7 +59,6 @@ const profileStore = usePosProfileStore()
 const session = useSessionStore()
 const router = useRouter()
 const { loadComponent } = inject('dynamicComponent')
-const { mode } = useTheme()
 
 const user = computed(() => (session.isLoggedIn ? usersStore().getUser() : { full_name: 'Guest' }) || {})
 const initials = computed(() =>
@@ -72,7 +70,6 @@ const initials = computed(() =>
     .toUpperCase()
 )
 
-const themeHint = computed(() => ({ light: 'Light', dark: 'Dark', automatic: 'Automatic' }[mode.value]))
 
 const items = computed(() => [
   {
@@ -81,7 +78,7 @@ const items = computed(() => [
     run: () => { router.push({ name: 'Pos' }); mobile.showItems(); loadComponent('Return') },
   },
   { label: 'Close shift', icon: markRaw(LucideFileMinus), run: () => loadComponent('CloseShift') },
-  { label: 'Settings', icon: markRaw(LucideSettings), hint: `Theme: ${themeHint.value}`, run: () => openSettings('preferences') },
+  { label: 'Settings', icon: markRaw(LucideSettings), run: () => openSettings('profile') },
   { label: 'Go to desk', icon: markRaw(LucideLayoutGrid), run: () => { window.location.href = '/app' } },
   { label: 'Log out', icon: markRaw(LucideLogOut), danger: true, run: () => session.logout.fetch() },
 ])

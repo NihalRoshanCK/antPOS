@@ -224,8 +224,8 @@ bottom.
 
 ### Shell
 
-The browser tab shows the brand name from antPOS Settings. The POS tab is
-just the brand; other pages add their name ("Payments · Brand").
+The browser tab shows only the brand name from antPOS Settings, on every
+page.
 
 
 The desktop shell follows Frappe CRM's `AppSidebar` (`components/Sidebar.vue`):
@@ -249,6 +249,15 @@ The desktop shell follows Frappe CRM's `AppSidebar` (`components/Sidebar.vue`):
 **Settings** (`components/Dialog/Settings.vue`) is laid out like CRM's:
 grouped pages on the left (tabs across the top on a phone).
 
+- *Profile* (everyone, the default page):
+  - photo (upload or remove), name, mobile and phone;
+  - language and time zone;
+  - Change password;
+  - the user's roles and last sign-in.
+
+  The data comes from `api/user.py`, which acts only on the session user and
+  a fixed list of fields. Password changes are rate-limited, check the
+  current password, and follow the site's password policy.
 - *Preferences* (everyone): theme cards for Light, Dark and Automatic,
   shared with the desk. The previews use fixed colours, so each card shows
   its own scheme. Ctrl/Cmd+Shift+G still toggles the theme. The separate

@@ -159,7 +159,7 @@ const menuItems = computed(() => [
           },
         })),
       },
-      { label: 'Settings', icon: markRaw(LucideSettings), onClick: () => openSettings('preferences') },
+      { label: 'Settings', icon: markRaw(LucideSettings), onClick: () => openSettings('profile') },
     ],
   },
   {

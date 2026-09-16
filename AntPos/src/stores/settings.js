@@ -1,8 +1,8 @@
 import { createDocumentResource } from 'frappe-ui'
 import { reactive, ref } from 'vue'
 
-// Which page the Settings dialog opens on (preferences | pos-profile | brand).
-export const settingsPage = ref('preferences')
+// Which page the Settings dialog opens on (profile | preferences | pos-profile | brand).
+export const settingsPage = ref('profile')
 
 const settings = ref({})
 
