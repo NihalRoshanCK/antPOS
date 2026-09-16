@@ -337,9 +337,9 @@ const getbatchNo =  () => {
             value: props.items.batch_no,
         }];
     }    
-    return (get_batch.data || []).map((batch_no) => ({
-        label: batch_no.batch_id,
-        value: batch_no.batch_id,
+    return (get_batch.data || []).map((batch) => ({
+        label: batch.batch_no,
+        value: batch.batch_no,
     }));
 };
 

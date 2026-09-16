@@ -3,7 +3,6 @@ from frappe import _
 import json
 from typing import Dict, Any
 from erpnext.stock.get_item_details import get_item_details  
-from erpnext.stock.doctype.batch.batch import get_batches
 
 BarcodeScanResult = dict[str, str | None]
 
@@ -287,8 +286,29 @@ def items(pos_profile, search_value, customer):
 
 @frappe.whitelist()
 def get_batches_list(item_code, warehouse):
+    """Batches of an item that still have stock in a warehouse.
+
+    Returns {batch_no, expiry_date, stock_qty} -- the same shape items() returns
+    in `batch_nos`, so the client has one contract for batches rather than two.
+    erpnext's get_batches() returns {batch_id, qty} and no expiry date at all,
+    which is why the client read the wrong keys.
     """
-    Fetches batch numbers for a given item code and warehouse.
-    Returns a list of batch numbers with their expiry dates and stock quantities.
-    """
-    return get_batches(item_code, warehouse)
+    frappe.has_permission("Batch", "read", throw=True)
+
+    return frappe.db.sql("""
+        SELECT
+            b.name AS batch_no,
+            b.expiry_date,
+            IFNULL(SUM(sle.actual_qty), 0) AS stock_qty
+        FROM `tabBatch` b
+        INNER JOIN `tabStock Ledger Entry` sle
+            ON sle.batch_no = b.name
+            AND sle.item_code = %(item_code)s
+            AND sle.warehouse = %(warehouse)s
+            AND sle.is_cancelled = 0
+        WHERE b.item = %(item_code)s
+            AND (b.expiry_date IS NULL OR b.expiry_date >= CURDATE())
+        GROUP BY b.name, b.expiry_date
+        HAVING stock_qty > 0
+        ORDER BY b.expiry_date ASC, b.creation ASC
+    """, {"item_code": item_code, "warehouse": warehouse}, as_dict=True)

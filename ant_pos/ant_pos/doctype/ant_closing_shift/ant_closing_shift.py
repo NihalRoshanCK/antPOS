@@ -107,10 +107,20 @@ class AntClosingShift(Document):
         """, (self.ant_opening_shift,), as_dict=True)
 
     def get_pos_payments(self):
+        # The aliases matter: Ant Payment Entry Reference has date / amount /
+        # mode_of_payment. Selecting posting_date, paid_amount and payment_type
+        # meant Document.append() silently dropped all three, leaving every row
+        # in the closing shift's payment table blank but for the reference.
         return frappe.get_all(
             "Payment Entry",
             filters={"reference_no": self.ant_opening_shift, "docstatus": 1},
-            fields=["name as payment_entry","party as customer", "posting_date", "paid_amount", "payment_type"]
+            fields=[
+                "name as payment_entry",
+                "party as customer",
+                "posting_date as date",
+                "paid_amount as amount",
+                "mode_of_payment",
+            ],
         )
 
     def before_submit(self):
