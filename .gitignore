@@ -13,3 +13,12 @@ ant_pos/docs/current
 node_modules/
 AntPos/public/
 AntPos/yarn.lock
+
+# Build artifacts: sourcemaps are never shipped (see AntPos/vite.config.mjs)
+*.map
+
+# Vite dev-server dependency cache (regenerated on every `vite dev`)
+AntPos/.vite/
+
+# bench-generated symlink (absolute path, machine-specific)
+ant_pos/public/node_modules

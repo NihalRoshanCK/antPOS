@@ -1,4 +1,5 @@
 import frappe
+from frappe import _
 from frappe.translate import get_all_translations
 
 
@@ -47,25 +48,27 @@ def get_user_permissions():
     user_roles = frappe.get_roles(user)
 
     def check_perm(doctype, permtype):
-        # Check Custom DocPerm first
-        custom_perms = frappe.get_all(
+        """Is `permtype` owner-restricted for this user?
+
+        Only if EVERY role that grants it is owner-restricted. Taking the first
+        row meant a user holding both an unrestricted and a restricted role got
+        an answer that depended on row ordering.
+        """
+        # Custom DocPerm overrides the shipped DocPerm set entirely.
+        perms = frappe.get_all(
             "Custom DocPerm",
             filters={"parent": doctype, "role": ["in", user_roles], permtype: 1},
-            fields=["if_owner"]
-        )
-        if custom_perms:
-            return custom_perms[0]["if_owner"] == 1
-
-        # Fallback: check DocPerm entries
-        std_perms = frappe.get_all(
+            fields=["if_owner"],
+        ) or frappe.get_all(
             "DocPerm",
             filters={"parent": doctype, "role": ["in", user_roles], permtype: 1},
-            fields=["if_owner"]
+            fields=["if_owner"],
         )
-        if std_perms:
-            return std_perms[0]["if_owner"] == 1
 
-        return False
+        if not perms:
+            return False
+
+        return all(p["if_owner"] == 1 for p in perms)
 
     for doctype in ["Sales Invoice", "Payment Entry", "Sales Order"]:
         submit_owner_restricted = check_perm(doctype, "submit")
@@ -106,14 +109,18 @@ def get_translations():
 
 @frappe.whitelist()
 def get_doc_field():
-    doctype = frappe.form_dict.get('doctype')
-    
+    """Return a blank document (with defaults applied) for the given doctype."""
+    doctype = frappe.form_dict.get("doctype")
+
     if not doctype:
-        frappe.throw("Missing 'doctype' parameter")
-    
+        frappe.throw(_("Missing 'doctype' parameter"))
+
+    # Returns server-side defaults, so require the same permission as actually
+    # creating the document.
+    frappe.has_permission(doctype, "create", throw=True)
+
     try:
-        doc = frappe.new_doc(doctype)
-        return doc.as_dict()
-    except Exception as e:
+        return frappe.new_doc(doctype).as_dict()
+    except Exception:
         frappe.log_error(frappe.get_traceback(), "get_doc_field error")
-        frappe.throw(f"Unable to create doc for {doctype}: {str(e)}")
+        frappe.throw(_("Unable to create doc for {0}").format(doctype))

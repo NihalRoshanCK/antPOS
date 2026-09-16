@@ -15,7 +15,9 @@ export default defineConfig({
         indexHtmlPath: '../ant_pos/www/antPOS.html',
         outDir: '../ant_pos/public/antPOS',
         emptyOutDir: true,
-        sourcemap: true,
+        // Never ship maps: the build output is served publicly from
+        // /assets/ant_pos/antPOS/. Use 'hidden' + an error tracker if you need them.
+        sourcemap: false,
       },
     }),
     vue(),

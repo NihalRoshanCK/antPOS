@@ -9,6 +9,27 @@ from erpnext.stock.doctype.batch.batch import get_batches
 
 BarcodeScanResult = dict[str, str | None]
 
+# Explicit projection for the scan payload. Never use ["*"] here: the Item table
+# carries valuation_rate / last_purchase_rate / standard_rate, and this endpoint is
+# reachable by every cashier.
+ITEM_SCAN_FIELDS = [
+	"name as item_code",
+	"item_name",
+	"description",
+	"item_group",
+	"image",
+	"stock_uom",
+	"has_batch_no",
+	"has_serial_no",
+	"is_stock_item",
+	"disabled",
+]
+
+
+def _get_scan_item(item_code: str) -> dict | None:
+	"""Fetch the whitelisted subset of Item fields used by the POS scan flow."""
+	return frappe.db.get_value("Item", item_code, ITEM_SCAN_FIELDS, as_dict=True)
+
 
 def _update_item_info(scan_result: dict[str, str | None]) -> dict[str, str | None]:
 	if item_code := scan_result.get("item_code"):
@@ -46,7 +67,7 @@ def scan_barcode(search_value: str, search_itemname:bool) -> Dict[str, Any]:
         as_dict=True,
     )
     if barcode_data:
-        barcode_data["item"] = frappe.db.get_value("Item", barcode_data["item_code"], ["*"], as_dict=True)
+        barcode_data["item"] = _get_scan_item(barcode_data["item_code"])
         _update_item_info(barcode_data)
         barcode_data["message"] = _("Item found using Barcode.")
         frappe.local.response["http_status_code"] = 200  # OK
@@ -61,7 +82,7 @@ def scan_barcode(search_value: str, search_itemname:bool) -> Dict[str, Any]:
         as_dict=True,
     )
     if serial_no_data:
-        serial_no_data["item"] = frappe.db.get_value("Item", serial_no_data["item_code"], ["*"], as_dict=True)
+        serial_no_data["item"] = _get_scan_item(serial_no_data["item_code"])
         _update_item_info(serial_no_data)
         serial_no_data["message"] = _("Item found using Serial Number.")
         frappe.local.response["http_status_code"] = 200  # OK
@@ -76,7 +97,7 @@ def scan_barcode(search_value: str, search_itemname:bool) -> Dict[str, Any]:
         as_dict=True,
     )
     if batch_no_data:
-        batch_no_data["item"] = frappe.db.get_value("Item", batch_no_data["item_code"], ["*"], as_dict=True)
+        batch_no_data["item"] = _get_scan_item(batch_no_data["item_code"])
         _update_item_info(batch_no_data)
         batch_no_data["message"] = _("Item found using Batch Number.")
         frappe.local.response["http_status_code"] = 200  # OK
@@ -101,7 +122,7 @@ def scan_barcode(search_value: str, search_itemname:bool) -> Dict[str, Any]:
         )
     
     if item_data:
-        item_data["item"] = frappe.db.get_value("Item", item_data["item_code"], ["*"], as_dict=True)
+        item_data["item"] = _get_scan_item(item_data["item_code"])
         _update_item_info(item_data)
         item_data["message"] = _("Item found using Item Code.")
         frappe.local.response["http_status_code"] = 200  # OK

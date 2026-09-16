@@ -13,6 +13,8 @@ class AntposFieldsLayout(Document):
 
 @frappe.whitelist()
 def get_fields_layout(doctype: str, type: str, parent_doctype: str | None = None):
+	frappe.has_permission(doctype, "read", throw=True)
+
 	tabs = []
 	layout = None
 
@@ -58,9 +60,11 @@ def get_fields_layout(doctype: str, type: str, parent_doctype: str | None = None
 
 @frappe.whitelist()
 def get_sidepanel_sections(doctype):
+	frappe.has_permission(doctype, "read", throw=True)
+
 	if not frappe.db.exists("Antpos Fields Layout", {"dt": doctype, "type": "Side Panel"}):
 		return []
-	layout = frappe.get_doc("CAntpos Fields Layout", {"dt": doctype, "type": "Side Panel"}).layout
+	layout = frappe.get_doc("Antpos Fields Layout", {"dt": doctype, "type": "Side Panel"}).layout
 
 	if not layout:
 		return []
@@ -85,10 +89,6 @@ def get_sidepanel_sections(doctype):
 					field_obj = field_obj.as_dict()
 					handle_perm_level_restrictions(field_obj, doctype)
 					column["fields"][column.get("fields").index(field)] = get_field_obj(field_obj)
-
-	fields_meta = {}
-	for field in fields:
-		fields_meta[field.fieldname] = field
 
 	return layout
 
@@ -140,6 +140,10 @@ def get_field_obj(field):
 
 @frappe.whitelist()
 def save_fields_layout(doctype: str, type: str, layout: str):
+	# The layout decides which fields every POS user sees, so it is an admin-level write.
+	frappe.only_for("System Manager")
+	frappe.has_permission(doctype, "read", throw=True)
+
 	if frappe.db.exists("Antpos Fields Layout", {"dt": doctype, "type": type}):
 		doc = frappe.get_doc("Antpos Fields Layout", {"dt": doctype, "type": type})
 	else:
@@ -152,7 +156,7 @@ def save_fields_layout(doctype: str, type: str, layout: str):
 			"layout": layout,
 		}
 	)
-	doc.save(ignore_permissions=True)
+	doc.save()
 
 	return doc.layout
 
