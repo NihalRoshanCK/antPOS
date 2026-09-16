@@ -259,6 +259,39 @@ const addNewLine = async (data) => {
     debounceSearch.value = '';
 };
 
+// Totals are recalculated on every cart edit (scan, qty, serial, batch,
+// discount). If that call is failing, every edit used to raise another
+// "Internal Server Error" toast. Show one explanatory message, then stay quiet
+// while the same failure keeps repeating.
+const RECALC_ERROR_COOLDOWN_MS = 60 * 1000;
+let lastRecalcError = { key: '', at: 0 };
+
+const notifyRecalcError = (error) => {
+    let serverMessage = Array.isArray(error?.messages) ? error.messages[0] : error?.messages;
+    // frappe-ui substitutes this literal when the server crashed without a
+    // message; it tells the cashier nothing.
+    if (serverMessage === 'Internal Server Error') serverMessage = '';
+    const key = serverMessage || error?.exc_type || error?.message || 'unknown';
+    const now = Date.now();
+    if (key === lastRecalcError.key && now - lastRecalcError.at < RECALC_ERROR_COOLDOWN_MS) {
+        lastRecalcError.at = now;
+        return;
+    }
+    lastRecalcError = { key, at: now };
+
+    createToast({
+        title: 'Totals could not be updated',
+        // A validation message from the server is actionable; a crash is not,
+        // so say what it means for the cashier instead of echoing the status.
+        message: serverMessage
+            || 'The server failed to calculate this invoice. Items are kept, but totals and taxes may be wrong. Ask your administrator to check the server error log.',
+        icon: 'alert-triangle',
+        iconClasses: 'bg-surface-red-5 text-ink-white rounded-md p-px',
+        position: 'top-center',
+        timeout: 8,
+    });
+};
+
 const runDocMethod = createResource({
     url: 'ant_pos.ant_pos.api.sales_invoice.calculate_invoice_item_taxes',
     method: 'POST',
@@ -320,14 +353,7 @@ const runDocMethod = createResource({
         });
     },
     onError(error) {
-        createToast({
-            title: 'error',
-            message: Array.isArray(error?.messages) ? error.messages[0] : error?.messages || 'An error occurred',
-            icon: 'x-circle',
-            iconClasses: 'bg-surface-red-5 text-ink-white rounded-md p-px',
-            position: 'top-center',
-            timeout: 5,
-        });
+        notifyRecalcError(error);
     }
 });
 
