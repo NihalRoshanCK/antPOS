@@ -321,8 +321,14 @@ const changePaymentAmount = () => {
 };
 
 const saveAndSubmit = async (doc) => {
-    await createSaveResource.fetch({ action: 'Save', doc:doc.value.doc });
-    await createSaveResource.fetch({ action: 'Submit', doc:doc.value.doc });
+    await createSaveResource.fetch({ action: 'Save', doc: doc.value.doc });
+    // A failed Save leaves doc.value.doc on the client-side temp name; submitting
+    // it would create a second document instead of submitting the first.
+    if (!doc.value.doc?.name || doc.value.doc.name.startsWith('new-')) {
+        return false;
+    }
+    await createSaveResource.fetch({ action: 'Submit', doc: doc.value.doc });
+    return true;
 }
 
 const submitInvoice = async (action = null) => {
@@ -343,7 +349,7 @@ const submitInvoice = async (action = null) => {
             };
 
             doc.value = { doc: salesOrder };
-            await saveAndSubmit(doc);
+            if (!await saveAndSubmit(doc)) return;
             const orderName = doc.value.doc.name;
             invoiceStore.invoice.items.forEach((item, index) => {
                 item.so_detail = doc.value.doc.items?.[index]?.name || "";
@@ -353,12 +359,20 @@ const submitInvoice = async (action = null) => {
         doc.value = {
             doc: invoiceStore.invoice
         }
-        await saveAndSubmit(doc);
+        if (!await saveAndSubmit(doc)) return;
+
+        // `invoice` was snapshotted before the save, so it still carries the
+        // client-side temp name. Everything downstream needs the name the server
+        // assigned.
+        const saved = doc.value.doc;
+        invoice.name = saved.name;
+        invoice.due_date = saved.due_date ?? invoice.due_date;
+
         emitter.emit('remove_invoice',true);
-        createPayments(invoice);
+        await createPayments(invoice);
         showToast('success','Invoice submitted successfully', 'check-circle', 'green');
         if (action !== null) {
-            createPrint(invoice.name);
+            createPrint(saved.name);
         }
     }
 };

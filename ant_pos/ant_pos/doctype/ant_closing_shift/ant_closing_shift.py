@@ -1,4 +1,5 @@
 import frappe
+from frappe import _
 from frappe.model.document import Document
 
 
@@ -13,6 +14,7 @@ class AntClosingShift(Document):
         self.opening_end_date = frappe.utils.now()
         self.posting_date = frappe.utils.today()
         self.company = opening_shift_doc.company
+        self.pos_profile = opening_shift_doc.pos_profile
         self.user = opening_shift_doc.cashier
 
         self.pos_transactions = []
@@ -34,14 +36,19 @@ class AntClosingShift(Document):
             self.append("pos_payments", payment)
 
     def get_opening_shift(self):
+        # Ant Opening Shift stores the operator in `cashier`, not `user`.
         shift = frappe.db.get_value(
             "Ant Opening Shift",
-            filters={"user": self.user, "docstatus": 1,"status":"Open"},
+            filters={
+                "cashier": self.user or frappe.session.user,
+                "docstatus": 1,
+                "status": "Open",
+            },
             fieldname="name",
-            order_by="creation desc"
+            order_by="creation desc",
         )
         if not shift:
-            frappe.throw("No opening shift found for this user.")
+            frappe.throw(_("No open shift found for this user."))
         return shift
 
     def get_pos_transactions(self):
@@ -106,7 +113,23 @@ class AntClosingShift(Document):
                     }
 
     def before_submit(self):
+        if not self.ant_opening_shift:
+            frappe.throw(_("No open shift found for this user."))
+
+        # Record the link in both directions: get_openingshift() filters on
+        # ant_closing_shift_detail as well as status, and without this the audit
+        # trail from opening to closing document is lost.
+        frappe.db.set_value(
+            "Ant Opening Shift",
+            self.ant_opening_shift,
+            {"status": "Closed", "ant_closing_shift_detail": self.name},
+        )
+
+    def on_cancel(self):
+        """Reopen the shift so it can be closed again."""
         if self.ant_opening_shift:
-            frappe.db.set_value('Ant Opening Shift', self.ant_opening_shift, 'status', 'Closed')
-        else:
-            frappe.throw("No opening shift found for this user.")
+            frappe.db.set_value(
+                "Ant Opening Shift",
+                self.ant_opening_shift,
+                {"status": "Open", "ant_closing_shift_detail": None},
+            )

@@ -74,6 +74,7 @@ import { usePosProfileStore } from '@/stores/posProfile';
 import { usePermissionStore } from '@/stores/permission';
 import { usersStore } from '@/stores/users';
 import { useInvoiceStore } from '@/stores/pos';
+import { generateTempName } from '@/utils';
 
 const store = usePosProfileStore();
 const dialogVisible = ref(true);
@@ -211,7 +212,7 @@ async function splitSerialNumbers(serialString = "") {
 }
 
 const  addvalues = async ()=>{
-    invoiceStore.invoice =  { ...runDoCMethod.data.docs[0], status: null ,name:"new-sales-invoice-jpodtuhocv" }
+    invoiceStore.invoice =  { ...runDoCMethod.data.docs[0], status: null, name: generateTempName('Sales Invoice') }
     invoiceStore.items = runDoCMethod.data.docs[0].items || [];
     invoiceStore.invoice._discount_amount =  runDoCMethod.data.docs[0].discount_amount;
     invoiceStore.invoice._additional_discount_percentage =  runDoCMethod.data.docs[0].additional_discount_percentage;
