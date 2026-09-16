@@ -59,10 +59,29 @@ bench --site yoursite.com build
 
 ## 📦 Usage
 
-1. Open the **POS module** from your ERPNext dashboard.  
-2. Configure your POS settings and dynamic fields as needed.  
-3. Start creating **Sales Invoices** instantly — no need for POS Closing.  
-4. Keep your app updated to enjoy the latest features and fixes.
+**[Getting Started](docs/GETTING-STARTED.md)** walks through installation, the
+five things that must be configured before a cashier can open a shift, and a
+first sale end to end.
+
+Want a working environment immediately?
+
+```bash
+cd ~/frappe-bench
+env/bin/python apps/ant_pos/test-data/seed_antpos.py yoursite.localhost
+```
+
+That creates a stocked warehouse, customers, payment modes, a POS Profile, an
+open shift and four scannable items covering plain, batch, serial and
+batch+serial tracking. See [test-data/README.md](test-data/README.md).
+
+### Documentation
+
+| | |
+|---|---|
+| [Getting Started](docs/GETTING-STARTED.md) | install, configure, first sale, troubleshooting |
+| [Deployment](docs/DEPLOYMENT.md) | the nginx header the PWA needs, asset and index notes |
+| [Test data](test-data/README.md) | local demo data and a manual QA checklist |
+| [CHANGELOG](CHANGELOG.md) | what changed in 0.1.0 |
 
 ---
 
