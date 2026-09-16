@@ -92,20 +92,22 @@ class TestClosingOwnership(FrappeTestCase):
 				self.closing().validate_opening_shift(opening())
 
 	def test_cashier_can_close_own_shift(self):
+		doc = self.closing()
 		with (
 			as_user(self, "cashier-a@example.com"),
 			patch(f"{MODULE}.is_shift_manager", return_value=False),
 			patch("frappe.db.get_value", return_value=None),
 		):
-			self.closing().validate_opening_shift(opening())
+			doc.validate_opening_shift(opening())
 
 	def test_shift_cannot_be_closed_twice(self):
+		doc = self.closing()
 		with (
 			as_user(self, "cashier-a@example.com"),
 			patch("frappe.db.get_value", return_value="CLOSE-OTHER"),
 		):
 			with self.assertRaises(frappe.ValidationError):
-				self.closing().validate_opening_shift(opening())
+				doc.validate_opening_shift(opening())
 
 	def test_cancel_does_not_reopen_next_to_a_newer_shift(self):
 		doc = frappe.get_doc({"doctype": "Ant Closing Shift", "name": "CLOSE-1", "ant_opening_shift": "SHIFT-1"})

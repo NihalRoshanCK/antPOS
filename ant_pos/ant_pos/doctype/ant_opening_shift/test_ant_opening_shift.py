@@ -138,38 +138,44 @@ class TestShiftOwnership(FrappeTestCase):
 				self.shift(cashier="cashier-b@example.com").validate_cashier()
 
 	def test_manager_can_open_a_shift_for_someone_else(self):
+		doc = self.shift(cashier="cashier-b@example.com")
 		with (
 			as_user(self, "manager@example.com"),
 			patch(f"{MODULE}.is_shift_manager", return_value=True),
 			patch("frappe.db.get_value", return_value=1),
 		):
-			self.shift(cashier="cashier-b@example.com").validate_cashier()
+			doc.validate_cashier()
 
 	def test_disabled_cashier_is_refused(self):
+		doc = self.shift(cashier="Administrator")
 		with patch("frappe.db.get_value", return_value=0):
 			with self.assertRaises(frappe.ValidationError):
-				self.shift(cashier="Administrator").validate_cashier()
+				doc.validate_cashier()
 
 	def test_profile_of_another_company_is_refused(self):
+		doc = self.shift()
 		with self.profile(company="Company B"), patch(f"{MODULE}.profile_users", return_value=[]):
 			with self.assertRaises(frappe.ValidationError):
-				self.shift().validate_pos_profile()
+				doc.validate_pos_profile()
 
 	def test_disabled_profile_is_refused(self):
+		doc = self.shift()
 		with self.profile(disabled=1), patch(f"{MODULE}.profile_users", return_value=[]):
 			with self.assertRaises(frappe.ValidationError):
-				self.shift().validate_pos_profile()
+				doc.validate_pos_profile()
 
 	def test_profile_users_are_enforced(self):
+		doc = self.shift()
 		with self.profile(), patch(f"{MODULE}.profile_users", return_value=["someone@example.com"]):
 			with self.assertRaises(frappe.PermissionError):
-				self.shift().validate_pos_profile()
+				doc.validate_pos_profile()
 		with self.profile(), patch(f"{MODULE}.profile_users", return_value=[CASHIER]):
-			self.shift().validate_pos_profile()
+			doc.validate_pos_profile()
 
 	def test_profile_without_users_is_open_to_all(self):
+		doc = self.shift()
 		with self.profile(), patch(f"{MODULE}.profile_users", return_value=[]):
-			self.shift().validate_pos_profile()
+			doc.validate_pos_profile()
 
 	def test_create_opening_ignores_client_cashier_and_status(self):
 		from ant_pos.ant_pos.api.pos_profile import create_opening
