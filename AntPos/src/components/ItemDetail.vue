@@ -114,7 +114,8 @@
                 </button>
             </div>
 
-            <div v-else class="flex items-center gap-2 border-t border-outline-gray-1 bg-surface-gray-1 px-3 py-3">
+            <!-- Wraps when the cart pane is resized narrow, so Pay is never cut off. -->
+            <div v-else class="flex flex-wrap items-center gap-2 border-t border-outline-gray-1 bg-surface-gray-1 px-3 py-3">
                 <Button variant="subtle" theme="blue" size="lg" @click="loadComponent('Held')">
                     <template #prefix><FeatherIcon name="clock" class="h-4 w-4" /></template>
                     Held
@@ -124,7 +125,7 @@
                     Return
                 </Button>
 
-                <div class="ml-auto flex items-center gap-2">
+                <div class="ml-auto flex flex-wrap items-center justify-end gap-2">
                     <Button
                         v-if="permissionStore.salesInvoiceCanCreate"
                         variant="outline" theme="gray" size="lg"

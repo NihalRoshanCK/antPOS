@@ -2,7 +2,8 @@
     <!-- Desktop: invoices and the payment form side by side, each scrolling.
          Phones: one scrolling column with the submit button pinned below. -->
     <div class="flex h-full w-full min-h-0 flex-col bg-surface-gray-1 lg:flex-row lg:gap-3 lg:p-3">
-        <div class="min-h-0 flex-1 overflow-y-auto pos-scroll lg:flex lg:min-w-0 lg:flex-row lg:gap-3 lg:overflow-hidden">
+        <!-- The resize handle between the two panes is also the gap. -->
+        <div class="min-h-0 flex-1 overflow-y-auto pos-scroll lg:flex lg:min-w-0 lg:flex-row lg:overflow-hidden">
 
             <!-- Customer and invoices -->
             <section class="flex flex-col bg-surface-white lg:min-h-0 lg:min-w-0 lg:flex-1 lg:overflow-hidden lg:rounded-xl lg:border lg:border-outline-gray-1 lg:shadow-sm">
@@ -99,7 +100,20 @@
             </section>
 
             <!-- Payment -->
-            <section class="border-t border-outline-gray-1 bg-surface-white lg:flex lg:min-h-0 lg:w-[380px] lg:shrink-0 lg:flex-col lg:overflow-y-auto lg:rounded-xl lg:border lg:shadow-sm">
+            <PaneResizer
+                v-if="isDesktop"
+                v-model="paymentWidth"
+                storage-key="payments-panel"
+                side="right"
+                :default="380"
+                :min="320"
+                :min-other="420"
+                label="Resize payment panel"
+            />
+            <section
+                class="border-t border-outline-gray-1 bg-surface-white lg:flex lg:min-h-0 lg:shrink-0 lg:flex-col lg:overflow-y-auto lg:rounded-xl lg:border lg:shadow-sm"
+                :style="isDesktop ? { width: `${paymentWidth}px` } : {}"
+            >
                 <div class="space-y-4 p-3">
                     <div v-if="currentTab === 'credit'" class="rounded-lg bg-surface-gray-1 p-3">
                         <FormControl
@@ -188,10 +202,15 @@
 import { Button, createListResource, TextInput, FormControl, FeatherIcon, createResource, TabButtons } from 'frappe-ui';
 import { ref, computed, watch, onBeforeMount, onMounted } from 'vue';
 import Customer from '@/components/Customer.vue';
+import PaneResizer from '@/components/PaneResizer.vue';
+import { useBreakpoint } from '@/composables/useBreakpoint';
 import { createToast } from '@/utils';
 import { usePosProfileStore } from '@/stores/posProfile';
 import { usePaymentStore } from '@/stores/payment'
 import emitter from '@/utils/emitter'; 
+
+const { isDesktop } = useBreakpoint();
+const paymentWidth = ref(380);
 const store = usePosProfileStore();
 const paymentStore = usePaymentStore();
 const searchQuery = ref("");

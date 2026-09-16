@@ -17,13 +17,15 @@
           <MobileTabBar v-if="!isDesktop && showTabBar" />
         </div>
         <MoreSheet v-if="!isDesktop" />
+        <!-- Host for frappe-ui confirmDialog() -->
+        <Dialogs />
       </div>
     </FrappeUIProvider>
   </div>
 </template>
 
 <script setup>
-import { FrappeUIProvider } from 'frappe-ui'
+import { Dialogs, FrappeUIProvider } from 'frappe-ui'
 import { computed, inject, watch, onMounted, onUnmounted } from 'vue';
 import { useTheme } from '@/composables/useTheme';
 import { usePosProfileStore } from '@/stores/posProfile';

@@ -99,7 +99,6 @@ import LucideChevronDown from '~icons/lucide/chevron-down'
 import LucidePanelRightOpen from '~icons/lucide/panel-right-open'
 import LucideMonitor from '~icons/lucide/monitor'
 import LucideCreditCard from '~icons/lucide/credit-card'
-import LucideLayoutTemplate from '~icons/lucide/layout-template'
 import LucideFileMinus from '~icons/lucide/file-minus'
 import LucideLayoutGrid from '~icons/lucide/layout-grid'
 import LucideSettings from '~icons/lucide/settings'
@@ -134,9 +133,6 @@ const links = computed(() => {
   }
   if (permissionStore.paymentEntryCanSubmit || permissionStore.paymentEntryCanCreate || permissionStore.paymentEntryCanPrint) {
     list.push({ route: 'Payments', label: 'Payments', icon: markRaw(LucideCreditCard) })
-  }
-  if (permissionStore.canManageLayouts) {
-    list.push({ route: 'FormLayouts', label: 'Form layouts', icon: markRaw(LucideLayoutTemplate) })
   }
   return list
 })

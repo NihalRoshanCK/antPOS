@@ -4,7 +4,7 @@
             'flex flex-col min-h-0 bg-surface-white',
             compact
                 ? 'flex-1'
-                : 'w-[38%] min-w-[300px] max-w-[520px] shrink-0 rounded-xl border border-outline-gray-1 shadow-sm overflow-hidden',
+                : 'w-full min-w-0 rounded-xl border border-outline-gray-1 shadow-sm overflow-hidden',
         ]"
     >
         <div class="flex items-center gap-2 border-b border-outline-gray-1 p-3">

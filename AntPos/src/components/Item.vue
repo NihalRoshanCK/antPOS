@@ -74,12 +74,36 @@
             <!-- Fields come from the "Sales Invoice Item / Grid Row" layout
                  (Antpos Fields Layout). The line's own rules (rate editing,
                  discount mode, locked fields) are applied on top. -->
-            <LayoutForm
-                :layout="lineLayout"
-                :doc="items"
-                :overrides="lineOverrides"
-                :id-prefix="`line-${items.custom_id}`"
-                :columns-hint="4"
+            <div class="flex items-start gap-2">
+                <LayoutForm
+                    class="min-w-0 flex-1"
+                    :layout="lineLayout"
+                    :doc="items"
+                    :overrides="lineOverrides"
+                    :id-prefix="`line-${items.custom_id}`"
+                    :columns-hint="4"
+                />
+                <!-- As in Frappe CRM's grid rows: admins change these fields here. -->
+                <Button
+                    v-if="permissions.canManageLayouts && isDesktop"
+                    variant="ghost"
+                    class="w-7 shrink-0"
+                    tooltip="Edit fields layout"
+                    @click="editLayout = true"
+                >
+                    <LucidePencilLine class="h-4 w-4" aria-hidden="true" />
+                    <span class="sr-only">Edit fields layout</span>
+                </Button>
+            </div>
+            <LayoutEditorModal
+                v-if="editLayout"
+                v-model="editLayout"
+                title="Edit cart line fields layout"
+                doctype="Sales Invoice Item"
+                type="Grid Row"
+                parent-doctype="Sales Invoice"
+                :sample="items"
+                :preview-overrides="lineOverrides"
             />
 
             <!-- Only for batch-tracked lines. These used to render on every item,
@@ -126,10 +150,14 @@
     </article>
 </template>
 <script setup>
-import { FeatherIcon, Autocomplete, createResource, createListResource,debounce } from 'frappe-ui';
+import { Button, FeatherIcon, Autocomplete, createResource, createListResource,debounce } from 'frappe-ui';
 import LayoutForm from '@/components/form/LayoutForm.vue';
+import LayoutEditorModal from '@/components/layout-editor/LayoutEditorModal.vue';
+import LucidePencilLine from '~icons/lucide/pencil-line';
+import { usePermissionStore } from '@/stores/permission';
+import { useBreakpoint } from '@/composables/useBreakpoint';
 import { LOCKED_LINE_FIELDS, useFormLayout } from '@/utils/formLayout';
-import { watch, defineProps, onMounted, onUnmounted, computed } from 'vue';
+import { watch, defineProps, onMounted, onUnmounted, computed, ref } from 'vue';
 import { showToast } from '@/utils'
 import emitter from '@/utils/emitter';
 import { usePosProfileStore } from '@/stores/posProfile';
@@ -141,6 +169,9 @@ const store = usePosProfileStore();
 const invoiceStore = useInvoiceStore()
 const { canEdit: canEditDiscount, byPercent: discountByPercent } = useDiscountMode()
 const lineLayout = useFormLayout('Sales Invoice Item', 'Grid Row', 'Sales Invoice')
+const permissions = usePermissionStore()
+const { isDesktop } = useBreakpoint()
+const editLayout = ref(false)
 
 // Edited with their own pickers below the form.
 const PICKER_FIELDS = ['batch_no', 'serial_no', 'serial_and_batch_bundle']

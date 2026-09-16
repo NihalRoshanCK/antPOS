@@ -5,14 +5,24 @@ here and renders whatever comes back. A layout is stored per (DocType, type)
 in "Antpos Fields Layout"; without one, the defaults below (which match the
 forms the POS always had) are used.
 
-Layout JSON, as stored:
+The format is Frappe CRM's (CRM Fields Layout), so the same editor ideas
+apply:
 
-    [                                   # sections (or tabs with "sections")
+    [                                        # tabs
       {
-        "label": "Contact",             # optional
-        "columns": [                    # or [{"fields": [...]}, ...]
-          ["customer_name", "mobile_no"],
-          [{"fieldname": "customer_type", "default": "Individual"}]
+        "name": "tab_1", "label": "",        # one unlabelled tab = no tab bar
+        "sections": [
+          {
+            "name": "section_1", "label": "Contact",
+            "hideLabel": false, "hideBorder": false,
+            "collapsible": false, "opened": true,
+            "columns": [
+              {"name": "column_1", "fields": [
+                "customer_name",
+                {"fieldname": "customer_type", "default": "Individual"}
+              ]}
+            ]
+          }
         ]
       }
     ]
@@ -21,6 +31,9 @@ A field entry is a fieldname or an object with "fieldname" and optional
 overrides: label, default, description, placeholder, reqd, read_only, hidden.
 Overrides can only make a field stricter where it matters (a field required
 by the DocType stays required).
+
+Older layouts (a plain list of sections, or columns as plain lists) are still
+read and are stored in this shape the next time they are saved.
 """
 
 import json
@@ -33,6 +46,8 @@ LAYOUT_DOCTYPE = "Antpos Fields Layout"
 
 QUICK_ENTRY = "Quick Entry"
 GRID_ROW = "Grid Row"
+
+SECTION_FLAGS = ("hideLabel", "hideBorder", "collapsible")
 
 # Forms the POS renders from a layout, with the layout used when none is saved.
 DEFAULT_LAYOUTS = {
@@ -56,23 +71,11 @@ DEFAULT_LAYOUTS = {
 	],
 }
 
-# The POS forms an admin can design, in the order the editor lists them.
-EDITABLE_FORMS = (
-	{
-		"doctype": "Customer",
-		"type": QUICK_ENTRY,
-		"parent_doctype": None,
-		"title": "New customer",
-		"description": "The dialog a cashier uses to add a customer.",
-	},
-	{
-		"doctype": "Sales Invoice Item",
-		"type": GRID_ROW,
-		"parent_doctype": "Sales Invoice",
-		"title": "Cart line details",
-		"description": "The fields under a cart line when it is expanded.",
-	},
-)
+# The POS forms an admin can design in place (the pencil button in each).
+EDITABLE_FORMS = {
+	("Customer", QUICK_ENTRY): None,
+	("Sales Invoice Item", GRID_ROW): "Sales Invoice",
+}
 
 # Doctypes the POS may create through create_from_quick_entry.
 QUICK_ENTRY_DOCTYPES = {"Customer"}
@@ -121,13 +124,16 @@ FIELD_KEYS = (
 )
 
 
+# ---------------------------------------------------------------------------
+# Reading (every POS user)
+# ---------------------------------------------------------------------------
+
+
 @frappe.whitelist()
 def get_form_layout(doctype: str, type: str, parent_doctype: str | None = None) -> dict:
 	"""The form the POS should render for `doctype` in the given context."""
 	_check_read(doctype, parent_doctype)
-
-	sections = _resolve(doctype, type, parent_doctype)
-	return {"doctype": doctype, "type": type, "sections": sections}
+	return {"doctype": doctype, "type": type, "tabs": _resolve(doctype, type, parent_doctype)}
 
 
 @frappe.whitelist(methods=["POST"])
@@ -142,7 +148,7 @@ def create_from_quick_entry(doctype: str, doc: str | dict) -> dict:
 	frappe.has_permission(doctype, "create", throw=True)
 
 	values = frappe.parse_json(doc) if isinstance(doc, str) else (doc or {})
-	fields = [f for f in _iter_fields(_resolve(doctype, QUICK_ENTRY)) if not f["read_only"]]
+	fields = [f for f in iter_fields(_resolve(doctype, QUICK_ENTRY)) if not f["read_only"]]
 
 	data = {"doctype": doctype}
 	for field in fields:
@@ -159,48 +165,42 @@ def create_from_quick_entry(doctype: str, doc: str | dict) -> dict:
 	return new_doc.as_dict()
 
 
+# ---------------------------------------------------------------------------
+# Editing (System Manager)
+# ---------------------------------------------------------------------------
+
+
 @frappe.whitelist()
 def get_layout_for_editing(doctype: str, type: str, default: int = 0) -> dict:
-	"""The stored layout (or the default) as editable rows for the desk editor."""
+	"""The stored layout (or the built-in one) with raw field entries, plus the
+	fields the editor can offer."""
 	frappe.only_for("System Manager")
-	stored = None if cint(default) else frappe.db.get_value(LAYOUT_DOCTYPE, {"dt": doctype, "type": type}, "layout")
-	sections = normalize_layout(stored) if stored and stored.strip() else normalize_layout(get_default_layout(doctype, type))
+	stored = None if cint(default) else _stored(doctype, type)
+	tabs = normalize_layout(stored) if stored else normalize_layout(get_default_layout(doctype, type))
 
 	meta = frappe.get_meta(doctype)
-	fields = [
-		{
-			"fieldname": df.fieldname,
-			"label": _(df.label) if df.label else df.fieldname,
-			# Contact fields are inputs in quick entry (see QUICK_ENTRY_INPUTS).
-			"fieldtype": "Data" if _is_quick_entry_input(doctype, type, df.fieldname) else df.fieldtype,
-			"reqd": cint(df.reqd),
-			"read_only": 0 if _is_quick_entry_input(doctype, type, df.fieldname) else cint(df.read_only),
-			"default": df.default,
-		}
-		for df in meta.fields
-		if df.fieldtype in SUPPORTED_FIELDTYPES
-	]
-	return {"sections": sections, "fields": fields, "has_default": (doctype, type) in DEFAULT_LAYOUTS}
-
-
-@frappe.whitelist()
-def get_editable_forms() -> list:
-	"""The POS forms an admin can design, and whether each is customised."""
-	frappe.only_for("System Manager")
-	saved = {
-		(row.dt, row.type): row.modified
-		for row in frappe.get_all(LAYOUT_DOCTYPE, fields=["dt", "type", "modified"])
+	fields = []
+	for df in meta.fields:
+		if df.fieldtype not in SUPPORTED_FIELDTYPES:
+			continue
+		contact_input = _is_quick_entry_input(doctype, type, df.fieldname)
+		fields.append(
+			{
+				"fieldname": df.fieldname,
+				"label": _(df.label) if df.label else df.fieldname,
+				# Contact fields are inputs in quick entry (see QUICK_ENTRY_INPUTS).
+				"fieldtype": "Data" if contact_input else df.fieldtype,
+				"reqd": cint(df.reqd) if type == QUICK_ENTRY else 0,
+				"read_only": 0 if contact_input else cint(df.read_only or df.fieldtype == "Read Only"),
+				"default": df.default,
+			}
+		)
+	return {
+		"tabs": tabs,
+		"fields": fields,
+		"customised": bool(stored),
+		"has_default": (doctype, type) in DEFAULT_LAYOUTS,
 	}
-	return [
-		{
-			**form,
-			"title": _(form["title"]),
-			"description": _(form["description"]),
-			"customised": (form["doctype"], form["type"]) in saved,
-			"modified": saved.get((form["doctype"], form["type"])),
-		}
-		for form in EDITABLE_FORMS
-	]
 
 
 @frappe.whitelist(methods=["POST"])
@@ -214,7 +214,7 @@ def save_form_layout(doctype: str, type: str, layout: str | list) -> dict:
 	doc = frappe.get_doc(LAYOUT_DOCTYPE, name) if name else frappe.new_doc(LAYOUT_DOCTYPE)
 	doc.update({"dt": doctype, "type": type, "layout": text})
 	doc.save()
-	return {"sections": normalize_layout(doc.layout), "modified": doc.modified}
+	return {"tabs": normalize_layout(doc.layout), "modified": doc.modified}
 
 
 @frappe.whitelist(methods=["POST"])
@@ -225,7 +225,7 @@ def reset_form_layout(doctype: str, type: str) -> dict:
 	name = frappe.db.get_value(LAYOUT_DOCTYPE, {"dt": doctype, "type": type})
 	if name:
 		frappe.delete_doc(LAYOUT_DOCTYPE, name)
-	return {"sections": normalize_layout(get_default_layout(doctype, type))}
+	return {"tabs": normalize_layout(get_default_layout(doctype, type))}
 
 
 @frappe.whitelist(methods=["POST"])
@@ -233,85 +233,134 @@ def preview_form_layout(doctype: str, type: str, layout: str | list, parent_doct
 	"""Resolve an unsaved layout exactly as get_form_layout would."""
 	frappe.only_for("System Manager")
 	_check_editable(doctype, type)
-	sections = validate_layout(doctype, layout)
-	return {
-		"doctype": doctype,
-		"type": type,
-		"sections": _resolve(doctype, type, parent_doctype, sections=sections),
-	}
+	tabs = validate_layout(doctype, layout)
+	return {"doctype": doctype, "type": type, "tabs": _resolve(doctype, type, parent_doctype, tabs=tabs)}
 
 
-def _check_editable(doctype, type):
-	if not any(f["doctype"] == doctype and f["type"] == type for f in EDITABLE_FORMS):
-		frappe.throw(_("{0} / {1} is not a POS form").format(doctype, type))
-
-
-def _is_quick_entry_input(doctype, type, fieldname):
-	return type == QUICK_ENTRY and (doctype, fieldname) in QUICK_ENTRY_INPUTS
+# ---------------------------------------------------------------------------
+# Format
+# ---------------------------------------------------------------------------
 
 
 def get_default_layout(doctype: str, type: str) -> list:
-	return json.loads(json.dumps(DEFAULT_LAYOUTS.get((doctype, type), [])))
+	return normalize_layout(json.loads(json.dumps(DEFAULT_LAYOUTS.get((doctype, type), []))))
 
 
 def normalize_layout(layout) -> list:
-	"""Stored JSON (tabs, sections, column dicts or lists) to a list of
-	{"label", "columns": [[entry, ...], ...]}."""
+	"""Any stored shape to tabs -> sections -> columns -> fields.
+
+	Missing names are filled in by position, so the same input always gives
+	the same output.
+	"""
 	if isinstance(layout, str):
 		layout = json.loads(layout) if layout.strip() else []
 	if isinstance(layout, dict):
 		layout = [layout]
 	if not isinstance(layout, list):
-		frappe.throw(_("Layout must be a list of sections"))
+		frappe.throw(_("Layout must be a list of tabs or sections"))
 
-	sections = []
+	if not layout:
+		return []
 	for block in layout:
 		if not isinstance(block, dict):
-			frappe.throw(_("Each section must be an object"))
-		if "sections" in block:  # a tab
-			sections.extend(normalize_layout(block.get("sections") or []))
-			continue
+			frappe.throw(_("Each tab or section must be an object"))
 
-		columns = []
-		for column in block.get("columns") or []:
-			entries = column.get("fields") if isinstance(column, dict) else column
-			if not isinstance(entries, list):
-				frappe.throw(_("Each column must be a list of fields"))
-			columns.append(entries)
-		if "fields" in block and not columns:  # a section with a flat field list
-			columns.append(block["fields"])
+	is_tabs = any("sections" in block for block in layout)
+	raw_tabs = layout if is_tabs else [{"label": "", "sections": layout}]
 
-		sections.append({"label": block.get("label") or "", "columns": columns})
-	return sections
+	tabs = []
+	for t, raw_tab in enumerate(raw_tabs):
+		if "sections" not in raw_tab:
+			frappe.throw(_("Do not mix tabs and sections at the top level"))
+		sections = []
+		for s, raw_section in enumerate(raw_tab.get("sections") or []):
+			sections.append(_normalize_section(raw_section, t, s))
+		tabs.append(
+			{
+				"name": raw_tab.get("name") or f"tab_{t + 1}",
+				"label": raw_tab.get("label") or "",
+				"sections": sections,
+			}
+		)
+	return tabs
+
+
+def _normalize_section(raw, t, s):
+	if not isinstance(raw, dict):
+		frappe.throw(_("Each section must be an object"))
+
+	raw_columns = raw.get("columns") or []
+	if not raw_columns and "fields" in raw:  # a section with a flat field list
+		raw_columns = [raw["fields"]]
+
+	columns = []
+	for c, raw_column in enumerate(raw_columns):
+		if isinstance(raw_column, dict):
+			name, entries = raw_column.get("name"), raw_column.get("fields") or []
+		else:
+			name, entries = None, raw_column
+		if not isinstance(entries, list):
+			frappe.throw(_("Each column must have a list of fields"))
+		columns.append({"name": name or f"column_{t + 1}_{s + 1}_{c + 1}", "fields": entries})
+
+	section = {
+		"name": raw.get("name") or f"section_{t + 1}_{s + 1}",
+		"label": raw.get("label") or "",
+		"columns": columns,
+		"opened": bool(raw.get("opened", True)),
+	}
+	for flag in SECTION_FLAGS:
+		section[flag] = bool(raw.get(flag))
+	return section
+
+
+def iter_entries(tabs):
+	for tab in tabs:
+		for section in tab["sections"]:
+			for column in section["columns"]:
+				yield from column["fields"]
+
+
+def iter_fields(tabs):
+	"""Resolved field dicts, in layout order."""
+	yield from iter_entries(tabs)
 
 
 def validate_layout(doctype: str, layout) -> list:
 	"""Raise if the layout names fields the DocType does not have."""
 	meta = frappe.get_meta(doctype)
-	sections = normalize_layout(layout)
+	tabs = normalize_layout(layout)
 	unknown = []
-	for section in sections:
-		for column in section["columns"]:
-			for entry in column:
-				fieldname = _entry_fieldname(entry)
-				if not fieldname:
-					frappe.throw(_("Every field entry needs a fieldname"))
-				if not meta.get_field(fieldname):
-					unknown.append(fieldname)
+	for entry in iter_entries(tabs):
+		fieldname = _entry_fieldname(entry)
+		if not fieldname:
+			frappe.throw(_("Every field entry needs a fieldname"))
+		if not meta.get_field(fieldname):
+			unknown.append(fieldname)
 	if unknown:
 		frappe.throw(
 			_("{0} has no field(s): {1}").format(doctype, ", ".join(sorted(set(unknown)))),
 			title=_("Invalid layout"),
 		)
-	return sections
+	return tabs
 
 
-def _resolve(doctype: str, type: str, parent_doctype: str | None = None, sections: list | None = None) -> list:
-	if sections is None:
-		stored = frappe.db.get_value(LAYOUT_DOCTYPE, {"dt": doctype, "type": type}, "layout")
-		sections = normalize_layout(stored) if stored and stored.strip() else []
-	if not any(column for section in sections for column in section["columns"]):
-		sections = normalize_layout(get_default_layout(doctype, type))
+# ---------------------------------------------------------------------------
+# Resolving
+# ---------------------------------------------------------------------------
+
+
+def _stored(doctype, type):
+	text = frappe.db.get_value(LAYOUT_DOCTYPE, {"dt": doctype, "type": type}, "layout")
+	return text if text and text.strip() else None
+
+
+def _resolve(doctype: str, type: str, parent_doctype: str | None = None, tabs: list | None = None) -> list:
+	if tabs is None:
+		stored = _stored(doctype, type)
+		tabs = normalize_layout(stored) if stored else []
+	if not any(True for _entry in iter_entries(tabs)):
+		tabs = get_default_layout(doctype, type)
 
 	meta = frappe.get_meta(doctype)
 	quick_entry = type == QUICK_ENTRY
@@ -319,19 +368,23 @@ def _resolve(doctype: str, type: str, parent_doctype: str | None = None, section
 	seen = set()
 
 	resolved = []
-	for section in sections:
-		columns = []
-		for column in section["columns"]:
-			fields = []
-			for entry in column:
-				field = _build_field(meta, entry, quick_entry, perms)
-				if field and field["fieldname"] not in seen:
-					seen.add(field["fieldname"])
-					fields.append(field)
-			if fields:
-				columns.append(fields)
-		if columns:
-			resolved.append({"label": section["label"], "columns": columns})
+	for tab in tabs:
+		sections = []
+		for section in tab["sections"]:
+			columns = []
+			for column in section["columns"]:
+				fields = []
+				for entry in column["fields"]:
+					field = _build_field(meta, entry, quick_entry, perms)
+					if field and field["fieldname"] not in seen:
+						seen.add(field["fieldname"])
+						fields.append(field)
+				# Empty columns keep their place: they are part of the design.
+				columns.append({**column, "fields": fields})
+			if any(column["fields"] for column in columns):
+				sections.append({**section, "columns": columns})
+		if sections:
+			resolved.append({**tab, "sections": sections})
 
 	if quick_entry:
 		_append_missing_mandatory(meta, resolved, seen, perms)
@@ -391,7 +444,7 @@ def _build_field(meta, entry, quick_entry: bool, perms) -> dict | None:
 	return field
 
 
-def _append_missing_mandatory(meta, sections, seen, perms):
+def _append_missing_mandatory(meta, tabs, seen, perms):
 	"""A quick entry form must be submittable: add required fields the layout
 	left out, unless the DocType fills them itself."""
 	missing = []
@@ -407,9 +460,12 @@ def _append_missing_mandatory(meta, sections, seen, perms):
 
 	if not missing:
 		return
+	if not tabs:
+		tabs.append({"name": "tab_1", "label": "", "sections": []})
+	sections = tabs[0]["sections"]
 	if not sections:
-		sections.append({"label": "", "columns": [[]]})
-	sections[-1]["columns"][-1].extend(missing)
+		sections.append(_normalize_section({"columns": [[]]}, 0, 0))
+	sections[-1]["columns"][-1]["fields"].extend(missing)
 
 
 def _apply_create_defaults(doctype: str, data: dict):
@@ -420,10 +476,13 @@ def _apply_create_defaults(doctype: str, data: dict):
 			data["gst_category"] = "Unregistered"
 
 
-def _iter_fields(sections):
-	for section in sections:
-		for column in section["columns"]:
-			yield from column
+def _check_editable(doctype, type):
+	if (doctype, type) not in EDITABLE_FORMS:
+		frappe.throw(_("{0} / {1} is not a POS form").format(doctype, type))
+
+
+def _is_quick_entry_input(doctype, type, fieldname):
+	return type == QUICK_ENTRY and (doctype, fieldname) in QUICK_ENTRY_INPUTS
 
 
 def _entry_fieldname(entry):

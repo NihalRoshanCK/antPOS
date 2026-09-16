@@ -14,12 +14,6 @@ const routes = [
     component: () => import('@/pages/Payments.vue'),
   },
   {
-    // Form layout editor; the page itself checks for System Manager.
-    path: '/layouts',
-    name: 'FormLayouts',
-    component: () => import('@/pages/FormLayouts.vue'),
-  },
-  {
     name: 'Login',
     path: '/account/login',
     component: () => import('@/pages/Login.vue'),

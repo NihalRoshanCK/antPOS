@@ -114,22 +114,45 @@ sale into one too. Returns never create an order.
 
 The **New customer** dialog and a cart line's **details** are built from a
 layout the server sends (`ant_pos/api/form_layout.py`), not hard-coded fields.
+The format and the editing flow follow Frappe CRM (`CRM Fields Layout`,
+`QuickEntryModal`, `FieldLayoutEditor`):
 
 | Form | Antpos Fields Layout |
 |---|---|
 | New customer | `Customer` / `Quick Entry` |
 | Cart line details | `Sales Invoice Item` / `Grid Row` |
 
-An admin opens the matching **Antpos Fields Layout** in the desk (or creates
-one) and uses **Edit fields**. Each row is a field with a section, a column and
-optional overrides: label, default, required, read only, hidden. **Start from
-default** loads the built-in layout. Without a saved layout the POS uses the
-built-in one, which matches the forms it had before.
+**Editing is done in place.** A System Manager on desktop sees a pencil
+button:
+- in the New customer dialog's header;
+- beside an expanded cart line's fields.
+
+It opens **Edit … layout** (`components/layout-editor/`):
+
+- **Tabs:** drag to reorder; double-click to rename; ⋯ to rename or remove.
+  One unlabelled tab means no tab bar.
+- **Sections:** drag by the handle; double-click to rename. ⋯ has:
+  - collapsible, hide label, hide border;
+  - remove, or remove and move its columns to a neighbour;
+  - move to the previous or next tab;
+  - add or remove columns (up to four), or move the last column.
+- **Columns:** dashed boxes that can be dragged between sections. **Add
+  field** at the bottom of each column searches the DocType's fields.
+- **Fields:** drag by the handle; × removes. The settings button (or a click
+  on the label) sets label, default, required, read only and hidden.
+- **Show preview** renders the unsaved layout as the server resolves it.
+  **Reset** discards changes, **Save** stores the layout, and **Restore
+  default** drops a custom layout. Saved layouts reach the open form at once,
+  and other tabs when the cashier returns to them.
+
+The New customer dialog steps aside while its layout is edited (as in CRM)
+and comes back afterwards with what was typed. The desk form of Antpos
+Fields Layout only shows the JSON and points to antPOS.
 
 Rules the server enforces:
 
 - Unknown fields are rejected on save. Unsupported field types (tables,
-  attachments, HTML) are skipped.
+  attachments, HTML) are skipped. Older flat layouts are still read.
 - Overrides can make a field required or read-only, never the reverse. A
   required field can be hidden only when it has a default.
 - Quick entry adds any field the DocType requires that the layout left out,
@@ -139,17 +162,28 @@ Rules the server enforces:
 - Permission levels apply: fields without write access are read-only, and
   fields without read access are hidden.
 
-In the POS (`components/form/`), `LayoutForm` renders sections and columns,
-`FieldControl` renders each field type and handles `depends_on` and
-`mandatory_depends_on`, and `LinkControl` searches the linked DocType as you
-type. A cart line applies its own rules on top of the layout:
+`components/form/LayoutForm.vue` renders tabs, sections (with the options
+above) and columns, and `FieldControl`/`LinkControl` render the fields. A
+cart line applies its own rules on top of the layout:
 
 - the rate follows "Allow User to Edit Rate";
 - the discount fields follow the discount mode;
 - item code, UOM, warehouse and price are always locked;
 - batch and serial keep their own pickers.
 
-Open POS tabs re-read layouts when the cashier returns to the tab.
+### Resizable panes
+
+As on Frappe CRM's record pages (`Resizer`), the desktop panes can be resized
+by dragging the handle between them (`components/PaneResizer.vue`):
+
+- Point of sale: item list | cart, and payment panel | cart (each has its
+  own width).
+- Payments: invoices | payment panel.
+
+The width is remembered on the device. Double-click (or Enter) restores the
+default, and the arrow keys resize (Shift for bigger steps). The other pane
+always keeps a minimum width, and the cart's action bar wraps instead of
+cutting off Pay. Phones have no handles.
 
 ### Mobile structure
 

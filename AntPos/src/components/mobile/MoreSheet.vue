@@ -42,8 +42,6 @@ import LucideSunMoon from '~icons/lucide/sun-moon'
 import LucideSettings from '~icons/lucide/settings'
 import LucideLayoutGrid from '~icons/lucide/layout-grid'
 import LucideLogOut from '~icons/lucide/log-out'
-import LucideLayoutTemplate from '~icons/lucide/layout-template'
-import { usePermissionStore } from '@/stores/permission'
 import BottomSheet from '@/components/mobile/BottomSheet.vue'
 import { useMobileView } from '@/stores/mobile'
 import { usePosProfileStore } from '@/stores/posProfile'
@@ -70,8 +68,6 @@ const initials = computed(() =>
 
 const themeHint = computed(() => ({ light: 'Light', dark: 'Dark', automatic: 'Automatic' }[mode.value]))
 
-const permissions = usePermissionStore()
-
 const items = computed(() => [
   {
     label: 'Return an invoice',
@@ -81,9 +77,6 @@ const items = computed(() => [
   { label: 'Close shift', icon: markRaw(LucideFileMinus), run: () => loadComponent('CloseShift') },
   { label: 'Theme', icon: markRaw(LucideSunMoon), hint: themeHint.value, run: () => loadComponent('ThemeSwitcher') },
   { label: 'Settings', icon: markRaw(LucideSettings), run: () => loadComponent('Settings') },
-  ...(permissions.canManageLayouts
-    ? [{ label: 'Form layouts', icon: markRaw(LucideLayoutTemplate), run: () => router.push({ name: 'FormLayouts' }) }]
-    : []),
   { label: 'Go to desk', icon: markRaw(LucideLayoutGrid), run: () => { window.location.href = '/app' } },
   { label: 'Log out', icon: markRaw(LucideLogOut), danger: true, run: () => session.logout.fetch() },
 ])

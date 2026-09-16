@@ -12,7 +12,7 @@ const cache = new Map();
 export function useFormLayout(doctype, type, parentDoctype = null) {
     const key = [doctype, type, parentDoctype || ''].join('|');
     if (!cache.has(key)) {
-        const state = reactive({ sections: [], loading: true, error: null });
+        const state = reactive({ tabs: [], loading: true, error: null });
         state.load = async () => {
             state.loading = true;
             state.error = null;
@@ -20,7 +20,7 @@ export function useFormLayout(doctype, type, parentDoctype = null) {
                 const data = await call('ant_pos.ant_pos.api.form_layout.get_form_layout', {
                     doctype, type, parent_doctype: parentDoctype,
                 });
-                state.sections = data?.sections || [];
+                state.tabs = data?.tabs || [];
             } catch (error) {
                 state.error = error;
             } finally {
@@ -33,13 +33,20 @@ export function useFormLayout(doctype, type, parentDoctype = null) {
     return cache.get(key);
 }
 
-// Re-read every layout in use, e.g. after an admin edited one in the desk.
-export function refreshFormLayouts() {
-    for (const state of cache.values()) state.load();
+// Re-read layouts in use, e.g. after an admin edited one. With a doctype,
+// only that form's layout.
+export function refreshFormLayouts(doctype = null, type = null) {
+    for (const [key, state] of cache.entries()) {
+        const [d, t] = key.split('|');
+        if ((!doctype || d === doctype) && (!type || t === type)) state.load();
+    }
 }
 
-export function layoutFields(sections) {
-    return (sections || []).flatMap((section) => section.columns.flat());
+// Every field in a layout: tabs -> sections -> columns -> fields.
+export function layoutFields(tabs) {
+    return (tabs || []).flatMap((tab) =>
+        (tab.sections || []).flatMap((section) => (section.columns || []).flatMap((column) => column.fields || []))
+    );
 }
 
 // DocType dependency expressions: "fieldname" or "eval:<js using doc>".
@@ -73,15 +80,15 @@ export function isEmpty(value) {
 }
 
 // Labels of visible, required fields that have no value.
-export function missingRequired(sections, doc) {
-    return layoutFields(sections)
+export function missingRequired(tabs, doc) {
+    return layoutFields(tabs)
         .filter((f) => isVisible(f, doc) && isRequired(f, doc) && isEmpty(doc?.[f.fieldname]))
         .map((f) => f.label);
 }
 
 // Start a new record from the layout's defaults.
-export function applyDefaults(sections, doc) {
-    for (const field of layoutFields(sections)) {
+export function applyDefaults(tabs, doc) {
+    for (const field of layoutFields(tabs)) {
         if (!isEmpty(doc[field.fieldname]) || isEmpty(field.default)) continue;
         doc[field.fieldname] = castDefault(field);
     }

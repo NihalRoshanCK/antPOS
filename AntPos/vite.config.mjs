@@ -96,7 +96,12 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (!id.includes('node_modules')) return
-          if (/[\\/]node_modules[\\/](vue|vue-router|pinia|@vue)[\\/]/.test(id)) {
+          // Rollup's CommonJS wrappers (e.g. for vuedraggable's require('vue'))
+          // import helpers that live in `vendor`; keeping them out of
+          // vendor-vue avoids a vendor <-> vendor-vue cycle, which broke
+          // start-up with "Cannot access ... before initialization".
+          const generated = id.startsWith('\0') || id.includes('?commonjs')
+          if (!generated && /[\\/]node_modules[\\/](vue|vue-router|pinia|@vue)[\\/]/.test(id)) {
             return 'vendor-vue'
           }
           return 'vendor'
