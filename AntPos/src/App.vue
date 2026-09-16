@@ -64,8 +64,29 @@ function onKeydown(e) {
     toggleTheme();
   }
 }
-onMounted(() => window.addEventListener('keydown', onKeydown));
-onUnmounted(() => window.removeEventListener('keydown', onKeydown));
+// POS Profile settings (discounts, rate editing, sales order...) were read
+// once at startup, so a change made in the desk only reached an open POS
+// after a manual reload. Re-read them when the cashier comes back to the tab.
+const PROFILE_REFRESH_MS = 30 * 1000;
+let lastProfileRefresh = Date.now();
+function refreshProfile() {
+  if (document.visibilityState !== 'visible') return;
+  if (!sessionStore.isLoggedIn || !posProfileStore.posProfileData) return;
+  if (Date.now() - lastProfileRefresh < PROFILE_REFRESH_MS) return;
+  lastProfileRefresh = Date.now();
+  posProfileStore.refresh();
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', onKeydown);
+  document.addEventListener('visibilitychange', refreshProfile);
+  window.addEventListener('focus', refreshProfile);
+});
+onUnmounted(() => {
+  window.removeEventListener('keydown', onKeydown);
+  document.removeEventListener('visibilitychange', refreshProfile);
+  window.removeEventListener('focus', refreshProfile);
+});
 
 usePageMeta(() => {
   return {

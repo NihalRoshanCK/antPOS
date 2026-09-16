@@ -83,11 +83,13 @@
                 Taking payment. Use <span class="font-medium text-ink-gray-8">Back to cart</span> to change items.
             </p>
 
-            <!-- Mobile: four equal secondary actions, Pay full width in the thumb zone. -->
+            <!-- Mobile: Hold and Print side by side, Pay full width in the thumb
+                 zone. Held and Return live in the tab bar and the More sheet. -->
             <div v-else-if="compact" class="space-y-2 border-t border-outline-gray-1 bg-surface-gray-1 px-3 py-3">
-                <div class="grid grid-cols-4 gap-2">
+                <div v-if="mobileActions.length" class="grid gap-2"
+                     :class="mobileActions.length > 1 ? 'grid-cols-2' : 'grid-cols-1'">
                     <button v-for="action in mobileActions" :key="action.label" type="button"
-                        class="flex h-14 flex-col items-center justify-center gap-1 rounded-md text-xs font-medium
+                        class="flex h-11 items-center justify-center gap-2 rounded-md text-sm font-medium
                                focus:outline-none focus-visible:ring focus-visible:ring-outline-gray-3
                                disabled:cursor-not-allowed disabled:opacity-50"
                         :class="action.class"
@@ -268,16 +270,13 @@ const { canEdit: canEditDiscount, byPercent: usePercentDiscount } = useDiscountM
 
 const mobileActions = computed(() => {
     const empty = !invoiceStore.items.length;
-    const list = [
-        { label: 'Held', icon: 'clock', class: 'bg-surface-blue-1 text-ink-blue-3', run: () => loadComponent('Held') },
-        { label: 'Return', icon: 'corner-up-left', class: 'bg-surface-red-1 text-ink-red-4', run: () => loadComponent('Return') },
-    ];
+    const list = [];
     if (permissionStore.salesInvoiceCanCreate) {
-        list.push({ label: 'Hold', icon: 'pause', disabled: empty, class: 'bg-surface-white border border-outline-gray-2 text-ink-gray-8',
+        list.push({ label: 'Hold sale', icon: 'pause', disabled: empty, class: 'bg-surface-white border border-outline-gray-2 text-ink-gray-8',
             run: () => sales_invoice.fetch({ action: 'Save', status: 'save_new' }) });
     }
     if (permissionStore.salesInvoiceCanPrint && permissionStore.salesInvoiceCanCreate) {
-        list.push({ label: 'Print', icon: 'printer', disabled: empty, class: 'bg-surface-gray-7 text-ink-white',
+        list.push({ label: 'Save & print', icon: 'printer', disabled: empty, class: 'bg-surface-gray-7 text-ink-white',
             run: () => sales_invoice.fetch({ action: 'Save', status: 'print' }) });
     }
     return list;
