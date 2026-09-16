@@ -76,13 +76,14 @@ add_to_apps_screen = [
 # Installation
 # ------------
 
-before_install = "ant_pos.install.before_install"
-# after_install = "ant_pos.install.after_install"
+# Roles and POS permissions (see install.py for why grants copy the standard
+# rules first).
+after_install = "ant_pos.install.after_install"
 
 # Uninstallation
 # ------------
 
-# before_uninstall = "ant_pos.uninstall.before_uninstall"
+before_uninstall = "ant_pos.install.before_uninstall"
 # after_uninstall = "ant_pos.uninstall.after_uninstall"
 
 # Integration Setup
