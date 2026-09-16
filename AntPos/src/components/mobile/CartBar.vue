@@ -33,33 +33,13 @@
 import { computed } from 'vue'
 import LucideShoppingCart from '~icons/lucide/shopping-cart'
 import LucideChevronRight from '~icons/lucide/chevron-right'
-import { useInvoiceStore } from '@/stores/pos'
 import { useMobileView } from '@/stores/mobile'
+import { useCartTotals } from '@/composables/useCartTotals'
 
-const invoiceStore = useInvoiceStore()
 const mobile = useMobileView()
+const { qty, grand } = useCartTotals()
 
 // Units, not lines: two of the same item count as two.
-const count = computed(() =>
-  invoiceStore.items.reduce((sum, line) => sum + Math.abs(Number(line.qty) || 0), 0)
-)
-// The server total (with taxes and rounding) arrives a moment after each
-// change. Until it reflects the current lines, show the lines' own sum rather
-// than a stale or zero figure.
-const total = computed(() => {
-  const inv = invoiceStore.invoice || {}
-  const serverTotal = Number(inv.rounded_total || inv.grand_total || 0)
-  const serverQty = Math.abs(Number(inv.total_qty) || 0)
-  if (serverTotal && serverQty === count.value) return serverTotal.toFixed(2)
-  const lines = invoiceStore.items.reduce((sum, line) => sum + Math.abs(lineAmount(line)), 0)
-  return lines.toFixed(2)
-})
-
-// `amount` is filled by the cart line or the server; a line added from the
-// item grid has neither yet.
-function lineAmount(line) {
-  const amount = Number(line.amount)
-  if (amount) return amount
-  return (Number(line.qty) || 0) * (Number(line.rate ?? line.price_list_rate) || 0)
-}
+const count = computed(() => Math.abs(qty.value))
+const total = computed(() => Number(grand.value).toFixed(2))
 </script>

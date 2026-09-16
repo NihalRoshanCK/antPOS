@@ -166,6 +166,7 @@ import { inject, watch, computed } from 'vue';
 import CustomerBar from '@/components/pos/CustomerBar.vue';
 import SaleModeBar from '@/components/pos/SaleModeBar.vue';
 import TotalsReadout from '@/components/pos/TotalsReadout.vue';
+import { useCartTotals } from '@/composables/useCartTotals';
 import { createToast, showToast } from '@/utils';
 import { usePosProfileStore } from '@/stores/posProfile';
 import { usePermissionStore } from '@/stores/permission';
@@ -294,10 +295,8 @@ const mobileActions = computed(() => {
     return list;
 });
 
-const payableTotal = computed(() => {
-    const invoice = invoiceStore.invoice || {};
-    return Number(invoice.rounded_total || invoice.grand_total || 0).toFixed(2);
-});
+const { grand: cartGrand } = useCartTotals();
+const payableTotal = computed(() => Number(cartGrand.value).toFixed(2));
 
 watch(
     () => invoiceStore.invoice._discount_amount,

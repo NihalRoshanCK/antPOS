@@ -1,11 +1,19 @@
 import { onMounted, onUnmounted, watch } from 'vue';
-import { createResource } from 'frappe-ui';
+import { call } from 'frappe-ui';
 import { createToast } from '@/utils';
 import emitter from '@/utils/emitter';
 import { useInvoiceStore } from '@/stores/pos';
 import { usePosProfileStore } from '@/stores/posProfile';
 
 // Server-side totals for the open sale, owned by the POS page.
+//
+// How stale replies are kept out: every request is numbered and carries the
+// cart signature it was built from. A reply is applied only if it is the
+// newest request AND the cart still has that signature. Anything else is
+// dropped; the change that made it stale has already queued a new request.
+// Replies used to be applied in arrival order, so a slow early reply could
+// set a line's quantity back (typed 5, ended at 2) and leave the counters
+// showing a cart that no longer existed.
 //
 // This used to live in ItemSelector and was only triggered by cart line
 // components. On mobile the cart lines are not mounted while browsing items,
@@ -59,140 +67,119 @@ export function useInvoiceRecalc() {
         'modified', 'modified_by', 'amended_from', '__islocal', '__unsaved',
     ]);
 
+    const RECALC_URL = 'ant_pos.ant_pos.api.sales_invoice.calculate_invoice_item_taxes';
+    const DEBOUNCE_MS = 300;
+
     // custom_id is a Data field, so it can come back as a string.
     const lineId = (line) => (line.custom_id == null ? null : String(line.custom_id));
 
-    // True when a response covers exactly the lines now in the cart. Lines
-    // the server adds itself (free items from pricing rules) have no
-    // custom_id and are ignored.
-    const sameLines = (responseItems = []) => {
-        const current = invoiceStore.items.map(lineId);
-        const returned = responseItems.map(lineId).filter((id) => id != null);
-        if (!current.length || current.length !== returned.length) return false;
-        const ids = new Set(current);
-        return returned.every((id) => ids.has(id));
-    };
+    let latestRequest = 0;
+    let timer = null;
 
-    const runDocMethod = createResource({
-        url: 'ant_pos.ant_pos.api.sales_invoice.calculate_invoice_item_taxes',
-        method: 'POST',
-        auto: false,
-        debounce: 500,
-        makeParams(params) {
-            return {
-                ...params
-            };   
-        },
-        transform(data){
-            if (data && data.items && data.items.length > 0) {
-                data.items.forEach(item => {
-                    if (item.serial_no) {
-                        item.selected_serial_no = item.serial_no.trim().split('\n').map(serial => ({
-                            label: serial,
-                            value: serial
-                        }));
-                        
-                    }
-                    if (item.batch_no) {
-                        
-                        item.selected_batch_no = {
-                            label: item.batch_no,
-                            value: item.batch_no
-                        };
-                    } else {
-                        item.selected_batch_no = null;
-                    }
-                    
-                });
-                
-            }
-            return data
-        },
-
-        onSuccess(data){
-            // A recalculation that lands after Pay is stale: the draft is already
-            // saved and is the source of truth. Applying it used to reset
-            // docstatus/name, which closed the payment panel and detached the
-            // screen from the saved draft (the next Pay then created a duplicate).
-            if (invoiceStore.invoice.docstatus) return;
-
-            // So is one computed for a different set of lines: removing the
-            // last line resets the sale, and the reply for the previous lines
-            // then wrote their totals onto the empty cart. Any change to the
-            // lines queues a fresh recalculation, so skipping loses nothing.
-            if (!sameLines(data.items)) return;
-
-            for (const key in data) {
-                if (RECALC_SKIP_KEYS.has(key)) continue;
-
-                const existingValue = invoiceStore.invoice[key];
-                const newValue = data[key];
-
-                // Check for changes or new keys
-                if (JSON.stringify(existingValue) !== JSON.stringify(newValue)) {
-                    invoiceStore.invoice[key] = newValue;
-                }
-            }
-            data.items.forEach(n => {
-                const e = invoiceStore.items.find(b => lineId(b) === lineId(n));
-                if (!e) return;
-                for (const k in n) {
-                    if (k !== 'custom_id' && e[k] !== n[k]) {
-                        if (JSON.stringify(e[k]) !== JSON.stringify(n[k])) {
-                            e[k] = n[k];
-                        }
-                    }
-                }
-            });
-        },
-        onError(error) {
-            notifyRecalcError(error);
-        }
+    const buildDoc = () => JSON.stringify({
+        ...invoiceStore.invoice,
+        doctype: 'Sales Invoice',
+        is_pos: invoiceStore.invoice.is_return ? invoiceStore.invoice.is_pos : 1,
+        pos_profile: store.posProfileData.name,
+        company: store.posProfileData.company,
+        selling_price_list: store.posProfileData.selling_price_list,
+        items: invoiceStore.items,
+        customer: invoiceStore.invoiceCustomer?.name,
+        update_stock: 1,
+        additional_discount_percentage: invoiceStore.invoice._additional_discount_percentage ? Number(invoiceStore.invoice._additional_discount_percentage) : 0 ,
+        discount_amount: invoiceStore.invoice._discount_amount ? Number(invoiceStore.invoice._discount_amount) : 0,
+        base_total: invoiceStore.invoice.base_total || 0,
+        custom_ant_opening: store.openingShift.name,
+        apply_discount_on: store.posProfileData.apply_discount_on,
     });
 
+    // Serial and batch pickers read these UI copies of the server fields.
+    const decorateLine = (item) => {
+        if (item.serial_no) {
+            item.selected_serial_no = item.serial_no.trim().split('\n').map((serial) => ({ label: serial, value: serial }));
+        }
+        item.selected_batch_no = item.batch_no ? { label: item.batch_no, value: item.batch_no } : null;
+    };
 
-    const calculateAmountTotal = async () => {
-        if (invoiceStore.items.length === 0 ) {
+    const applyTotals = (data) => {
+        for (const key in data) {
+            if (RECALC_SKIP_KEYS.has(key)) continue;
+            if (JSON.stringify(invoiceStore.invoice[key]) !== JSON.stringify(data[key])) {
+                invoiceStore.invoice[key] = data[key];
+            }
+        }
+        for (const returned of data.items || []) {
+            const line = invoiceStore.items.find((l) => lineId(l) === lineId(returned));
+            if (!line) continue;
+            decorateLine(returned);
+            for (const key in returned) {
+                if (key === 'custom_id') continue;
+                if (JSON.stringify(line[key]) !== JSON.stringify(returned[key])) {
+                    line[key] = returned[key];
+                }
+            }
+        }
+    };
+
+    const send = async () => {
+        timer = null;
+        // A submitted or paying invoice is the saved document; leave it alone.
+        if (!invoiceStore.items.length || invoiceStore.invoice.docstatus) return;
+        if (!store.posProfileData?.name) return;
+
+        const request = ++latestRequest;
+        const signature = invoiceStore.cartSignature;
+        let data;
+        try {
+            data = await call(RECALC_URL, { doc: buildDoc() });
+        } catch (error) {
+            if (request === latestRequest) notifyRecalcError(error);
+            return;
+        }
+
+        if (request !== latestRequest) return;
+        if (signature !== invoiceStore.cartSignature) return;
+        if (invoiceStore.invoice.docstatus) return;
+
+        applyTotals(data);
+        // Applying can adjust lines (a pricing rule changing the rate), which
+        // changes the signature; the watcher below then asks once more.
+        invoiceStore.totalsFor = signature === invoiceStore.cartSignature ? signature : null;
+    };
+
+    const schedule = () => {
+        clearTimeout(timer);
+        timer = setTimeout(send, DEBOUNCE_MS);
+    };
+
+    const calculateAmountTotal = () => {
+        if (invoiceStore.items.length === 0) {
+            // Nothing in flight may land on the fresh sale.
+            latestRequest++;
+            clearTimeout(timer);
             remove_invoice(false);
             return;
         }
-        await runDocMethod.fetch({doc: JSON.stringify({
-            ...invoiceStore.invoice,
-            doctype: 'Sales Invoice',
-            is_pos: invoiceStore.invoice.is_return ? invoiceStore.invoice.is_pos : 1,
-            pos_profile: store.posProfileData.name,
-            company: store.posProfileData.company,
-            selling_price_list: store.posProfileData.selling_price_list,
-            items: invoiceStore.items,
-            customer: invoiceStore.invoiceCustomer?.name,
-            update_stock: 1,
-            additional_discount_percentage: invoiceStore.invoice._additional_discount_percentage ? Number(invoiceStore.invoice._additional_discount_percentage) : 0 ,
-            discount_amount: invoiceStore.invoice._discount_amount ? Number(invoiceStore.invoice._discount_amount) : 0,
-            base_total: invoiceStore.invoice.base_total || 0,
-            custom_ant_opening: store.openingShift.name,
-            apply_discount_on: store.posProfileData.apply_discount_on,
-        })});
-    }
+        schedule();
+    };
 
-
-
-    // Cart lines trigger a recalculation when mounted, but lines added or changed
-    // while the cart is not on screen (mobile item grid) need one too. The
-    // resource is debounced, so the overlap with the line components is free.
+    // Recalculate whenever the cart differs from the one the totals are for:
+    // any line or discount change, and any replaced invoice. This does not
+    // depend on the cart lines being on screen (mobile item grid).
     watch(
-        () => invoiceStore.items
-            .map((l) => [l.item_code, l.qty, l.rate, l.uom, l.batch_no, l.discount_percentage].join('|'))
-            .join(';'),
-        (now, before) => {
-            // An empty cart is reset by whoever emptied it; recalculating here
-            // would refetch the blank invoice a second time.
-            if (!now || now === before || invoiceStore.invoice.docstatus) return;
-            calculateAmountTotal();
-        }
+        () => invoiceStore.totalsPending && invoiceStore.cartSignature,
+        (pending) => {
+            if (pending) schedule();
+        },
+        { immediate: true }
     );
 
     const onCalcTotal = () => calculateAmountTotal();
-    const onRemoveInvoice = (include_customer) => remove_invoice(include_customer);
+    const onRemoveInvoice = (include_customer) => {
+        latestRequest++;
+        clearTimeout(timer);
+        remove_invoice(include_customer);
+    };
 
     onMounted(() => {
         emitter.on('calctotal', onCalcTotal);
@@ -200,6 +187,8 @@ export function useInvoiceRecalc() {
     });
 
     onUnmounted(() => {
+        clearTimeout(timer);
+        latestRequest++;
         emitter.off('calctotal', onCalcTotal);
         emitter.off('remove_invoice', onRemoveInvoice);
     });

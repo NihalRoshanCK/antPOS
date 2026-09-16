@@ -25,12 +25,12 @@
             </button>
             <div class="text-right num text-[14px]">{{ items.qty }}</div>
             <div class="text-right num text-[14px]">{{ Number(items.rate || 0).toFixed(2) }}</div>
-            <div class="text-right num text-[14px] font-semibold">{{ Number(items.amount || 0).toFixed(2) }}</div>
+            <div class="text-right num text-[14px] font-semibold">{{ lineAmount(items).toFixed(2) }}</div>
             <button
                 type="button"
                 class="justify-self-end text-ink-gray-5 hover:text-ink-red-4 focus:outline-none focus-visible:text-ink-red-4"
                 :aria-label="`Remove ${items.item_code}`"
-                @click="invoiceStore.items.splice(index, 1)"
+                @click="invoiceStore.removeLine(items)"
             >
                 <FeatherIcon name="trash-2" class="w-4 h-4" />
             </button>
@@ -49,7 +49,7 @@
                     <span class="block text-[15px] font-medium leading-snug">{{ items.item_name || items.item_code }}</span>
                     <span class="block text-[12px] text-ink-gray-5 num mt-0.5 truncate">{{ lineMeta }}</span>
                 </button>
-                <span class="text-[16px] font-semibold num shrink-0">{{ Number(items.amount || 0).toFixed(2) }}</span>
+                <span class="text-[16px] font-semibold num shrink-0">{{ lineAmount(items).toFixed(2) }}</span>
             </div>
             <div class="flex items-center gap-2 mt-3">
                 <div class="flex items-center border border-outline-gray-1 rounded-lg overflow-hidden bg-surface-white">
@@ -65,7 +65,7 @@
                 </div>
                 <span class="text-[13px] text-ink-gray-5 num">&times; {{ Number(items.rate || 0).toFixed(2) }}</span>
                 <button type="button" class="ml-auto w-11 h-11 grid place-items-center text-ink-gray-5 active:text-ink-red-4"
-                        :aria-label="`Remove ${items.item_code}`" @click="invoiceStore.items.splice(index, 1)">
+                        :aria-label="`Remove ${items.item_code}`" @click="invoiceStore.removeLine(items)">
                     <FeatherIcon name="trash-2" class="w-4 h-4" />
                 </button>
             </div>
@@ -136,6 +136,7 @@ import { showToast } from '@/utils'
 import emitter from '@/utils/emitter';
 import { usePosProfileStore } from '@/stores/posProfile';
 import { useInvoiceStore } from '@/stores/pos';
+import { lineAmount } from '@/composables/useCartTotals';
 
 const store = usePosProfileStore();
 const invoiceStore = useInvoiceStore()
@@ -314,8 +315,9 @@ const mergeSerial_no = (left, right) => {
     return mergedValues.map(serial => ({ label: serial, value: serial }));
 };
 
+// Signed, like the server's: a return line's amount is negative.
 const calculateAmountTotal = () => {
-    props.items.amount = Math.abs(props.items.qty) * props.items.rate
+    props.items.amount = lineAmount(props.items)
 };
 
 

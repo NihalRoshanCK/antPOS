@@ -73,9 +73,30 @@ Both use the same components. `ItemSelector`, `ItemDetail` and `Invoice` take a
 `compact` prop for the mobile variant.
 
 Totals are recalculated by `composables/useInvoiceRecalc.js`, called once from
-`pages/Pos.vue`. It watches the cart lines, so a line added from the mobile
-item grid (where no cart line component is mounted) still gets server totals.
-Its emitter listeners are removed on unmount.
+`pages/Pos.vue`:
+
+- It watches a **cart signature**: lines (id, item, qty, rate, UOM, batch,
+  discount, serial count), the customer, and the invoice discount. Any
+  difference from the cart the current totals were computed for queues a
+  request (300 ms debounce). This works whether or not the cart lines are on
+  screen.
+- Requests are numbered. A reply is applied only if it answers the newest
+  request **and** the cart still has the signature it was built from.
+  Anything else is dropped, because the change that made it stale has
+  already queued a newer request. Replies used to be applied in arrival
+  order, so a slow reply could set a quantity back (typed 5, ended at 2).
+- Emptying the cart, or finishing or cancelling a sale, invalidates anything
+  still in flight.
+
+`composables/useCartTotals.js` is what the totals row, the phone cart bar and
+the Pay button display:
+
+- The item count and line amounts come from the lines, so they are right
+  immediately.
+- Net, tax, discount and total come from the server. While a recalculation
+  is pending they are estimated by scaling the last server figures by the
+  change in net, and are dimmed (`aria-busy`).
+- Lines are removed by identity (`invoiceStore.removeLine`), not by position.
 
 ### Sale or sales order
 
