@@ -11,6 +11,15 @@
   }
 }
 
+/* frappe-ui anchors toasts bottom-right, which is exactly where the POS keeps
+   Pay and the other sale actions; a toast there blocks them for several
+   seconds. Pin the viewport under the 48px navbar instead. The region label
+   comes from reka-ui's ToastViewport. */
+[role='region'][aria-label^='Notifications'] > ol {
+  top: 3rem;
+  bottom: auto;
+}
+
 /* Money and identifiers use tabular lining figures so columns align and digits
    stop shifting as totals recalculate on every keystroke. */
 .num {

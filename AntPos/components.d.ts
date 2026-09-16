@@ -16,6 +16,8 @@ declare module 'vue' {
     ImageUploader: typeof import('./src/components/Controls/ImageUploader.vue')['default']
     Invoice: typeof import('./src/components/Invoice.vue')['default']
     Item: typeof import('./src/components/Item.vue')['default']
+    ItemCard: typeof import('./src/components/pos/ItemCard.vue')['default']
+    ItemCatalog: typeof import('./src/components/pos/ItemCatalog.vue')['default']
     ItemDetail: typeof import('./src/components/ItemDetail.vue')['default']
     ItemSelector: typeof import('./src/components/ItemSelector.vue')['default']
     Navbar: typeof import('./src/components/Navbar.vue')['default']

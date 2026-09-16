@@ -119,6 +119,32 @@ These are custom fields added by the app and control real behaviour:
 | `Allow Create Sales Order` | expose the Sales Order toggle in the navbar |
 | `Default Sales Order` | create a Sales Order alongside the invoice |
 
+#### Item list
+
+The *antPOS Item List* section controls the items shown beside the cart:
+
+| Field | Default | Effect |
+|---|---|---|
+| `Show Item List` | on | show the browsable list; off leaves just the scan box |
+| `Items to Load` | 50 | how many items are listed (1–500); search still finds any item |
+| `Most Moving Items` | 8 | best sellers shown above the list; 0 hides that section |
+| `Most Moving Period (Days)` | 30 | sales from this many days in the profile's warehouse rank them |
+| `Cache Item List` | on | serve the list from cache for this profile |
+| `Cache Duration (Minutes)` | 10 | how long the cache is kept (1–1440) |
+
+The standard *Item Groups*, *Hide Unavailable Items* and *Hide Images* options
+on the same profile also apply.
+
+The cache is cleared automatically whenever an Item, an Item Price or the POS
+Profile is saved, and a cashier can press **Refresh** under the list. Stock
+quantities are *not* a reason to clear it (every sale would), so the quantity
+shown on a card can be up to *Cache Duration* old; the cart still checks stock
+when the item is added.
+
+"Most moving" counts stock leaving the profile's warehouse through Sales
+Invoices, POS Invoices and Delivery Notes. Transfers and material issues are
+not sales and are ignored.
+
 `[screenshot: POS Profile — antPOS settings section]`
 
 ### 3.5 Cashier user
@@ -169,9 +195,14 @@ Nothing can be scanned until a customer is chosen — the scan is rejected with
 
 `[screenshot: customer autocomplete with search]`
 
-### 5.3 Scan items
+### 5.3 Add items
 
-Type or scan into the search box. It resolves, in order: **barcode → serial
+Tap an item in the list on the left, or type or scan into the search box.
+Typing filters the list as you go; **Enter** looks the text up as a barcode,
+serial or batch number. On a phone, the list opens from the grid button next to
+the search box and stays open so you can add several items.
+
+Scanning resolves, in order: **barcode → serial
 number → batch number → item code**, then item name if
 *Allow Item Name in Item Search* is on.
 

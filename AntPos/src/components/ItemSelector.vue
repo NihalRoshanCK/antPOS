@@ -4,67 +4,101 @@
             'flex flex-col min-h-0 bg-surface-white',
             compact
                 ? 'shrink-0 border-b border-outline-gray-1'
-                : 'w-[30%] min-w-[280px] max-w-[380px] shrink-0 rounded-xl border border-outline-gray-1 shadow-sm overflow-hidden',
+                : 'w-[38%] min-w-[300px] max-w-[520px] shrink-0 rounded-xl border border-outline-gray-1 shadow-sm overflow-hidden',
         ]"
     >
-        <div class="p-3" :class="compact ? '' : 'border-b border-outline-gray-1'">
-            <FormControl
-                ref="searchInput"
-                type="text"
-                v-model="debounceSearch"
-                :placeholder="compact ? 'Scan or search' : 'Scan barcode or search items'"
-                :size="compact ? 'md' : 'md'"
-                variant="subtle"
-                @keyup.enter="fetchSearchResource"
-                :disabled="invoiceStore.invoice.is_return"
-            >
-                <template #prefix>
-                    <FeatherIcon class="w-4 text-ink-gray-5" name="search" />
-                </template>
-            </FormControl>
-        </div>
-
-        <!-- Desktop only: the pane is otherwise empty, which is most of what the
-             cashier looks at between scans. -->
-        <div v-if="!compact" class="flex-1 overflow-y-auto pos-scroll min-h-0">
-            <template v-if="recentScans.length">
-                <p class="px-3 py-2 text-[11px] font-semibold text-ink-gray-5 border-b border-outline-gray-1">
-                    Recent scans
-                </p>
-                <button
-                    v-for="scan in recentScans"
-                    :key="scan.key"
-                    type="button"
-                    class="w-full text-left px-3 py-2.5 border-b border-outline-gray-1 hover:bg-surface-gray-1 focus:outline-none focus-visible:bg-surface-gray-1 flex items-baseline gap-3"
-                    @click="rescan(scan)"
+        <div class="flex items-center gap-2 p-3" :class="compact ? '' : 'border-b border-outline-gray-1'">
+            <div class="min-w-0 flex-1">
+                <FormControl
+                    ref="searchInput"
+                    type="text"
+                    v-model="debounceSearch"
+                    :placeholder="compact ? 'Scan or search' : 'Scan a barcode or search items'"
+                    size="md"
+                    variant="subtle"
+                    @keyup.enter="fetchSearchResource"
+                    :disabled="invoiceStore.invoice.is_return"
                 >
-                    <span class="text-[14px] font-medium flex-1 truncate">{{ scan.item_name }}</span>
-                    <span class="text-[12px] text-ink-gray-5 num shrink-0">{{ scan.item_code }}</span>
-                    <span class="text-[14px] num font-medium shrink-0">{{ Number(scan.rate || 0).toFixed(2) }}</span>
-                </button>
-            </template>
-
-            <div class="px-6 py-10 text-center">
-                <svg class="mx-auto text-ink-gray-3" width="34" height="34" viewBox="0 0 24 24"
-                     fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-                    <path d="M3 5v14M7 5v14M11 5v14M15 5v14M19 5v14" />
-                </svg>
-                <p class="text-[13px] text-ink-gray-6 mt-3 leading-relaxed">
-                    Scan a barcode, or type an item code,<br />serial or batch number.
-                </p>
-                <p class="text-[12px] text-ink-gray-5 mt-2">
-                    Press
-                    <kbd class="px-1.5 py-0.5 rounded border border-outline-gray-1 bg-surface-gray-1 font-sans">Enter</kbd>
-                    to add
-                </p>
+                    <template #prefix>
+                        <FeatherIcon class="w-4 text-ink-gray-5" name="search" />
+                    </template>
+                </FormControl>
             </div>
+            <Button
+                v-if="compact && showList"
+                variant="subtle"
+                size="md"
+                label="Browse items"
+                :disabled="invoiceStore.invoice.is_return"
+                @click="browseOpen = true"
+            >
+                <template #icon><LucideLayoutGrid class="h-4 w-4" /></template>
+            </Button>
         </div>
+
+        <!-- Desktop: the list lives in the pane. -->
+        <ItemCatalog
+            v-if="!compact && showList"
+            :query="debounceSearch"
+            :disabled="Boolean(invoiceStore.invoice.is_return)"
+            @select="addFromList"
+        />
+
+        <div v-else-if="!compact" class="px-6 py-10 text-center">
+            <svg class="mx-auto text-ink-gray-3" width="34" height="34" viewBox="0 0 24 24"
+                 fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                <path d="M3 5v14M7 5v14M11 5v14M15 5v14M19 5v14" />
+            </svg>
+            <p class="text-[13px] text-ink-gray-6 mt-3 leading-relaxed">
+                Scan a barcode, or type an item code,<br />serial or batch number.
+            </p>
+            <p class="text-[12px] text-ink-gray-5 mt-2">
+                Press
+                <kbd class="px-1.5 py-0.5 rounded border border-outline-gray-1 bg-surface-gray-1 font-sans">Enter</kbd>
+                to add
+            </p>
+        </div>
+
+        <!-- Phones: the list opens in a sheet so the cart keeps the screen. It
+             stays open, so several items can be added in a row. -->
+        <!-- paddingTop replaces position:'top', which starts the panel 20vh down
+             and pushed the list footer off short phone screens. -->
+        <Dialog v-if="compact && showList" v-model="browseOpen" :options="{ title: 'Add items', size: 'xl', paddingTop: '1rem' }">
+            <template #body-content>
+                <div class="-mx-4 flex h-[min(72vh,calc(100dvh-13rem))] flex-col">
+                    <div class="px-4 pb-2">
+                        <FormControl
+                            type="text"
+                            v-model="browseSearch"
+                            placeholder="Search items"
+                            size="md"
+                            variant="subtle"
+                        >
+                            <template #prefix>
+                                <FeatherIcon class="w-4 text-ink-gray-5" name="search" />
+                            </template>
+                        </FormControl>
+                        <p class="mt-2 text-xs text-ink-gray-5">
+                            {{ invoiceStore.items.length }} {{ invoiceStore.items.length === 1 ? 'line' : 'lines' }} in the cart
+                        </p>
+                    </div>
+                    <ItemCatalog
+                        :query="browseSearch"
+                        dense
+                        :disabled="Boolean(invoiceStore.invoice.is_return)"
+                        @select="addFromList"
+                    />
+                </div>
+            </template>
+        </Dialog>
     </section>
 </template>
 
 <script setup>
-import { FormControl, FeatherIcon, createResource } from 'frappe-ui';
-import { ref, onMounted } from 'vue';
+import { Button, Dialog, FormControl, FeatherIcon, createResource } from 'frappe-ui';
+import { computed, ref, onMounted } from 'vue';
+import LucideLayoutGrid from '~icons/lucide/layout-grid';
+import ItemCatalog from '@/components/pos/ItemCatalog.vue';
 import { createToast } from '@/utils';
 import { showToast } from '@/utils'
 import { usePosProfileStore } from '@/stores/posProfile';
@@ -72,8 +106,8 @@ import emitter from '@/utils/emitter';
 import { useInvoiceStore } from '@/stores/pos';
 
 defineProps({
-    // Mobile stacks the scan box above the cart, so the panel chrome and the
-    // recent-scan list are dropped -- there is no room for either.
+    // Mobile stacks the scan box above the cart; the item list moves into a
+    // sheet opened from the Browse button.
     compact: { type: Boolean, default: false },
 });
 
@@ -81,27 +115,62 @@ const store = usePosProfileStore();
 const debounceSearch = ref('');
 const invoiceStore = useInvoiceStore()
 
-// A short history so the pane is useful between scans. Kept in memory only:
-// it is a convenience, not a record.
-const RECENT_LIMIT = 8;
-const recentScans = ref([]);
+const browseOpen = ref(false);
+const browseSearch = ref('');
 
-const rememberScan = (item) => {
-    if (!item?.item_code) return;
-    const entry = {
-        key: item.item_code,
-        item_code: item.item_code,
-        item_name: item.item_name || item.item_code,
-        rate: item.price_list_rate ?? item.rate,
-    };
-    recentScans.value = [entry, ...recentScans.value.filter((s) => s.key !== entry.key)]
-        .slice(0, RECENT_LIMIT);
-};
+// POS Profile > antPOS Item List > Show Item List. Defaults on when the field
+// has not been installed yet.
+const showList = computed(() => {
+    const value = store.posProfileData?.custom_show_item_list;
+    return value === undefined || value === null ? true : Boolean(Number(value));
+});
 
-const rescan = (scan) => {
+// Taps can outrun the server: a second tap on an item whose first add is still
+// in flight would otherwise create a second cart line. Count those taps and
+// apply them to the line when it arrives.
+const pendingTaps = new Map();
+
+const addFromList = (item) => {
     if (invoiceStore.invoice.is_return) return;
-    debounceSearch.value = scan.item_code;
-    fetchSearchResource();
+    if (!invoiceStore.invoiceCustomer?.name) {
+        showToast('warning', 'Choose a customer first');
+        return;
+    }
+
+    // Same shape scan_barcode returns, so the normal add path handles it.
+    const scan = {
+        item_code: item.item_code,
+        has_batch_no: item.has_batch_no,
+        has_serial_no: item.has_serial_no,
+        item: {
+            item_code: item.item_code,
+            item_name: item.item_name,
+            stock_uom: item.stock_uom,
+            has_batch_no: item.has_batch_no,
+            has_serial_no: item.has_serial_no,
+        },
+    };
+
+    if (pendingTaps.has(item.item_code)) {
+        // Batch/serial lines resolve their own quantity from what is picked.
+        if (!item.has_batch_no && !item.has_serial_no) {
+            pendingTaps.set(item.item_code, pendingTaps.get(item.item_code) + 1);
+        }
+        return;
+    }
+    if (addItemIfExists(scan)) return;
+
+    pendingTaps.set(item.item_code, 0);
+    addItemsResource
+        .fetch({ search_value: JSON.stringify(scan) })
+        .catch(() => {})
+        .finally(() => {
+            const extra = pendingTaps.get(item.item_code) || 0;
+            pendingTaps.delete(item.item_code);
+            if (!extra) return;
+            const line = invoiceStore.items.find((l) => l.item_code === item.item_code && !l.is_return);
+            if (line) line.qty = Number(line.qty || 0) + extra;
+        });
 };
 
 const remove_invoice = ( include_customer = false ) => {
@@ -173,7 +242,6 @@ const addItemsResource = createResource({
     },
     onSuccess(data) {
         addItem(data);
-        rememberScan(data);
     },
     transform(data){
         if (data.selected_serial_no && data.selected_serial_no.length > 0 ){

@@ -137,7 +137,21 @@ doc_events = {
 	},
     "Sales Invoice":{
         "before_save":"ant_pos.ant_pos.api.sales_invoice.before_save_sales_invoice",
-	}
+	},
+	# The POS item list is cached per POS Profile; drop it when anything it shows
+	# changes. Stock levels are deliberately not hooked (every sale would clear
+	# it), so quantities can be up to the profile's cache duration old.
+	"Item": {
+		"on_update": "ant_pos.ant_pos.api.item_list.clear_item_list_cache",
+		"on_trash": "ant_pos.ant_pos.api.item_list.clear_item_list_cache",
+	},
+	"Item Price": {
+		"on_update": "ant_pos.ant_pos.api.item_list.clear_item_list_cache",
+		"on_trash": "ant_pos.ant_pos.api.item_list.clear_item_list_cache",
+	},
+	"POS Profile": {
+		"on_update": "ant_pos.ant_pos.api.item_list.clear_item_list_cache",
+	},
 }
 
 # Scheduled Tasks

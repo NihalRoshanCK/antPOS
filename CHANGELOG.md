@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **Item list beside the cart**, cached per POS Profile, with the profile's
+  most moving items first. Tap to add; typing in the scan box filters it; on
+  phones it opens as a sheet. New *antPOS Item List* settings on POS Profile
+  set how many items load, how many most-moving items show and over what
+  period, and whether and how long the list is cached. The cache is cleared when
+  an Item, Item Price or the POS Profile changes, or from the list's Refresh
+  button.
+- Light, dark and automatic themes, shared with the desk's `desk_theme`.
+
+### Changed
+
+- frappe-ui 0.1.177 → 0.1.278, with a sidebar matching its current design.
+- Toasts appear at the top right instead of over the Pay button.
+
 ## 0.1.0
 
 First release after a full security, correctness and performance audit. See

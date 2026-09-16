@@ -92,6 +92,25 @@ Heights used to be percentages of flex containers (`h-[94%]`, `h-[80%]`,
 `w-[18.4%]`); they are now flex with `min-h-0`, so the cart list is the only
 thing that scrolls.
 
+## Item list
+
+The left pane (`components/pos/ItemCatalog.vue`, `ItemCard.vue`) lists items
+from `ant_pos.ant_pos.api.item_list.get_item_list`, most moving first. Cards are
+compact, with a 40px thumbnail beside the text: most catalogues have few
+product photos, and a large initials tile only halved how many items fit.
+Cards show price, stock (amber when 5 or fewer, red and disabled when out,
+unless the site allows negative stock) and batch/serial tags.
+
+Tapping a card goes straight to the non-debounced add request, since the scan
+path is debounced and quick taps would otherwise be dropped. Extra taps on an
+item whose first add is still in flight are counted and applied to that line,
+so a double tap gives one line with quantity 2.
+
+On phones the list opens in a sheet from the grid button beside the search box.
+
+Toasts are moved to the top right (`index.css`): frappe-ui puts them
+bottom-right, on top of Pay.
+
 ## Cart
 
 - **Desktop lines** use a CSS grid (`1fr 84px 96px 112px 32px`) so Qty, Rate and
@@ -126,8 +145,7 @@ what to do next.
 
 ## Not done
 
-- **No product grid.** The scan pane shows recent scans and a scan hint. A
-  browsable catalogue needs a new endpoint (items by group, images, paginated,
-  scoped to the profile's price list).
+- **The item list is not paginated.** It loads up to the profile's *Items to
+  Load* (max 500) and relies on search beyond that.
 - **Payments, dialogs (Held, Return, Close Shift, Customer form) and the login
   page were not restyled.** They still use the original markup.
