@@ -44,10 +44,12 @@ import { getSettings } from '@/stores/settings'
 import { useInvoiceStore } from '@/stores/pos'
 import { usePosProfileStore } from '@/stores/posProfile'
 import { useMobileView } from '@/stores/mobile'
+import { useSaleMode } from '@/composables/useSaleMode'
 
 const route = useRoute()
 const { brand } = getSettings()
 const invoiceStore = useInvoiceStore()
+const { asSalesOrder } = useSaleMode()
 const profileStore = usePosProfileStore()
 const mobile = useMobileView()
 
@@ -79,10 +81,12 @@ const back = computed(() => {
 const badge = computed(() => {
   if (!onPos.value || paying.value) return null
   if (invoiceStore.invoice?.is_return) return { label: 'Return', theme: 'orange' }
-  if (!invoiceStore.items.length) return null
+  if (!invoiceStore.items.length) return asSalesOrder.value ? { label: 'Order', theme: 'green' } : null
   // A temp name (new-...) means the sale has never been saved.
-  return String(invoiceStore.invoice?.name || '').startsWith('new-')
-    ? { label: 'Not saved', theme: 'gray' }
-    : { label: 'Draft', theme: 'blue' }
+  const saved = !String(invoiceStore.invoice?.name || '').startsWith('new-')
+  const kind = asSalesOrder.value ? 'Order · ' : ''
+  return saved
+    ? { label: `${kind}Draft`, theme: 'blue' }
+    : { label: `${kind}Not saved`, theme: 'gray' }
 })
 </script>

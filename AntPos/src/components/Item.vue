@@ -122,11 +122,6 @@
                 </p>
             </div>
 
-            <div v-if="store.posProfileData?.custom_set_sales_order" class="max-w-xs">
-                <DatePicker size="md" variant="subtle" label="Delivery date"
-                    placeholder="Delivery date" v-model="deliveryDate" />
-            </div>
-
             <p class="num text-xs text-ink-gray-5">
                 Price list {{ Number(items.price_list_rate || 0).toFixed(2) }}
                 <template v-if="items.item_group"> · {{ items.item_group }}</template>
@@ -135,7 +130,7 @@
     </article>
 </template>
 <script setup>
-import { FeatherIcon, FormControl, Autocomplete, DatePicker, dayjsLocal, createResource, createListResource,debounce } from 'frappe-ui';
+import { FeatherIcon, FormControl, Autocomplete, createResource, createListResource,debounce } from 'frappe-ui';
 import { watch, defineProps, onMounted, onUnmounted, computed } from 'vue';
 import { showToast } from '@/utils'
 import emitter from '@/utils/emitter';
@@ -428,19 +423,6 @@ const  rateCalculation =  (item) => {
     const discount = Number(item.discount_percentage) || 0;
     return rate - (rate * (discount / 100));
 };
-
-const deliveryDate = computed({
-  get() {
-    if (!invoiceStore.invoice.delivery_date) {
-      const today = dayjsLocal().format('YYYY-MM-DD')
-      invoiceStore.invoice.delivery_date = today
-    }
-    return invoiceStore.invoice.delivery_date
-  },
-  set(value) {
-    invoiceStore.invoice.delivery_date = value
-  }
-})
 
 watch(
     () => props.items.rate,

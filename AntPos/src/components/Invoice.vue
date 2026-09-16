@@ -96,8 +96,14 @@
                 </div>
             </div>
 
-            <div v-if="store.posProfileData?.custom_set_sales_order" class="max-w-xs">
-                <DatePicker size="md" variant="subtle" label="Delivery date" placeholder="Delivery date" v-model="deliveryDate" />
+            <div v-if="asSalesOrder" class="flex items-center justify-between gap-3 rounded-lg border border-outline-gray-1 px-3 py-2">
+                <div class="min-w-0">
+                    <p class="text-sm font-medium text-ink-gray-8">Sales order</p>
+                    <p class="text-xs text-ink-gray-5">An order is created first, then invoiced.</p>
+                </div>
+                <div class="w-36 shrink-0">
+                    <DatePicker variant="subtle" placeholder="Delivery date" aria-label="Delivery date" :clearable="false" v-model="deliveryDate" />
+                </div>
             </div>
 
             <dl class="space-y-1.5 text-sm">
@@ -137,7 +143,8 @@
 </template>
 
 <script setup>
-import { Button, FeatherIcon, FormControl, createResource, DatePicker, dayjsLocal } from 'frappe-ui'
+import { Button, FeatherIcon, FormControl, createResource, DatePicker } from 'frappe-ui'
+import { useSaleMode } from '@/composables/useSaleMode'
 import { ref, onMounted , watch, computed } from 'vue'
 import { createToast } from '@/utils';
 import { showToast } from '@/utils'
@@ -242,18 +249,7 @@ const cancelSale = () => {
     emitter.emit('remove_invoice', true)
 }
 
-const deliveryDate = computed({
-  get() {
-    if (!invoiceStore.invoice.delivery_date) {
-      const today = dayjsLocal().format('YYYY-MM-DD')
-      invoiceStore.invoice.delivery_date = today
-    }
-    return invoiceStore.invoice.delivery_date
-  },
-  set(value) {
-    invoiceStore.invoice.delivery_date = value
-  }
-})
+const { asSalesOrder, deliveryDate, ensureDeliveryDate } = useSaleMode()
 
 const createSaveResource = createResource({
     url: 'frappe.desk.form.save.savedocs',
@@ -315,7 +311,8 @@ const submitInvoice = async (action = null) => {
     }
     let invoice = { ...invoiceStore.invoice };
     if (await validatePaymentBeforeSave()) {
-        if (store.posProfileData.custom_set_sales_order) {
+        if (asSalesOrder.value) {
+            ensureDeliveryDate();
             const salesOrder = {
                 ...invoiceStore.invoice,
                 doctype: 'Sales Order',

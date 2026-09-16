@@ -77,6 +77,18 @@ Totals are recalculated by `composables/useInvoiceRecalc.js`, called once from
 item grid (where no cart line component is mounted) still gets server totals.
 Its emitter listeners are removed on unmount.
 
+### Sale or sales order
+
+When the POS Profile has "Allow Create Sales Order", the cart shows a
+**Sale | Sales order** switch under the customer (`pos/SaleModeBar.vue`),
+with a "Deliver by" date when Sales order is picked. The payment screen shows
+the order and its date again, and the header badge reads "Order · …".
+
+The choice belongs to the sale (`composables/useSaleMode.js`). Each new sale
+starts from the profile's "Default Sales Order". The switch used to live in the
+header and wrote into the profile itself, so one sales order turned every later
+sale into one too. Returns never create an order.
+
 ### Mobile structure
 
 There is no sidebar below 1024px. The app shell is a phone app:

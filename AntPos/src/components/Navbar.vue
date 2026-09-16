@@ -5,13 +5,6 @@
     <h1 class="truncate text-lg font-semibold text-ink-gray-9">{{ title }}</h1>
 
     <div class="ml-auto flex min-w-0 items-center gap-2">
-      <Switch
-        v-if="currentRoute === 'Pos' && store.posProfileData?.custom_create_sales_order"
-        size="sm"
-        label="Sales order"
-        class="hidden sm:flex"
-        v-model="createSalesOrder"
-      />
       <Badge
         v-if="currentRoute === 'Pos' && badgeComponent"
         :label="badgeComponent.label"
@@ -35,34 +28,29 @@
 <script setup>
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { Switch, Badge } from 'frappe-ui';
+import { Badge } from 'frappe-ui';
+import { useSaleMode } from '@/composables/useSaleMode';
 import { usePosProfileStore } from '@/stores/posProfile';
 import { useInvoiceStore } from '@/stores/pos';
 
 const store = usePosProfileStore();
 const router = useRouter();
 const invoiceStore = useInvoiceStore()
+const { asSalesOrder } = useSaleMode()
 
 const currentRoute = computed(() => router.currentRoute.value.name)
-
-const createSalesOrder = computed({
-  get() {
-    return store.posProfileData?.custom_set_sales_order === 1;
-  },
-  set(value) {
-    if (store.posProfileData) {
-      store.posProfileData.custom_set_sales_order = value ? 1 : 0;
-    }
-  },
-});
 
 const title = computed(() => ({ Pos: 'Point of sale', Payments: 'Payments' }[currentRoute.value] || currentRoute.value))
 
 const badgeComponent = computed(() => {
   if (invoiceStore.invoice?.is_return) return { label: 'Return', theme: 'orange' };
-  if (!invoiceStore.items.length) return { label: 'New sale', theme: 'green' };
-  if (invoiceStore.invoice?.status) return { label: 'Draft', theme: 'blue' };
-  return { label: 'Not saved', theme: 'gray' };
+  if (!invoiceStore.items.length) return { label: asSalesOrder.value ? 'New order' : 'New sale', theme: 'green' };
+  // A temp name (new-...) means the sale has never been saved. The status
+  // alone is not enough: a fresh invoice already has status "Draft".
+  const saved = !String(invoiceStore.invoice?.name || '').startsWith('new-');
+  const kind = asSalesOrder.value ? 'Order' : '';
+  if (saved) return { label: kind ? `${kind} · Draft` : 'Draft', theme: 'blue' };
+  return { label: kind ? `${kind} · Not saved` : 'Not saved', theme: 'gray' };
 });
 
 </script>

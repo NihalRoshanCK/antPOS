@@ -33,6 +33,7 @@ declare module 'vue' {
     Return: typeof import('./src/components/Dialog/Return.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    SaleModeBar: typeof import('./src/components/pos/SaleModeBar.vue')['default']
     Settings: typeof import('./src/components/Dialog/Settings.vue')['default']
     Sidebar: typeof import('./src/components/Sidebar.vue')['default']
     SidebarLink: typeof import('./src/components/SidebarLink.vue')['default']

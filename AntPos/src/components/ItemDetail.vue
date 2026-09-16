@@ -10,6 +10,8 @@
             @create="loadComponent('CustomerForm')"
         />
 
+        <SaleModeBar v-if="!paying" />
+
         <p v-if="invoiceStore.invoice.is_return"
            class="shrink-0 border-b border-outline-amber-1 bg-surface-amber-1 px-4 py-2 text-sm text-ink-amber-3">
             Return: quantities are negative and the customer will be credited.
@@ -162,6 +164,7 @@
 import { Button, FeatherIcon, createResource, debounce } from 'frappe-ui';
 import { inject, watch, computed } from 'vue';
 import CustomerBar from '@/components/pos/CustomerBar.vue';
+import SaleModeBar from '@/components/pos/SaleModeBar.vue';
 import TotalsReadout from '@/components/pos/TotalsReadout.vue';
 import { createToast, showToast } from '@/utils';
 import { usePosProfileStore } from '@/stores/posProfile';
