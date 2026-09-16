@@ -59,6 +59,20 @@ export function useInvoiceRecalc() {
         'modified', 'modified_by', 'amended_from', '__islocal', '__unsaved',
     ]);
 
+    // custom_id is a Data field, so it can come back as a string.
+    const lineId = (line) => (line.custom_id == null ? null : String(line.custom_id));
+
+    // True when a response covers exactly the lines now in the cart. Lines
+    // the server adds itself (free items from pricing rules) have no
+    // custom_id and are ignored.
+    const sameLines = (responseItems = []) => {
+        const current = invoiceStore.items.map(lineId);
+        const returned = responseItems.map(lineId).filter((id) => id != null);
+        if (!current.length || current.length !== returned.length) return false;
+        const ids = new Set(current);
+        return returned.every((id) => ids.has(id));
+    };
+
     const runDocMethod = createResource({
         url: 'ant_pos.ant_pos.api.sales_invoice.calculate_invoice_item_taxes',
         method: 'POST',
@@ -102,6 +116,12 @@ export function useInvoiceRecalc() {
             // screen from the saved draft (the next Pay then created a duplicate).
             if (invoiceStore.invoice.docstatus) return;
 
+            // So is one computed for a different set of lines: removing the
+            // last line resets the sale, and the reply for the previous lines
+            // then wrote their totals onto the empty cart. Any change to the
+            // lines queues a fresh recalculation, so skipping loses nothing.
+            if (!sameLines(data.items)) return;
+
             for (const key in data) {
                 if (RECALC_SKIP_KEYS.has(key)) continue;
 
@@ -114,7 +134,7 @@ export function useInvoiceRecalc() {
                 }
             }
             data.items.forEach(n => {
-                const e = invoiceStore.items.find(b => b.custom_id === n.custom_id);
+                const e = invoiceStore.items.find(b => lineId(b) === lineId(n));
                 if (!e) return;
                 for (const k in n) {
                     if (k !== 'custom_id' && e[k] !== n[k]) {

@@ -1,4 +1,5 @@
 import { ref } from 'vue';
+import { handleStaleBuild, isStaleBuildError } from '@/utils/staleBuild';
 
 export function useDynamicComponent() {
     const currentComponent = ref(null);
@@ -34,6 +35,7 @@ export function useDynamicComponent() {
         } catch (error) {
             console.error('Error loading component:', error);
             currentComponent.value = null;
+            if (isStaleBuildError(error)) handleStaleBuild();
         }
     };
 

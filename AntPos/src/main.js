@@ -5,6 +5,7 @@ import router from './router'
 import App from './App.vue'
 import translationPlugin from './translation'
 import { useDynamicComponent } from './utils/Dialog';
+import { handleStaleBuild, isStaleBuildError } from './utils/staleBuild';
 import mitt from 'mitt';
 
 import {
@@ -41,6 +42,16 @@ app.provide('dynamicComponent', useDynamicComponent());
 app.provide('emitter', emitter);
 
 app.mount('#app')
+
+// A lazily loaded page or dialog whose file is gone means this tab predates
+// the current build (see utils/staleBuild.js). Vite reports failed preloads
+// here; the router reports failed page loads through onError.
+// The event is not cancelled, so the import still rejects and the caller's
+// own error handling runs as before.
+window.addEventListener('vite:preloadError', () => handleStaleBuild())
+router.onError((error) => {
+  if (isStaleBuildError(error)) handleStaleBuild()
+})
 // Offline shell. The worker lives under /assets/ant_pos/antPOS/, so claiming the
 // /antPOS/ scope needs the Service-Worker-Allowed header (docs/DEPLOYMENT.md).
 // Without it the browser refuses the registration; the app works normally, it
