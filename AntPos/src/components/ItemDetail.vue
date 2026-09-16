@@ -226,7 +226,7 @@ let sales_invoice = createResource({
                 conversion_rate: 1,
                 selling_price_list: store.posProfileData.selling_price_list,
                 items: invoiceStore.items,
-                customer: invoiceStore.invoiceCustomer.name,
+                customer: invoiceStore.invoiceCustomer?.name,
                 update_stock: 1,
                 additional_discount_percentage: Number(invoiceStore.invoice._additional_discount_percentage) || 0,
                 discount_amount: Number(invoiceStore.invoice._discount_amount) || 0,

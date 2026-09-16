@@ -189,15 +189,17 @@ const setPageLength = (size) => {
         invoices.reload();
     }
 };
+const buildInvoiceFilters = (customer) => ({
+    outstanding_amount: ['>', 0],
+    docstatus: 1,
+    is_return: 0,
+    customer: customer || paymentStore.paymentCustomer?.name,
+});
+
 const invoices = createListResource({
     doctype: 'Sales Invoice',
     fields: ['name', 'customer', 'grand_total', 'outstanding_amount'],
-    filters: { 
-        outstanding_amount: [">", 0],
-        docstatus: 1, 
-        is_return: 0, 
-        customer: paymentStore.paymentCustomer.name
-    },
+    filters: buildInvoiceFilters(),
     orderBy: 'creation asc',
     // The page-size buttons and "Load more" below drive this; it must not be
     // Infinity. (There used to be a second pageLength key here that silently
@@ -212,7 +214,7 @@ const invoices = createListResource({
 });
 
 const filteredInvoices = computed(() => {
-    if (!invoices.data || !paymentStore.paymentCustomer.name) {
+    if (!invoices.data || !paymentStore.paymentCustomer?.name) {
         return [];
     }
     if (!searchQuery.value) {
@@ -226,7 +228,7 @@ const filteredInvoices = computed(() => {
 
 const hasSelectedInvoice = computed(() => {
     if (currentTab.value === 'credit') return invoices.data?.some(inv => inv.selected);
-    else if (currentTab.value === 'advanced') return paymentStore.paymentCustomer.name && modes.value.some(mode => mode.amount > 0);
+    else if (currentTab.value === 'advanced') return paymentStore.paymentCustomer?.name && modes.value.some(mode => mode.amount > 0);
     else return false;
 });
 
@@ -376,7 +378,7 @@ let save = createResource({
                     posting_date: now(),
                     party_type: 'Customer',
                     mode_of_payment: params.mode,
-                    party: paymentStore.paymentCustomer.name,
+                    party: paymentStore.paymentCustomer?.name,
                     company: store.posProfileData?.company,
                     cost_center: store.posProfileData?.cost_center,
                     // paid_from / paid_to and their currencies are company-specific
@@ -406,13 +408,25 @@ let save = createResource({
 });
 
 watch(
-    () => paymentStore.paymentCustomer,
-    (newValue, oldValue) => {
-        if (oldValue != null && newValue.name !== oldValue.name) {
-            paymentStore.paymentCustomer.name = newValue.name;
-            invoices.filters.customer = newValue.name;
-            invoices.fetch();
+    // Watch the name, not the object: the old watcher fired on every identity
+    // change and dereferenced newValue.name, which threw the moment the customer
+    // was cleared and took the whole page down with it (issue #57).
+    () => paymentStore.paymentCustomer?.name || null,
+    (customer, previous) => {
+        if (customer === previous) return;
+
+        if (!customer) {
+            // Clearing the customer must clear their invoices too, otherwise the
+            // previous customer's outstanding list stays on screen.
+            invoices.data = [];
+            selectAll.value = false;
+            paymentStore.payment.paymentAmount = 0;
+            modes.value.forEach((mode) => { mode.amount = 0; });
+            return;
         }
+
+        invoices.update({ filters: buildInvoiceFilters(customer), start: 0 });
+        invoices.reload();
     },
     { immediate: true }
 );
@@ -428,12 +442,7 @@ watch(
 
 watch(searchQuery, (newQuery) => {
   invoices.update({
-    filters: {
-        outstanding_amount: [">", 0],
-        docstatus: 1, 
-        is_return: 0, 
-        customer: paymentStore.paymentCustomer.name
-    },
+    filters: buildInvoiceFilters(),
     orFilters: newQuery
       ? [
           ['name', 'like', `%${newQuery}%`],

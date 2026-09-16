@@ -64,7 +64,7 @@ const searchResource = createResource({
         };
     },
     validate(params) {
-        if (!invoiceStore.invoiceCustomer.name) {
+        if (!invoiceStore.invoiceCustomer?.name) {
             return 'Customer is required'
         }    
         if (!params.search_value) {
@@ -98,7 +98,7 @@ const addItemsResource = createResource({
         return {
             pos_profile: store.posProfileData.name,
             search_value: params.search_value,
-            customer: invoiceStore.invoiceCustomer.name,
+            customer: invoiceStore.invoiceCustomer?.name,
         };
     },
     validate(params) {
@@ -289,7 +289,7 @@ const calculateAmountTotal = async () => {
         company: store.posProfileData.company,
         selling_price_list: store.posProfileData.selling_price_list,
         items: invoiceStore.items,
-        customer: invoiceStore.invoiceCustomer.name,
+        customer: invoiceStore.invoiceCustomer?.name,
         update_stock: 1,
         additional_discount_percentage: invoiceStore.invoice._additional_discount_percentage ? Number(invoiceStore.invoice._additional_discount_percentage) : 0 ,
         discount_amount: invoiceStore.invoice._discount_amount ? Number(invoiceStore.invoice._discount_amount) : 0,

@@ -21,9 +21,11 @@ import { useInvoiceStore } from '@/stores/pos';
 const emit = defineEmits(['update:customer']);
 
 const props = defineProps({
+    // Not `required`: the parent legitimately holds {} before a customer is
+    // picked, and the Autocomplete clear button hands back null.
     customer: {
         type: Object,
-        required: true,
+        default: () => ({}),
     },
 });
 
@@ -119,10 +121,13 @@ onUnmounted(() => {
 });
 
 const selectedCustomer = computed({
-  get: () => props.customer,
+  // The Autocomplete wants null for "nothing selected"; the stores want {}.
+  // Translate at this boundary so a cleared customer can never reach a consumer
+  // as null -- that is what blanked the Payments page (issue #57).
+  get: () => (props.customer && props.customer.name ? props.customer : null),
   set: (newVal) => {
     if (invoiceStore.invoice.is_return) return;
-      emit('update:customer', newVal);
+      emit('update:customer', newVal || {});
       emitter.emit('calctotal');
       emitter.emit('clear', false);
   },
