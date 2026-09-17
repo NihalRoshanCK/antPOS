@@ -68,6 +68,45 @@ Open `https://yoursite.com/antPOS`.
 
 The camera and the installable app need the site to be served over HTTPS.
 
+## Roles
+
+| Role | Can do |
+|---|---|
+| POS Cash | Open and close their shift, sell, take payments, return and print |
+| POS Billing | Prepare and hold sales for a cashier |
+| System Manager | Everything above, plus POS settings, brand and form layouts |
+
+## Contributing
+
+Contributions are welcome.
+
+1. Fork the repository and create a branch from `develop`.
+2. Install the app on a local bench (see [Installation](#installation)).
+3. Set up the checks once with `pre-commit install`. They run ruff for Python and
+   prettier and eslint for the frontend on every commit.
+4. Make your change and run the tests:
+
+   ```bash
+   bench --site yoursite.localhost run-tests --app ant_pos
+   ```
+
+5. Open a pull request against `develop` with a short description of the change.
+
+Found a bug or have an idea? [Open an issue](https://github.com/anthertech/antPOS/issues).
+
+## Support
+
+- Issues: [github.com/anthertech/antPOS/issues](https://github.com/anthertech/antPOS/issues)
+- Email: [support@anthertech.com](mailto:support@anthertech.com)
+
+## Built with
+
+- [Frappe Framework](https://frappe.io/framework)
+- [ERPNext](https://frappe.io/erpnext)
+- [Frappe UI](https://ui.frappe.io)
+
 ## License
 
-MIT
+antPOS is released under the [MIT License](license.txt).
+
+Copyright (c) 2024 Anther Technologies Pvt Ltd
