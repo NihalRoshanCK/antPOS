@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **Camera scanning on phones.** A button beside the scan box opens the
+  camera and reads barcodes and QR codes continuously, adding each item as a
+  typed scan would. Uses the browser's barcode detector where available and a
+  lazily loaded ZXing decoder elsewhere; has a light toggle where supported.
+
 ## 0.2.0 — 2026-09-17
 
 Run `bench --site <site> migrate` after upgrading; see

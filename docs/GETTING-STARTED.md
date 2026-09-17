@@ -200,8 +200,14 @@ Nothing can be scanned until a customer is chosen — the scan is rejected with
 
 Tap an item in the list on the left, or type or scan into the search box.
 Typing filters the list as you go; **Enter** looks the text up as a barcode,
-serial or batch number. On a phone, the list opens from the grid button next to
-the search box and stays open so you can add several items.
+serial or batch number. On a phone, the item list is the main screen.
+
+**Camera scanning (phones).** The barcode button next to the search box opens
+the camera. Point it at a barcode (EAN, UPC, Code 128/39/93, ITF, Codabar) or a
+QR / Data Matrix code; each code read is added like a typed scan, and the camera
+stays open for the next item until you press **Done**. Holding the same code in
+view does not add it twice. The camera needs HTTPS (or `localhost`) and the
+browser's camera permission; the light button appears on phones that have one.
 
 Scanning resolves, in order: **barcode → serial
 number → batch number → item code**, then item name if

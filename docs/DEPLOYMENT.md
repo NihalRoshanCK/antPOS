@@ -34,6 +34,13 @@ What the worker does:
 3. `curl -I https://<site>/antPOS/sw.js` should return
    `Content-Type: application/javascript` and `Service-Worker-Allowed: /antPOS`.
 
+## Camera scanning
+
+Browsers only allow the camera on HTTPS pages (or `localhost`); on plain HTTP
+the scan button explains this instead of opening. Chrome on Android uses its
+built-in barcode detector; other browsers (iOS Safari included) load the ZXing
+decoder, a separate ~400 KB file fetched the first time the camera is opened.
+
 ## Assets
 
 - `bench build --app ant_pos` regenerates everything under

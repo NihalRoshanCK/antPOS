@@ -10,6 +10,7 @@ declare module 'vue' {
   export interface GlobalComponents {
     BottomSheet: typeof import('./src/components/mobile/BottomSheet.vue')['default']
     BrandPage: typeof import('./src/components/settings/BrandPage.vue')['default']
+    CameraScanner: typeof import('./src/components/mobile/CameraScanner.vue')['default']
     CartBar: typeof import('./src/components/mobile/CartBar.vue')['default']
     ChangePasswordDialog: typeof import('./src/components/settings/ChangePasswordDialog.vue')['default']
     CloseShift: typeof import('./src/components/Dialog/CloseShift.vue')['default']

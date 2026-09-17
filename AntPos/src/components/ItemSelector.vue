@@ -26,7 +26,23 @@
           </template>
         </FormControl>
       </div>
+      <button
+        v-if="compact && cameraAvailable"
+        type="button"
+        class="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-surface-gray-2 text-ink-gray-8 active:bg-surface-gray-3 disabled:opacity-50"
+        aria-label="Scan with camera"
+        :disabled="Boolean(invoiceStore.invoice.is_return)"
+        @click="openCamera"
+      >
+        <LucideScanBarcode class="h-5 w-5" aria-hidden="true" />
+      </button>
     </div>
+
+    <CameraScanner
+      v-if="compact && cameraAvailable"
+      v-model="cameraOpen"
+      @scan="scanCode"
+    />
 
     <!-- The list lives in the pane on desktop and is the main screen on phones. -->
     <ItemCatalog
@@ -69,6 +85,9 @@
 import { FormControl, FeatherIcon, createResource } from 'frappe-ui'
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 import ItemCatalog from '@/components/pos/ItemCatalog.vue'
+import CameraScanner from '@/components/mobile/CameraScanner.vue'
+import LucideScanBarcode from '~icons/lucide/scan-barcode'
+import { cameraSupport } from '@/utils/barcodeScanner'
 import { createToast } from '@/utils'
 import { showToast } from '@/utils'
 import { usePosProfileStore } from '@/stores/posProfile'
@@ -141,13 +160,14 @@ const addFromList = (item) => {
     })
 }
 
-const searchResource = createResource({
+// Shared by typed searches (debounced) and camera scans (not debounced, so
+// a failed lookup can be caught instead of surfacing as an unhandled error).
+const scanOptions = {
   url: 'ant_pos.ant_pos.api.item.scan_barcode',
   method: 'GET',
-  debounce: 300,
-  makeParams() {
+  makeParams(params) {
     return {
-      search_value: debounceSearch.value,
+      search_value: params?.search_value ?? debounceSearch.value,
       search_itemname:
         store.posProfileData.custom_allow_item_name_in_in_item_search,
     }
@@ -180,7 +200,10 @@ const searchResource = createResource({
       timeout: 5,
     })
   },
-})
+}
+
+const searchResource = createResource({ ...scanOptions, debounce: 300 })
+const cameraScanResource = createResource(scanOptions)
 
 const addItemsResource = createResource({
   url: 'ant_pos.ant_pos.api.item.items',
@@ -241,6 +264,28 @@ const addItemsResource = createResource({
 
 const fetchSearchResource = () => {
   searchResource.fetch()
+}
+
+// Camera scanning (phones). Needs HTTPS; hidden where there is no camera API.
+const cameraAvailable = cameraSupport() !== 'unsupported'
+const cameraOpen = ref(false)
+
+const openCamera = () => {
+  if (cameraSupport() === 'insecure') {
+    showToast('warning', 'The camera needs the site to be opened over HTTPS')
+    return
+  }
+  if (!invoiceStore.invoiceCustomer?.name) {
+    showToast('warning', 'Choose a customer first')
+    return
+  }
+  cameraOpen.value = true
+}
+
+// A code from the camera goes the same way as one typed and entered.
+const scanCode = (code) => {
+  // Failures are shown by the resource's onError.
+  cameraScanResource.fetch({ search_value: code }).catch(() => {})
 }
 
 const addItem = (data) => {

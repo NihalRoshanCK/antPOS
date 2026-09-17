@@ -97,6 +97,9 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (!id.includes('node_modules')) return
+          // The camera scanner's decoder loads only when the camera is opened.
+          if (/[\\/]node_modules[\\/](@zxing|ts-custom-error)[\\/]/.test(id))
+            return
           // Rollup's CommonJS wrappers (e.g. for vuedraggable's require('vue'))
           // import helpers that live in `vendor`; keeping them out of
           // vendor-vue avoids a vendor <-> vendor-vue cycle, which broke

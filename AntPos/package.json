@@ -12,6 +12,8 @@
     "format:check": "prettier --check src vite.config.mjs eslint.config.mjs"
   },
   "dependencies": {
+    "@zxing/browser": "^0.1.5",
+    "@zxing/library": "^0.21.3",
     "feather-icons": "^4.29.1",
     "frappe-ui": "0.1.278",
     "mitt": "^3.0.1",
